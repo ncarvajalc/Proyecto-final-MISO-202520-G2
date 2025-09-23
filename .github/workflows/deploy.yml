@@ -22,12 +22,14 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Node.js
+        working-directory: ./cliente_web
         uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: "npm"
 
       - name: Setup pnpm
+        working-directory: ./cliente_web
         uses: pnpm/action-setup@v2
         with:
           version: 8
@@ -38,6 +40,7 @@ jobs:
           echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
 
       - name: Setup pnpm cache
+        working-directory: ./cliente_web
         uses: actions/cache@v4
         with:
           path: ${{ env.STORE_PATH }}
@@ -56,6 +59,7 @@ jobs:
           VITE_BASE: /Proyecto-final-MISO-202520-G2/
 
       - name: Setup Pages
+        working-directory: ./cliente_web
         uses: actions/configure-pages@v4
 
       - name: Upload artifact
