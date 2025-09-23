@@ -1,5 +1,6 @@
 import logo from "/logo.svg";
 import { Button } from "./ui/button";
+import { Link } from "react-router-dom";
 
 const Navbar = () => {
   return (
@@ -16,6 +17,12 @@ const Navbar = () => {
             </div>
 
             {/* Navigation links */}
+            <div className="flex items-center space-x-2">
+              <Link to="/">Inicio</Link>
+              <Link to="/catalogos">Catálogos</Link>
+              <Link to="/comercial">Comercial</Link>
+              <Link to="/logistica">Logística</Link>
+            </div>
 
             {/* Logout button */}
             <Button variant="default">Cerrar sesión</Button>

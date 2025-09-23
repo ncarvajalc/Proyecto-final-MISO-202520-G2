@@ -8,7 +8,7 @@ export default function NotFound() {
       <p className="mt-2 text-sm text-white">
         Ups, la página que buscas no existe.
       </p>
-      <Button variant="secondary" className="mt-4 text-white" asChild>
+      <Button variant="default" className="mt-4 text-white" asChild>
         <Link to="/">Volver a la página principal</Link>
       </Button>
     </div>
