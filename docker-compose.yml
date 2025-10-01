@@ -19,6 +19,7 @@ services:
     profiles:
       - access
       - todo
+      - backend
   access_control:
     build: ./backend/access_control
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000
@@ -33,12 +34,26 @@ services:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 4s
-      timeout: 2s
-      retries: 2
+      interval: 10s
+      timeout: 5s
+      retries: 5
     profiles:
       - access
       - todo
+      - backend
+  cliente_web:
+    build: ./cliente_web
+    command: pnpm run dev --host 0.0.0.0 --port 3000
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+    depends_on:
+      - access_control
+    restart: on-failure
+    profiles:
+      - todo
+      - web
 volumes:
   access_control_data:
   app_user:
