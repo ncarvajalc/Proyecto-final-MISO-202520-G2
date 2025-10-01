@@ -1,0 +1,44 @@
+version: '3.9'
+services:
+  access-control-db:
+    image: postgres:latest
+    restart: always
+    environment:
+      POSTGRES_USER: access_control_user
+      POSTGRES_PASSWORD: access_control_password
+      POSTGRES_DB: access_control_schema
+    ports:
+      - "5432:5432"
+    volumes:
+      - access_control_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U access_control_user -d access_control_schema"]
+      interval: 4s
+      timeout: 2s
+      retries: 2
+    profiles:
+      - access
+      - todo
+  access_control:
+    build: ./backend/access_control
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    volumes:
+      - app_user:/app/app
+    environment:
+      - DATABASE_URL=postgresql://access_control_user:access_control_password@access-control-db:5432/access_control_schema
+    ports:
+      - "8000:8000"
+    depends_on:
+      access-control-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 4s
+      timeout: 2s
+      retries: 2
+    profiles:
+      - access
+      - todo
+volumes:
+  access_control_data:
+  app_user:
