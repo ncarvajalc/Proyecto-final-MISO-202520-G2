@@ -1,6 +1,6 @@
 import logo from "/logo.svg";
 import { Button } from "./ui/button";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -9,8 +9,17 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from "./ui/navigation-menu";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Navbar = () => {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
+
   return (
     <>
       {/* Top black strip */}
@@ -116,7 +125,9 @@ const Navbar = () => {
             </div>
 
             {/* Logout button */}
-            <Button variant="default">Cerrar sesión</Button>
+            <Button variant="default" onClick={handleLogout}>
+              Cerrar sesión
+            </Button>
           </div>
         </div>
       </nav>
