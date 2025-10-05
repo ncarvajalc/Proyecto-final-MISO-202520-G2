@@ -7,14 +7,16 @@ import Footer from "./components/Footer";
 
 function App() {
   return (
-    <div>
-      <main>
+    <div className="h-screen flex flex-col">
+      <Navbar />
+      <div className="flex-1 flex flex-col min-h-0">
         <Suspense fallback={<Loading />}>
-          <Navbar />
-          <Outlet />
-          <Footer />
+          <div className="flex-1 container mx-auto px-4 py-8 text-center overflow-auto">
+            <Outlet />
+          </div>
         </Suspense>
-      </main>
+      </div>
+      <Footer />
     </div>
   );
 }
