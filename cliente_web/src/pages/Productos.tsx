@@ -13,11 +13,13 @@ import {
 import { Pagination } from "@/components/ui/pagination";
 import { getProductos } from "@/services/productos.service";
 import { Plus, Upload, ShoppingBag } from "lucide-react";
+import { CreateProductoForm } from "@/components/producto/CreateProductoForm";
 
 const ITEMS_PER_PAGE = 5;
 
 export default function Productos() {
   const [currentPage, setCurrentPage] = useState(1);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
   // Fetch productos using TanStack Query
   const { data, isLoading, isError } = useQuery({
@@ -37,10 +39,9 @@ export default function Productos() {
 
   const totalPages = Math.ceil((data?.total || 0) / ITEMS_PER_PAGE);
 
-  // Button handlers (to be implemented later)
+  // Button handlers
   const handleNuevoProducto = () => {
-    console.log("Nuevo producto clicked");
-    // TODO: Implement create producto functionality
+    setIsCreateDialogOpen(true);
   };
 
   const handleCargaMasiva = () => {
@@ -160,11 +161,12 @@ export default function Productos() {
                           Instalación
                         </div>
                       )}
-                      {producto.hojaTecnica.certificaciones && (
-                        <div className="text-muted-foreground">
-                          ✓ {producto.hojaTecnica.certificaciones}
-                        </div>
-                      )}
+                      {producto.hojaTecnica.certificaciones &&
+                        producto.hojaTecnica.certificaciones.length > 0 && (
+                          <div className="text-muted-foreground">
+                            ✓ {producto.hojaTecnica.certificaciones.join(", ")}
+                          </div>
+                        )}
                     </div>
                   ) : (
                     <span className="text-muted-foreground text-xs">
@@ -189,6 +191,12 @@ export default function Productos() {
           />
         </div>
       )}
+
+      {/* Create Producto Dialog */}
+      <CreateProductoForm
+        open={isCreateDialogOpen}
+        onOpenChange={setIsCreateDialogOpen}
+      />
     </div>
   );
 }

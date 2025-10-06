@@ -31,7 +31,7 @@ const MOCK_PRODUCTOS: Producto[] = [
     hojaTecnica: {
       urlManual: "https://ejemplo.com/manuales/paracetamol.pdf",
       urlHojaInstalacion: "https://ejemplo.com/instalacion/paracetamol.pdf",
-      certificaciones: "INVIMA, FDA",
+      certificaciones: ["INVIMA", "FDA"],
     },
   },
   {
@@ -62,7 +62,7 @@ const MOCK_PRODUCTOS: Producto[] = [
     ],
     hojaTecnica: {
       urlManual: "https://ejemplo.com/manuales/amoxicilina.pdf",
-      certificaciones: "INVIMA",
+      certificaciones: ["INVIMA"],
     },
   },
   {
@@ -100,7 +100,7 @@ const MOCK_PRODUCTOS: Producto[] = [
     hojaTecnica: {
       urlManual: "https://ejemplo.com/manuales/acetaminofen-jarabe.pdf",
       urlHojaInstalacion: "https://ejemplo.com/instalacion/acetaminofen.pdf",
-      certificaciones: "INVIMA, Certificación pediátrica",
+      certificaciones: ["INVIMA", "OMS"],
     },
   },
   {
@@ -143,6 +143,48 @@ export const getProductos = async (): Promise<ProductosResponse> => {
 /**
  * Create a new producto
  *
+ * @param producto - Producto data without id
+ * @returns Created producto with id
+ *
+ * Backend Contract Example:
+ *
+ * POST /api/productos
+ * Content-Type: application/json
+ *
+ * Request Body:
+ * {
+ *   "sku": "MED-001",
+ *   "nombre": "Paracetamol 500mg",
+ *   "descripcion": "Analgésico y antipirético",
+ *   "precio": 5000,
+ *   "activo": true,
+ *   "especificaciones": [
+ *     { "nombre": "Presentación", "valor": "Caja x 20" },
+ *     { "nombre": "Concentración", "valor": "500mg" }
+ *   ],
+ *   "hojaTecnica": {
+ *     "urlManual": "https://ejemplo.com/manual.pdf",
+ *     "urlHojaInstalacion": "https://ejemplo.com/instalacion.pdf",
+ *     "certificaciones": ["INVIMA", "FDA", "ISO 9001"]
+ *   }
+ * }
+ *
+ * Response:
+ * {
+ *   "id": "123",
+ *   "sku": "MED-001",
+ *   "nombre": "Paracetamol 500mg",
+ *   "descripcion": "Analgésico y antipirético",
+ *   "precio": 5000,
+ *   "activo": true,
+ *   "especificaciones": [...],
+ *   "hojaTecnica": {
+ *     "urlManual": "https://ejemplo.com/manual.pdf",
+ *     "urlHojaInstalacion": "https://ejemplo.com/instalacion.pdf",
+ *     "certificaciones": ["INVIMA", "FDA", "ISO 9001"]
+ *   }
+ * }
+ *
  * TODO: Replace with real API call when backend is ready
  * Example:
  * ```
@@ -156,11 +198,16 @@ export const createProducto = async (
 ): Promise<Producto> => {
   await new Promise((resolve) => setTimeout(resolve, 500));
 
-  // Mock response
-  return {
+  // Mock response - Add to mock data for immediate visibility
+  const newProducto = {
     id: String(Date.now()),
     ...producto,
   };
+
+  // Add to mock data array (in real app, backend handles this)
+  MOCK_PRODUCTOS.push(newProducto);
+
+  return newProducto;
 };
 
 /**

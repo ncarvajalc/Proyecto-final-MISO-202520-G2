@@ -10,7 +10,7 @@ export interface Especificacion {
 export interface HojaTecnica {
   urlManual?: string;
   urlHojaInstalacion?: string;
-  certificaciones?: string;
+  certificaciones?: string[];
 }
 
 export interface Producto {
