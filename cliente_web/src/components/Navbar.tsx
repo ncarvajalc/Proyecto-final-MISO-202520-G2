@@ -9,7 +9,7 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from "./ui/navigation-menu";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth-hooks";
 
 const Navbar = () => {
   const { logout } = useAuth();

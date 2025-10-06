@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
 import { login } from "@/services/auth.service";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth-hooks";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
