@@ -231,3 +231,63 @@ export const deleteProveedor = async (id: string): Promise<void> => {
   console.log(`Proveedor ${id} would be deleted`);
 };
 
+/**
+ * Bulk upload proveedores from CSV file
+ * 
+ * @param file - CSV file with proveedores data
+ * @returns Response with count of created proveedores
+ * 
+ * Backend Contract Example:
+ * 
+ * POST /api/proveedores/bulk-upload
+ * Content-Type: multipart/form-data
+ * 
+ * Request Body:
+ * - file: CSV file
+ * 
+ * Response:
+ * {
+ *   "success": true,
+ *   "created": 15,
+ *   "message": "15 proveedores creados exitosamente"
+ * }
+ * 
+ * CSV Format:
+ * nombre,idTax,direccion,telefono,correo,contacto,estado,certificadoNombre,certificadoCuerpo,certificadoFechaCertificacion,certificadoFechaVencimiento,certificadoUrl
+ * 
+ * TODO: Replace with real API call when backend is ready
+ * Example:
+ * ```
+ * export const bulkUploadProveedores = async (file: File): Promise<{ success: boolean; created: number; message: string }> => {
+ *   const formData = new FormData();
+ *   formData.append('file', file);
+ *   return apiClient.post('/proveedores/bulk-upload', formData, {
+ *     headers: {
+ *       'Content-Type': 'multipart/form-data',
+ *     },
+ *   });
+ * };
+ * ```
+ */
+export const bulkUploadProveedores = async (
+  file: File
+): Promise<{ success: boolean; created: number; message: string }> => {
+  // Simulate API delay
+  await new Promise((resolve) => setTimeout(resolve, 1500));
+
+  // Mock validation - check if file is CSV
+  if (!file.name.endsWith(".csv")) {
+    throw new Error("Solo se permiten archivos CSV");
+  }
+
+  // Mock parsing CSV and creating proveedores
+  // In real implementation, backend would parse and create
+  const mockCreatedCount = Math.floor(Math.random() * 10) + 5; // Random 5-15
+
+  return {
+    success: true,
+    created: mockCreatedCount,
+    message: `${mockCreatedCount} proveedores creados exitosamente`,
+  };
+};
+

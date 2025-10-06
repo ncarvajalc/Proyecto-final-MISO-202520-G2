@@ -13,13 +13,15 @@ import {
 import { Pagination } from "@/components/ui/pagination";
 import { getProveedores } from "@/services/proveedores.service";
 import { Paperclip, Plus } from "lucide-react";
-import { CreateProveedorForm } from "@/components/CreateProveedorForm";
+import { CreateProveedorForm } from "@/components/proveedor/CreateProveedorForm";
+import { BulkUploadProveedoresForm } from "@/components/proveedor/BulkUploadProveedoresForm";
 
 const ITEMS_PER_PAGE = 5;
 
 export default function Proveedores() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isBulkUploadDialogOpen, setIsBulkUploadDialogOpen] = useState(false);
 
   // Fetch proveedores using TanStack Query with server-side pagination
   const { data, isLoading, isError } = useQuery({
@@ -35,8 +37,7 @@ export default function Proveedores() {
   };
 
   const handleCargaMasiva = () => {
-    console.log("Carga masiva clicked");
-    // TODO: Implement bulk upload functionality
+    setIsBulkUploadDialogOpen(true);
   };
 
   if (isLoading) {
@@ -130,6 +131,12 @@ export default function Proveedores() {
       <CreateProveedorForm
         open={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
+      />
+
+      {/* Bulk Upload Proveedores Dialog */}
+      <BulkUploadProveedoresForm
+        open={isBulkUploadDialogOpen}
+        onOpenChange={setIsBulkUploadDialogOpen}
       />
     </div>
   );
