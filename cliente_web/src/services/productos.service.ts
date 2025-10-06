@@ -9,7 +9,7 @@
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { apiClient } from "@/lib/api-client";
-import type { Producto, ProductosResponse } from "@/types/producto";
+import type { Producto, ProductosResponse, PaginationParams } from "@/types/producto";
 
 /**
  * Mock data for testing
@@ -119,24 +119,66 @@ const MOCK_PRODUCTOS: Producto[] = [
 ];
 
 /**
- * Fetch all productos
+ * Fetch productos with pagination
+ *
+ * @param params - Pagination parameters (page and limit)
+ * @returns Paginated list of productos
+ *
+ * Backend Contract Example:
+ *
+ * GET /api/productos?page=1&limit=5
+ *
+ * Response:
+ * {
+ *   "data": [
+ *     {
+ *       "id": "1",
+ *       "sku": "MED-001",
+ *       "nombre": "Paracetamol 500mg",
+ *       "descripcion": "Analgésico y antipirético",
+ *       "precio": 5000,
+ *       "activo": true,
+ *       "especificaciones": [...],
+ *       "hojaTecnica": {...}
+ *     },
+ *     // ... more items
+ *   ],
+ *   "total": 100,        // Total number of records in database
+ *   "page": 1,           // Current page
+ *   "limit": 5,          // Items per page
+ *   "totalPages": 20     // Total pages (calculated as Math.ceil(total / limit))
+ * }
  *
  * TODO: Replace with real API call when backend is ready
- * Example:
- * ```
- * export const getProductos = async (): Promise<ProductosResponse> => {
- *   return apiClient.get<ProductosResponse>('/productos');
+ * Example implementation:
+ * ```typescript
+ * export const getProductos = async (params: PaginationParams): Promise<ProductosResponse> => {
+ *   return apiClient.get<ProductosResponse>('/productos', {
+ *     params: {
+ *       page: params.page,
+ *       limit: params.limit
+ *     }
+ *   });
  * };
  * ```
  */
-export const getProductos = async (): Promise<ProductosResponse> => {
+export const getProductos = async (params: PaginationParams): Promise<ProductosResponse> => {
   // Simulate API delay
   await new Promise((resolve) => setTimeout(resolve, 500));
 
-  // Mock response
+  // Simulate server-side pagination
+  const startIndex = (params.page - 1) * params.limit;
+  const endIndex = startIndex + params.limit;
+  const paginatedData = MOCK_PRODUCTOS.slice(startIndex, endIndex);
+  const totalPages = Math.ceil(MOCK_PRODUCTOS.length / params.limit);
+
+  // Mock response matching backend contract
   return {
-    data: MOCK_PRODUCTOS,
+    data: paginatedData,
     total: MOCK_PRODUCTOS.length,
+    page: params.page,
+    limit: params.limit,
+    totalPages: totalPages,
   };
 };
 
@@ -259,5 +301,69 @@ export const deleteProducto = async (id: string): Promise<void> => {
 
   // In mock, we don't actually delete
   console.log(`Producto ${id} would be deleted`);
+};
+
+/**
+ * Bulk upload productos from CSV file
+ *
+ * @param file - CSV file with productos data
+ * @returns Response with count of created productos
+ *
+ * Backend Contract Example:
+ *
+ * POST /api/productos/bulk-upload
+ * Content-Type: multipart/form-data
+ *
+ * Request Body:
+ * - file: CSV file
+ *
+ * Response:
+ * {
+ *   "success": true,
+ *   "created": 15,
+ *   "message": "15 productos creados exitosamente"
+ * }
+ *
+ * CSV Format:
+ * sku,nombre,descripcion,precio,especificaciones,urlManual,urlHojaInstalacion,certificaciones
+ *
+ * Notes:
+ * - especificaciones: JSON string like '[{"nombre":"Presentación","valor":"Caja x 20"}]'
+ * - certificaciones: Comma-separated values like 'INVIMA,FDA,ISO 9001'
+ *
+ * TODO: Replace with real API call when backend is ready
+ * Example:
+ * ```
+ * export const bulkUploadProductos = async (file: File): Promise<{ success: boolean; created: number; message: string }> => {
+ *   const formData = new FormData();
+ *   formData.append('file', file);
+ *   return apiClient.post('/productos/bulk-upload', formData, {
+ *     headers: {
+ *       'Content-Type': 'multipart/form-data',
+ *     },
+ *   });
+ * };
+ * ```
+ */
+export const bulkUploadProductos = async (
+  file: File
+): Promise<{ success: boolean; created: number; message: string }> => {
+  // Simulate API delay
+  await new Promise((resolve) => setTimeout(resolve, 1500));
+
+  // Mock validation - check if file is CSV
+  if (!file.name.endsWith(".csv")) {
+    throw new Error("Solo se permiten archivos CSV");
+  }
+
+  // Mock parsing CSV and creating productos
+  // In real implementation, backend would parse and create
+  const mockCreatedCount = Math.floor(Math.random() * 10) + 5; // Random 5-15
+
+  return {
+    success: true,
+    created: mockCreatedCount,
+    message: `${mockCreatedCount} productos creados exitosamente`,
+  };
 };
 

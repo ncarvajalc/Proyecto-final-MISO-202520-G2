@@ -27,8 +27,16 @@ export interface Producto {
   activo: boolean;
 }
 
+export interface PaginationParams {
+  page: number;
+  limit: number;
+}
+
 export interface ProductosResponse {
   data: Producto[];
   total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 }
 

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Typography1 } from "@/components/ui/typography1";
 import { Button } from "@/components/ui/button";
@@ -14,30 +14,22 @@ import { Pagination } from "@/components/ui/pagination";
 import { getProductos } from "@/services/productos.service";
 import { Plus, Upload, ShoppingBag } from "lucide-react";
 import { CreateProductoForm } from "@/components/producto/CreateProductoForm";
+import { BulkUploadProductosForm } from "@/components/producto/BulkUploadProductosForm";
 
 const ITEMS_PER_PAGE = 5;
 
 export default function Productos() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isBulkUploadDialogOpen, setIsBulkUploadDialogOpen] = useState(false);
 
-  // Fetch productos using TanStack Query
+  // Fetch productos using TanStack Query with server-side pagination
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["productos"],
-    queryFn: getProductos,
+    queryKey: ["productos", currentPage, ITEMS_PER_PAGE],
+    queryFn: () => getProductos({ page: currentPage, limit: ITEMS_PER_PAGE }),
   });
 
-  // Client-side pagination
-  const paginatedData = useMemo(() => {
-    if (!data?.data) return [];
-
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    const endIndex = startIndex + ITEMS_PER_PAGE;
-
-    return data.data.slice(startIndex, endIndex);
-  }, [data, currentPage]);
-
-  const totalPages = Math.ceil((data?.total || 0) / ITEMS_PER_PAGE);
+  const totalPages = data?.totalPages || 0;
 
   // Button handlers
   const handleNuevoProducto = () => {
@@ -45,8 +37,7 @@ export default function Productos() {
   };
 
   const handleCargaMasiva = () => {
-    console.log("Carga masiva clicked");
-    // TODO: Implement bulk upload functionality
+    setIsBulkUploadDialogOpen(true);
   };
 
   const handleStock = () => {
@@ -106,7 +97,7 @@ export default function Productos() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {paginatedData.length === 0 ? (
+          {!data?.data || data.data.length === 0 ? (
             <TableRow>
               <TableCell
                 colSpan={7}
@@ -116,7 +107,7 @@ export default function Productos() {
               </TableCell>
             </TableRow>
           ) : (
-            paginatedData.map((producto) => (
+            data.data.map((producto) => (
               <TableRow key={producto.id}>
                 <TableCell className="font-medium">{producto.sku}</TableCell>
                 <TableCell>{producto.nombre}</TableCell>
@@ -196,6 +187,12 @@ export default function Productos() {
       <CreateProductoForm
         open={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
+      />
+
+      {/* Bulk Upload Productos Dialog */}
+      <BulkUploadProductosForm
+        open={isBulkUploadDialogOpen}
+        onOpenChange={setIsBulkUploadDialogOpen}
       />
     </div>
   );
