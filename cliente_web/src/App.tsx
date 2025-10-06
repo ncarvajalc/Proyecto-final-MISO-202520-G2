@@ -4,6 +4,7 @@ import { Outlet, useLocation } from "react-router-dom";
 import Loading from "./pages/Loading";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
+import { Toaster } from "./components/ui/sonner";
 
 function App() {
   const location = useLocation();
@@ -20,6 +21,7 @@ function App() {
         </Suspense>
       </div>
       {!isLoginPage && <Footer />}
+      <Toaster />
     </div>
   );
 }

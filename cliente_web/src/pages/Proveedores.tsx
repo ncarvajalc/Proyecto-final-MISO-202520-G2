@@ -13,11 +13,13 @@ import {
 import { Pagination } from "@/components/ui/pagination";
 import { getProveedores } from "@/services/proveedores.service";
 import { Paperclip, Plus } from "lucide-react";
+import { CreateProveedorForm } from "@/components/CreateProveedorForm";
 
 const ITEMS_PER_PAGE = 5;
 
 export default function Proveedores() {
   const [currentPage, setCurrentPage] = useState(1);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
   // Fetch proveedores using TanStack Query with server-side pagination
   const { data, isLoading, isError } = useQuery({
@@ -27,10 +29,9 @@ export default function Proveedores() {
 
   const totalPages = data?.totalPages || 0;
 
-  // Button handlers (to be implemented later)
+  // Button handlers
   const handleNuevoProveedor = () => {
-    console.log("Nuevo proveedor clicked");
-    // TODO: Implement create proveedor functionality
+    setIsCreateDialogOpen(true);
   };
 
   const handleCargaMasiva = () => {
@@ -124,6 +125,12 @@ export default function Proveedores() {
           />
         </div>
       )}
+
+      {/* Create Proveedor Dialog */}
+      <CreateProveedorForm
+        open={isCreateDialogOpen}
+        onOpenChange={setIsCreateDialogOpen}
+      />
     </div>
   );
 }

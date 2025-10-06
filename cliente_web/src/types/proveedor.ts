@@ -2,8 +2,17 @@
  * Proveedor (Provider/Supplier) Types
  */
 
+export interface Certificado {
+  nombre: string;
+  cuerpoCertificador: string;
+  fechaCertificacion: string;
+  fechaVencimiento: string;
+  urlDocumento: string;
+}
+
 export interface Proveedor {
   id: string;
+  // Campos mínimos requeridos
   nombre: string;
   idTax: string;
   direccion: string;
@@ -11,6 +20,8 @@ export interface Proveedor {
   correo: string;
   contacto: string;
   estado: "Activo" | "Inactivo";
+  // Campo opcional
+  certificado?: Certificado;
 }
 
 export interface PaginationParams {

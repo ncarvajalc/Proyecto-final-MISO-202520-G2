@@ -168,11 +168,16 @@ export const createProveedor = async (
 ): Promise<Proveedor> => {
   await new Promise((resolve) => setTimeout(resolve, 500));
   
-  // Mock response
-  return {
+  // Mock response - Add to mock data for immediate visibility
+  const newProveedor = {
     id: String(Date.now()),
     ...proveedor,
   };
+  
+  // Add to mock data array (in real app, backend handles this)
+  MOCK_PROVEEDORES.push(newProveedor);
+  
+  return newProveedor;
 };
 
 /**
