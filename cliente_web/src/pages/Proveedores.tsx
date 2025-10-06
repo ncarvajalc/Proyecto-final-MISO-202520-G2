@@ -83,47 +83,46 @@ export default function Proveedores() {
       </div>
 
       {/* Table */}
-      <div className="rounded-lg border">
-        <Table>
-          <TableHeader>
+
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Nombre</TableHead>
+            <TableHead>Id Tax</TableHead>
+            <TableHead>Dirección</TableHead>
+            <TableHead>Teléfono</TableHead>
+            <TableHead>Correo</TableHead>
+            <TableHead>Contacto</TableHead>
+            <TableHead>Estado</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {paginatedData.length === 0 ? (
             <TableRow>
-              <TableHead>Nombre</TableHead>
-              <TableHead>Id Tax</TableHead>
-              <TableHead>Dirección</TableHead>
-              <TableHead>Teléfono</TableHead>
-              <TableHead>Correo</TableHead>
-              <TableHead>Contacto</TableHead>
-              <TableHead>Estado</TableHead>
+              <TableCell
+                colSpan={7}
+                className="text-center text-muted-foreground"
+              >
+                No hay proveedores disponibles
+              </TableCell>
             </TableRow>
-          </TableHeader>
-          <TableBody>
-            {paginatedData.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={7}
-                  className="text-center text-muted-foreground"
-                >
-                  No hay proveedores disponibles
+          ) : (
+            paginatedData.map((proveedor) => (
+              <TableRow key={proveedor.id}>
+                <TableCell className="font-medium">
+                  {proveedor.nombre}
                 </TableCell>
+                <TableCell>{proveedor.idTax}</TableCell>
+                <TableCell>{proveedor.direccion}</TableCell>
+                <TableCell>{proveedor.telefono}</TableCell>
+                <TableCell>{proveedor.correo}</TableCell>
+                <TableCell>{proveedor.contacto}</TableCell>
+                <TableCell>{proveedor.estado}</TableCell>
               </TableRow>
-            ) : (
-              paginatedData.map((proveedor) => (
-                <TableRow key={proveedor.id}>
-                  <TableCell className="font-medium">
-                    {proveedor.nombre}
-                  </TableCell>
-                  <TableCell>{proveedor.idTax}</TableCell>
-                  <TableCell>{proveedor.direccion}</TableCell>
-                  <TableCell>{proveedor.telefono}</TableCell>
-                  <TableCell>{proveedor.correo}</TableCell>
-                  <TableCell>{proveedor.contacto}</TableCell>
-                  <TableCell>{proveedor.estado}</TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+            ))
+          )}
+        </TableBody>
+      </Table>
 
       {/* Pagination */}
       {totalPages > 1 && (
