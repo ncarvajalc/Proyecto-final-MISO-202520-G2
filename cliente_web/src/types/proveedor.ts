@@ -13,8 +13,16 @@ export interface Proveedor {
   estado: "Activo" | "Inactivo";
 }
 
+export interface PaginationParams {
+  page: number;
+  limit: number;
+}
+
 export interface ProveedoresResponse {
   data: Proveedor[];
   total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 }
 

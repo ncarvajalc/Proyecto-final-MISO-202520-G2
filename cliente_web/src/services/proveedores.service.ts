@@ -7,8 +7,9 @@
  * The apiClient automatically includes JWT token in all requests.
  */
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { apiClient } from "@/lib/api-client";
-import type { Proveedor, ProveedoresResponse } from "@/types/proveedor";
+import type { Proveedor, ProveedoresResponse, PaginationParams } from "@/types/proveedor";
 
 /**
  * Mock data for testing
@@ -88,24 +89,66 @@ const MOCK_PROVEEDORES: Proveedor[] = [
 ];
 
 /**
- * Fetch all proveedores
+ * Fetch proveedores with pagination
+ * 
+ * @param params - Pagination parameters (page and limit)
+ * @returns Paginated list of proveedores
+ * 
+ * Backend Contract Example:
+ * 
+ * GET /api/proveedores?page=1&limit=5
+ * 
+ * Response:
+ * {
+ *   "data": [
+ *     {
+ *       "id": "1",
+ *       "nombre": "Farmacéutica Global S.A.",
+ *       "idTax": "900123456-1",
+ *       "direccion": "Calle 123 #45-67, Bogotá",
+ *       "telefono": "+57 1 234 5678",
+ *       "correo": "contacto@farmglobal.com",
+ *       "contacto": "Juan Pérez",
+ *       "estado": "Activo"
+ *     },
+ *     // ... more items
+ *   ],
+ *   "total": 100,        // Total number of records in database
+ *   "page": 1,           // Current page
+ *   "limit": 5,          // Items per page
+ *   "totalPages": 20     // Total pages (calculated as Math.ceil(total / limit))
+ * }
  * 
  * TODO: Replace with real API call when backend is ready
- * Example:
- * ```
- * export const getProveedores = async (): Promise<ProveedoresResponse> => {
- *   return apiClient.get<ProveedoresResponse>('/proveedores');
+ * Example implementation:
+ * ```typescript
+ * export const getProveedores = async (params: PaginationParams): Promise<ProveedoresResponse> => {
+ *   return apiClient.get<ProveedoresResponse>('/proveedores', {
+ *     params: {
+ *       page: params.page,
+ *       limit: params.limit
+ *     }
+ *   });
  * };
  * ```
  */
-export const getProveedores = async (): Promise<ProveedoresResponse> => {
+export const getProveedores = async (params: PaginationParams): Promise<ProveedoresResponse> => {
   // Simulate API delay
   await new Promise((resolve) => setTimeout(resolve, 500));
 
-  // Mock response
+  // Simulate server-side pagination
+  const startIndex = (params.page - 1) * params.limit;
+  const endIndex = startIndex + params.limit;
+  const paginatedData = MOCK_PROVEEDORES.slice(startIndex, endIndex);
+  const totalPages = Math.ceil(MOCK_PROVEEDORES.length / params.limit);
+
+  // Mock response matching backend contract
   return {
-    data: MOCK_PROVEEDORES,
+    data: paginatedData,
     total: MOCK_PROVEEDORES.length,
+    page: params.page,
+    limit: params.limit,
+    totalPages: totalPages,
   };
 };
 

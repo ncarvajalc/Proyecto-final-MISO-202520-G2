@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Typography1 } from "@/components/ui/typography1";
 import { Button } from "@/components/ui/button";
@@ -19,23 +19,13 @@ const ITEMS_PER_PAGE = 5;
 export default function Proveedores() {
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Fetch proveedores using TanStack Query
+  // Fetch proveedores using TanStack Query with server-side pagination
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["proveedores"],
-    queryFn: getProveedores,
+    queryKey: ["proveedores", currentPage, ITEMS_PER_PAGE],
+    queryFn: () => getProveedores({ page: currentPage, limit: ITEMS_PER_PAGE }),
   });
 
-  // Client-side pagination
-  const paginatedData = useMemo(() => {
-    if (!data?.data) return [];
-
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    const endIndex = startIndex + ITEMS_PER_PAGE;
-
-    return data.data.slice(startIndex, endIndex);
-  }, [data, currentPage]);
-
-  const totalPages = Math.ceil((data?.total || 0) / ITEMS_PER_PAGE);
+  const totalPages = data?.totalPages || 0;
 
   // Button handlers (to be implemented later)
   const handleNuevoProveedor = () => {
@@ -97,7 +87,7 @@ export default function Proveedores() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {paginatedData.length === 0 ? (
+          {!data?.data || data.data.length === 0 ? (
             <TableRow>
               <TableCell
                 colSpan={7}
@@ -107,7 +97,7 @@ export default function Proveedores() {
               </TableCell>
             </TableRow>
           ) : (
-            paginatedData.map((proveedor) => (
+            data.data.map((proveedor) => (
               <TableRow key={proveedor.id}>
                 <TableCell className="font-medium">
                   {proveedor.nombre}
