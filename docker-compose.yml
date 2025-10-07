@@ -12,7 +12,7 @@ services:
     volumes:
       - access_control_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U access_control_user -d access_control_schema"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 4s
       timeout: 2s
       retries: 2
@@ -34,8 +34,8 @@ services:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 10s
-      timeout: 5s
+      interval: 4s
+      timeout: 2s
       retries: 5
     profiles:
       - access
@@ -54,6 +54,50 @@ services:
     profiles:
       - todo
       - web
+  products-db:
+    image: postgres:latest
+    restart: always
+    environment:
+      POSTGRES_USER: product_user
+      POSTGRES_PASSWORD: product_password
+      POSTGRES_DB: product_schema
+    ports:
+      - "5433:5432"
+    volumes:
+      - product_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 4s
+      timeout: 2s
+      retries: 2
+    profiles:
+      - todo
+      - backend
+      - product
+  product:
+    build: ./backend/product
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8001
+    volumes:
+      - app_product:/app/app
+    environment:
+      - DATABASE_URL=postgresql://product_user:product_password@products-db:5432/product_schema
+    ports:
+      - "8001:8001"
+    depends_on:
+      products-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 4s
+      timeout: 2s
+      retries: 5
+    profiles:
+      - todo
+      - backend
+      - product
+
 volumes:
   access_control_data:
   app_user:
+  product_data:
+  app_product:
