@@ -1,20 +1,27 @@
 import { Suspense } from "react";
 import "./App.css";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import Loading from "./pages/Loading";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
+import { Toaster } from "./components/ui/sonner";
 
 function App() {
+  const location = useLocation();
+  const isLoginPage = location.pathname === "/login";
+
   return (
-    <div>
-      <main>
+    <div className="h-screen flex flex-col">
+      {!isLoginPage && <Navbar />}
+      <div className="flex-1 flex flex-col min-h-0">
         <Suspense fallback={<Loading />}>
-          <Navbar />
-          <Outlet />
-          <Footer />
+          <div className="flex-1 container mx-auto px-4 py-8 overflow-auto">
+            <Outlet />
+          </div>
         </Suspense>
-      </main>
+      </div>
+      {!isLoginPage && <Footer />}
+      <Toaster />
     </div>
   );
 }
