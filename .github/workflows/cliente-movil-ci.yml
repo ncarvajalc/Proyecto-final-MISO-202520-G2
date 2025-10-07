@@ -1,0 +1,49 @@
+name: Cliente Móvil tests
+
+on:
+  push:
+    paths:
+      - 'cliente_movil/**'
+      - '.github/workflows/cliente-movil-ci.yml'
+  pull_request:
+    paths:
+      - 'cliente_movil/**'
+      - '.github/workflows/cliente-movil-ci.yml'
+
+concurrency:
+  group: cliente-movil-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: ${{ matrix.label }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - command: test:unit
+            label: Unit tests
+          - command: test:integration
+            label: Integration tests
+          - command: test:functional
+            label: Functional tests
+    defaults:
+      run:
+        working-directory: cliente_movil
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: cliente_movil/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ${{ matrix.label }}
+        run: npm run ${{ matrix.command }}
