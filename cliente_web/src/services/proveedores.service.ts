@@ -8,7 +8,7 @@
  */
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { apiClient } from "@/lib/api-client";
+// import { apiClient } from "@/lib/api-client";
 import type { Proveedor, ProveedoresResponse, PaginationParams } from "@/types/proveedor";
 
 /**
