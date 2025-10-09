@@ -109,7 +109,7 @@ export default function Proveedores() {
                 <TableCell>{proveedor.telefono}</TableCell>
                 <TableCell>{proveedor.correo}</TableCell>
                 <TableCell>{proveedor.contacto}</TableCell>
-                <TableCell>{proveedor.estado}</TableCell>
+                <TableCell>{proveedor.estado || "Inactivo"}</TableCell>
               </TableRow>
             ))
           )}
