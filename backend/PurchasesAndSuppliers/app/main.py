@@ -5,12 +5,10 @@ app = FastAPI()
 from sqlalchemy.exc import OperationalError
 from sqlalchemy import text
 from app.core.database import SessionLocal
-from app.routes import bulk
+from app.modules.products.routes import bulk
 
 
 app.include_router(bulk.router)
-
-
 
 
 @app.get("/health", tags=["health"])
