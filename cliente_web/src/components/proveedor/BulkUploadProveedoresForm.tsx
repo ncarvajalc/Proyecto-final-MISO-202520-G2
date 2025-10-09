@@ -60,7 +60,7 @@ export function BulkUploadProveedoresForm({
 
   const handleDownloadTemplate = () => {
     // Create CSV content
-    const csvContent = `nombre,idTax,direccion,telefono,correo,contacto,estado,certificadoNombre,certificadoCuerpo,certificadoFechaCertificacion,certificadoFechaVencimiento,certificadoUrl
+    const csvContent = `nombre,id_tax,direccion,telefono,correo,contacto,estado,certificadoNombre,certificadoCuerpo,certificadoFechaCertificacion,certificadoFechaVencimiento,certificadoUrl
 Farmacéutica Ejemplo S.A.,900123456-1,Calle 123 #45-67,+57 1 234 5678,contacto@ejemplo.com,Juan Pérez,Activo,ISO 9001,ICONTEC,2024-01-15,2025-01-15,https://ejemplo.com/cert.pdf
 Distribuidora Demo Ltda.,800234567-2,Carrera 45 #12-34,+57 4 345 6789,ventas@demo.com,María García,Activo,,,,,`;
 
