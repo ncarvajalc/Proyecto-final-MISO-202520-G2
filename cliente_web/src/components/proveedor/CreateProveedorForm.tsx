@@ -289,9 +289,9 @@ export function CreateProveedorForm({
                   name="certificadoCuerpo"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Cuerpo certificado</FormLabel>
+                      <FormLabel>Cuerpo certificador</FormLabel>
                       <FormControl>
-                        <Input placeholder="Cuerpo certificado" {...field} />
+                        <Input placeholder="Cuerpo certificador" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
