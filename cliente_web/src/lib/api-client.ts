@@ -24,9 +24,8 @@ import axios from "axios";
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
 import { getAuthToken, removeAuthToken } from "./auth";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "https://api.example.com";
 
-class ApiClient {
+export class ApiClient {
   private axiosInstance: AxiosInstance;
 
   constructor(baseURL: string) {
@@ -160,6 +159,4 @@ class ApiClient {
   }
 }
 
-// Export singleton instance
-export const apiClient = new ApiClient(API_BASE_URL);
 
