@@ -104,7 +104,7 @@ export default function Proveedores() {
                 <TableCell className="font-medium">
                   {proveedor.nombre}
                 </TableCell>
-                <TableCell>{proveedor.idTax}</TableCell>
+                <TableCell>{proveedor.id_tax}</TableCell>
                 <TableCell>{proveedor.direccion}</TableCell>
                 <TableCell>{proveedor.telefono}</TableCell>
                 <TableCell>{proveedor.correo}</TableCell>

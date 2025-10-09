@@ -126,21 +126,21 @@ export function CreateProveedorForm({
 
     const proveedorData = {
       nombre: data.nombre,
-      idTax: data.idTax,
+      id_tax: data.idTax,
       direccion: data.direccion,
       telefono: data.telefono,
       correo: data.correo,
       contacto: data.contacto,
       estado: data.estado,
-      ...(hasCertificado && {
-        certificado: {
-          nombre: data.certificadoNombre || "",
-          cuerpoCertificador: data.certificadoCuerpo || "",
-          fechaCertificacion: data.certificadoFechaCertificacion || "",
-          fechaVencimiento: data.certificadoFechaVencimiento || "",
-          urlDocumento: data.certificadoUrl || "",
-        },
-      }),
+      certificado: hasCertificado
+        ? {
+            nombre: data.certificadoNombre || "",
+            cuerpoCertificador: data.certificadoCuerpo || "",
+            fechaCertificacion: data.certificadoFechaCertificacion || "",
+            fechaVencimiento: data.certificadoFechaVencimiento || "",
+            urlDocumento: data.certificadoUrl || "",
+          }
+        : null,
     };
 
     createMutation.mutate(proveedorData);

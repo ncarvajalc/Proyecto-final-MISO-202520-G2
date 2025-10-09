@@ -11,17 +11,17 @@ export interface Certificado {
 }
 
 export interface Proveedor {
-  id: string;
+  id: number;
   // Campos mínimos requeridos
   nombre: string;
-  idTax: string;
+  id_tax: string | null;
   direccion: string;
   telefono: string;
   correo: string;
   contacto: string;
-  estado: "Activo" | "Inactivo";
+  estado: "Activo" | "Inactivo" | null;
   // Campo opcional
-  certificado?: Certificado;
+  certificado: Certificado | null;
 }
 
 export interface PaginationParams {
