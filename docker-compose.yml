@@ -1,18 +1,19 @@
 version: '3.9'
 services:
-  access-control-db:
+  security-audit-db:
     image: postgres:latest
+    hostname: securitydb
     restart: always
     environment:
-      POSTGRES_USER: access_control_user
-      POSTGRES_PASSWORD: access_control_password
-      POSTGRES_DB: access_control_schema
+      POSTGRES_USER: security_audit_user
+      POSTGRES_PASSWORD: security_audit_password
+      POSTGRES_DB: security_audit_schema
     ports:
       - "5432:5432"
     volumes:
-      - access_control_data:/var/lib/postgresql/data
+      - security_audit_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U access_control_user -d access_control_schema"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 4s
       timeout: 2s
       retries: 2
@@ -20,22 +21,23 @@ services:
       - access
       - todo
       - backend
-  access_control:
-    build: ./backend/access_control
+  security_audit:
+    build: ./backend/SecurityAndAudit
+    hostname: securityapp
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000
     volumes:
       - app_user:/app/app
     environment:
-      - DATABASE_URL=postgresql://access_control_user:access_control_password@access-control-db:5432/access_control_schema
+      - DATABASE_URL=postgresql://security_audit_user:security_audit_password@security-audit-db:5432/security_audit_schema
     ports:
       - "8000:8000"
     depends_on:
-      access-control-db:
+      security-audit-db:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 10s
-      timeout: 5s
+      interval: 4s
+      timeout: 2s
       retries: 5
     profiles:
       - access
@@ -43,17 +45,202 @@ services:
       - backend
   cliente_web:
     build: ./cliente_web
+    hostname: web
     command: pnpm run dev --host 0.0.0.0 --port 3000
     ports:
       - "3000:3000"
     environment:
       - NODE_ENV=development
     depends_on:
-      - access_control
+      - security_audit
     restart: on-failure
     profiles:
       - todo
       - web
+  purchases_suppliers-db:
+    image: postgres:latest
+    hostname: purchasesdb
+    restart: always
+    environment:
+      POSTGRES_USER: purchases_suppliers_user
+      POSTGRES_PASSWORD: purchases_suppliers_password
+      POSTGRES_DB: purchases_suppliers_schema
+    ports:
+      - "5433:5432"
+    volumes:
+      - purchases_suppliers_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 4s
+      timeout: 2s
+      retries: 2
+    profiles:
+      - todo
+      - backend
+      - purchases_suppliers
+  purchases_suppliers:
+    build: ./backend/PurchasesAndSuppliers
+    hostname: purchasesapp
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8001
+    volumes:
+      - app_purchases_suppliers:/app/app
+    environment:
+      - DATABASE_URL=postgresql://purchases_suppliers_user:purchases_suppliers_password@purchases_suppliers-db:5433/purchases_suppliers_schema
+    ports:
+      - "8001:8001"
+    depends_on:
+      purchases_suppliers-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 4s
+      timeout: 2s
+      retries: 5
+    profiles:
+      - todo
+      - backend
+      - purchases_suppliers
+  
+  tracking-db:
+    image: postgres:latest
+    hostname: trackingdb
+    restart: always
+    environment:
+      POSTGRES_USER: tracking_user
+      POSTGRES_PASSWORD: tracking_password
+      POSTGRES_DB: tracking_schema
+    ports:
+      - "5434:5432"
+    volumes:
+      - tracking_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 4s
+      timeout: 2s
+      retries: 2
+    profiles:
+      - todo
+      - backend
+      - tracking
+  tracking:
+    build: ./backend/Tracking
+    hostname: trackingapp
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8002
+    volumes:
+      - app_tracking:/app/app
+    environment:
+      - DATABASE_URL=postgresql://tracking_user:tracking_password@tracking-db:5434/tracking_schema
+    ports:
+      - "8002:8002"
+    depends_on:
+      tracking-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 4s
+      timeout: 2s
+      retries: 5
+    profiles:
+      - todo
+      - backend
+      - tracking
+
+  warehouse-db:
+    image: postgres:latest
+    hostname: warehousedb
+    restart: always
+    environment:
+      POSTGRES_USER: warehouse_user
+      POSTGRES_PASSWORD: warehouse_password
+      POSTGRES_DB: warehouse_schema
+    ports:
+      - "5435:5432"
+    volumes:
+      - warehouse_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 4s
+      timeout: 2s
+      retries: 2
+    profiles:
+      - todo
+      - backend
+      - warehouse
+  warehouse:
+    build: ./backend/Warehouse
+    hostname: warehouseapp
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8003
+    volumes:
+      - app_warehouse:/app/app
+    environment:
+      - DATABASE_URL=postgresql://warehouse_user:warehouse_password@warehouse-db:5435/warehouse_schema
+    ports:
+      - "8003:8003"
+    depends_on:
+      warehouse-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 4s
+      timeout: 2s
+      retries: 5
+    profiles:
+      - todo
+      - backend
+      - warehouse
+
+  salesforce-db:
+    image: postgres:latest
+    hostname: salesforcedb
+    restart: always
+    environment:
+      POSTGRES_USER: salesforce_user
+      POSTGRES_PASSWORD: salesforce_password
+      POSTGRES_DB: salesforce_schema
+    ports:
+      - "5436:5432"
+    volumes:
+      - salesforce_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 4s
+      timeout: 2s
+      retries: 2
+    profiles:
+      - todo
+      - backend
+      - salesforce
+  salesforce:
+    build: ./backend/SalesForce
+    hostname: salesforceapp
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8004
+    volumes:
+      - app_salesforce:/app/app
+    environment:
+      - DATABASE_URL=postgresql://salesforce_user:salesforce_password@salesforce-db:5436/salesforce_schema
+    ports:
+      - "8004:8004"
+    depends_on:
+      salesforce-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8004/health"]
+      interval: 4s
+      timeout: 2s
+      retries: 5
+    profiles:
+      - todo
+      - backend
+      - salesforce
+
 volumes:
-  access_control_data:
+  security_audit_data:
   app_user:
+  purchases_suppliers_data:
+  app_purchases_suppliers:
+  tracking_data:
+  app_tracking:
+  warehouse_data:
+  app_warehouse:
+  salesforce_data:
+  app_salesforce:
