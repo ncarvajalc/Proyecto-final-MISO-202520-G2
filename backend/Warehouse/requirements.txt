@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+pytest
+sqlmodel
+python-dotenv
+pydantic-settings
+python-multipart
+psycopg2-binary
