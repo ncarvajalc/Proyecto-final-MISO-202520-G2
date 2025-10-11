@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { faker } from "@faker-js/faker";
 
 vi.mock("@/services/planesVenta.service", () => ({
   createPlanVenta: vi.fn(),
@@ -28,20 +29,21 @@ const mockedCreatePlanVenta = vi.mocked(createPlanVenta);
 const mockedToast = vi.mocked(toast);
 const mockedGetVendedores = vi.mocked(getVendedores);
 
-const vendedoresResponse = {
-  data: [
-    {
-      id: "vend-1",
-      nombre: "Laura Pérez",
-      correo: "laura.perez@example.com",
-      fechaContratacion: "2024-01-15",
-      planDeVenta: null,
-    },
-  ],
-  total: 1,
-  page: 1,
-  limit: 100,
-  totalPages: 1,
+const buildVendedoresResponse = () => {
+  const vendedor = {
+    id: faker.string.uuid(),
+    nombre: faker.person.fullName(),
+    correo: faker.internet.email(),
+    fechaContratacion: faker.date.past().toISOString().split("T")[0],
+    planDeVenta: null,
+  };
+  return {
+    data: [vendedor],
+    total: 1,
+    page: 1,
+    limit: 100,
+    totalPages: 1,
+  };
 };
 
 const setup = () => {
@@ -58,7 +60,7 @@ const setup = () => {
 
 const selectVendedor = async (
   user: ReturnType<typeof userEvent.setup>,
-  nombre = "Laura Pérez"
+  nombre: string
 ) => {
   const trigger = screen.getByRole("combobox", { name: /vendedor/i });
   await user.click(trigger);
@@ -72,31 +74,33 @@ describe("CreatePlanVentaForm - Functional", () => {
     mockedCreatePlanVenta.mockReset();
     mockedToast.error.mockReset();
     mockedGetVendedores.mockReset();
-    mockedGetVendedores.mockResolvedValue(vendedoresResponse);
+    faker.seed(702);
+    mockedGetVendedores.mockResolvedValue(buildVendedoresResponse());
   });
 
   it("muestra un error cuando la meta no es un número válido", async () => {
     const user = userEvent.setup();
     setup();
 
-    await user.type(
-      screen.getByPlaceholderText("Identificador del plan"),
-      "PV-2025-Q1"
-    );
-    await user.type(
-      screen.getByPlaceholderText("Plan Ventas Q1 2025"),
-      "Plan Q1"
-    );
+    const identificador = faker.string.alphanumeric({ length: 8 }).toUpperCase();
+    const nombrePlan = faker.company.catchPhrase();
+    const periodo = `${faker.date.future({ years: 1 }).getFullYear()}-Q${faker.number.int({ min: 1, max: 4 })}`;
+    const descripcion = faker.lorem.sentence();
+    const vendedores = await mockedGetVendedores.mock.results[0]!.value;
+    const nombreVendedor = vendedores.data[0].nombre;
+
+    await user.type(screen.getByPlaceholderText("Identificador del plan"), identificador);
+    await user.type(screen.getByPlaceholderText("Plan Ventas Q1 2025"), nombrePlan);
     await user.type(
       screen.getByPlaceholderText("ej. 01/01/2025 - 31/03/2025"),
-      "2025-Q1"
+      periodo
     );
     await user.type(
       screen.getByPlaceholderText("Se espera que...."),
-      "Plan del primer trimestre"
+      descripcion
     );
     await waitFor(() => expect(mockedGetVendedores).toHaveBeenCalled());
-    await selectVendedor(user);
+    await selectVendedor(user, nombreVendedor);
     await user.type(screen.getByPlaceholderText("Cuota en monto ($)"), "-5");
 
     await user.click(screen.getByRole("button", { name: /crear/i }));

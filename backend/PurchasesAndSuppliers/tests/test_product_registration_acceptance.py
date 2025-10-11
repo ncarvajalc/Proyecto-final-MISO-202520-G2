@@ -1,4 +1,4 @@
-from fastapi.testclient import TestClient
+from backend.test_client import TestClient
 
 
 def test_register_product_acceptance_flow(
@@ -11,9 +11,12 @@ def test_register_product_acceptance_flow(
 
     assert body["id"] > 0
     assert body["sku"] == valid_product_payload["sku"]
-    assert body["activo"] is True
-    assert body["hojaTecnica"]["certificaciones"] == ["INVIMA", "FDA"]
-    assert len(body["especificaciones"]) == 2
+    assert body["activo"] == valid_product_payload["activo"]
+    assert (
+        body["hojaTecnica"]["certificaciones"]
+        == valid_product_payload["hojaTecnica"]["certificaciones"]
+    )
+    assert len(body["especificaciones"]) == len(valid_product_payload["especificaciones"])
 
 
 def test_register_product_acceptance_without_optional_data(

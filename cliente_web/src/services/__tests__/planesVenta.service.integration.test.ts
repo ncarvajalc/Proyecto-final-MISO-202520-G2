@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { faker } from "@faker-js/faker";
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 
@@ -19,6 +20,16 @@ const startServer = async (
 describe("planesVenta.service - integration", () => {
   it("envía la creación de planes al backend y normaliza la respuesta", async () => {
     const requests: Array<{ path: string; payload: unknown }> = [];
+    faker.seed(712);
+
+    const identificador = faker.string.alphanumeric({ length: 8 }).toUpperCase();
+    const nombre = faker.commerce.productName();
+    const descripcion = faker.lorem.sentence();
+    const periodo = `${faker.date.future({ years: 1 }).getFullYear()}-Q${faker.number.int({ min: 1, max: 4 })}`;
+    const meta = faker.number.int({ min: 100, max: 400 });
+    const vendedorId = faker.string.uuid();
+    const responseId = faker.string.uuid();
+    const vendedorNombre = faker.person.fullName();
 
     const server = await startServer((req, res) => {
       if (req.method === "OPTIONS") {
@@ -42,10 +53,10 @@ describe("planesVenta.service - integration", () => {
 
           const responseBody = {
             ...parsed,
-            meta: "180",
-            id: "plan-generated",
+            meta: String(meta),
+            id: responseId,
             vendedor_id: parsed.vendedorId,
-            vendedor_nombre: "Ana Pérez",
+            vendedor_nombre: vendedorNombre,
             unidades_vendidas: undefined,
           };
 
@@ -66,37 +77,37 @@ describe("planesVenta.service - integration", () => {
 
     try {
       const result = await createPlanVenta({
-        identificador: "PV-2025-Q1",
-        nombre: "Plan Q1",
-        descripcion: "Plan del primer trimestre",
-        periodo: "2025-Q1",
-        meta: 180,
-        vendedorId: "vend-1",
+        identificador,
+        nombre,
+        descripcion,
+        periodo,
+        meta,
+        vendedorId,
       });
 
       expect(requests).toEqual([
         {
           path: "/planes-venta/",
           payload: {
-            identificador: "PV-2025-Q1",
-            nombre: "Plan Q1",
-            descripcion: "Plan del primer trimestre",
-            periodo: "2025-Q1",
-            meta: 180,
-            vendedorId: "vend-1",
+            identificador,
+            nombre,
+            descripcion,
+            periodo,
+            meta,
+            vendedorId,
           },
         },
       ]);
 
       expect(result).toEqual({
-        id: "plan-generated",
-        identificador: "PV-2025-Q1",
-        nombre: "Plan Q1",
-        descripcion: "Plan del primer trimestre",
-        periodo: "2025-Q1",
-        meta: 180,
-        vendedorId: "vend-1",
-        vendedorNombre: "Ana Pérez",
+        id: responseId,
+        identificador,
+        nombre,
+        descripcion,
+        periodo,
+        meta,
+        vendedorId,
+        vendedorNombre,
         unidadesVendidas: 0,
       });
     } finally {

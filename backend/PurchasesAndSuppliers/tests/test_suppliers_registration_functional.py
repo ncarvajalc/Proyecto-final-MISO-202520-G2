@@ -1,4 +1,5 @@
-from fastapi.testclient import TestClient
+from backend.test_client import TestClient
+from faker import Faker
 
 
 def test_healthcheck_returns_database_status(client: TestClient) -> None:
@@ -16,9 +17,9 @@ def test_root_endpoint_returns_message(client: TestClient) -> None:
 
 
 def test_register_supplier_missing_required_field_returns_validation_error(
-    client: TestClient, valid_supplier_payload: dict
+    client: TestClient, valid_supplier_payload: dict, fake: Faker
 ) -> None:
-    payload = {**valid_supplier_payload, "nombre": ""}
+    payload = {**valid_supplier_payload, "nombre": fake.pystr(min_chars=0, max_chars=0)}
     response = client.post("/api/proveedores", json=payload)
     assert response.status_code == 422
     detail = response.json()["detail"][0]
@@ -27,9 +28,9 @@ def test_register_supplier_missing_required_field_returns_validation_error(
 
 
 def test_register_supplier_invalid_estado_returns_validation_error(
-    client: TestClient, valid_supplier_payload: dict
+    client: TestClient, valid_supplier_payload: dict, fake: Faker
 ) -> None:
-    payload = {**valid_supplier_payload, "estado": "Suspendido"}
+    payload = {**valid_supplier_payload, "estado": fake.word()}
     response = client.post("/api/proveedores", json=payload)
     assert response.status_code == 422
     errors = response.json()["detail"]

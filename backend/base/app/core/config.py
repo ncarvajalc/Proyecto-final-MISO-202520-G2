@@ -1,11 +1,25 @@
+from __future__ import annotations
+
 from pydantic_settings import BaseSettings
 
-import os
 
 class Settings(BaseSettings):
-    DATABASE_URL: str = os.getenv("TESTING", "0") == "1" and "sqlite:///./test.db" or os.getenv("DATABASE_URL","postgresql://user:password@localhost:5432/user")
+    """Application configuration loaded from environment variables."""
+
+    TESTING: bool = False
+    DATABASE_URL: str = "postgresql://user:password@localhost:5432/user"
+
+    def __init__(self, **values: object) -> None:
+        super().__init__(**values)
+        if self.TESTING:
+            object.__setattr__(self, "DATABASE_URL", "sqlite:///./test.db")
 
     class Config:
         env_file = ".env"
 
-settings = Settings()
+
+def get_settings() -> Settings:
+    return Settings()
+
+
+settings = get_settings()

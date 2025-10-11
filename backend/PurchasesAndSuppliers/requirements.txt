@@ -10,3 +10,4 @@ python-jose
 psycopg2-binary
 httpx
 pydantic[email]
+Faker

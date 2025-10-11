@@ -1,8 +1,8 @@
 import os
-from datetime import date
 
 import pytest
-from fastapi.testclient import TestClient
+from backend.test_client import TestClient
+from faker import Faker
 
 os.environ.setdefault("TESTING", "1")
 
@@ -19,12 +19,12 @@ def client():
     Base.metadata.drop_all(bind=engine)
 
 
-def test_salesperson_registration_end_to_end_flow(client):
+def test_salesperson_registration_end_to_end_flow(client, fake: Faker):
     payload = {
-        "full_name": "María Fernández",
-        "email": "maria.fernandez@example.com",
-        "hire_date": date(2024, 4, 10).isoformat(),
-        "status": "active",
+        "full_name": fake.name(),
+        "email": fake.unique.email(),
+        "hire_date": fake.date_between(start_date="-2y", end_date="today").isoformat(),
+        "status": fake.random_element(("active", "inactive")),
     }
 
     create_response = client.post("/vendedores/", json=payload)
@@ -42,14 +42,19 @@ def test_salesperson_registration_end_to_end_flow(client):
     assert detail_response.status_code == 200
     assert detail_response.json()["email"] == payload["email"]
 
+    updated_name = fake.name()
+    updated_status = fake.random_element(("active", "inactive"))
+    while updated_status == payload["status"]:
+        updated_status = fake.random_element(("active", "inactive"))
+
     update_response = client.put(
         f"/vendedores/{salesperson_id}",
-        json={"full_name": "María F. Fernández", "status": "inactive"},
+        json={"full_name": updated_name, "status": updated_status},
     )
     assert update_response.status_code == 200
     updated_body = update_response.json()
-    assert updated_body["full_name"] == "María F. Fernández"
-    assert updated_body["status"] == "inactive"
+    assert updated_body["full_name"] == updated_name
+    assert updated_body["status"] == updated_status
 
     delete_response = client.delete(f"/vendedores/{salesperson_id}")
     assert delete_response.status_code == 200

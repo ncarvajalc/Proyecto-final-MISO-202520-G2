@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { faker } from "@faker-js/faker";
 
 vi.mock("@/services/proveedores.service", () => ({
   createProveedor: vi.fn(),
@@ -40,35 +41,40 @@ describe("CreateProveedorForm - Integration", () => {
     mockedCreateProveedor.mockReset();
     mockedToast.success.mockReset();
     mockedToast.error.mockReset();
+    faker.seed(803);
   });
 
   it("envía la información normalizada y resetea el formulario tras éxito", async () => {
     const user = userEvent.setup();
     const { onOpenChange } = setup();
 
-    mockedCreateProveedor.mockResolvedValue({ id: 1 });
+    const payload = {
+      nombre: faker.company.name(),
+      id_tax: faker.string.alphanumeric({ length: 10 }),
+      direccion: faker.location.streetAddress(),
+      telefono: faker.phone.number(),
+      correo: faker.internet.email(),
+      contacto: faker.person.fullName(),
+      estado: "Activo" as const,
+      certificado: null,
+    };
 
-    await user.type(screen.getByPlaceholderText("Nombre"), "Proveedor QA");
-    await user.type(screen.getByPlaceholderText("Id tax"), "987654");
-    await user.type(screen.getByPlaceholderText("Dirección"), "Calle 99");
-    await user.type(screen.getByPlaceholderText("Teléfono"), "3200000");
-    await user.type(screen.getByPlaceholderText("Correo"), "qa@test.com");
-    await user.type(screen.getByPlaceholderText("Contacto"), "Lina QA");
+    mockedCreateProveedor.mockResolvedValue({
+      id: faker.number.int({ min: 1, max: 999 }),
+    });
+
+    await user.type(screen.getByPlaceholderText("Nombre"), payload.nombre);
+    await user.type(screen.getByPlaceholderText("Id tax"), payload.id_tax);
+    await user.type(screen.getByPlaceholderText("Dirección"), payload.direccion);
+    await user.type(screen.getByPlaceholderText("Teléfono"), payload.telefono);
+    await user.type(screen.getByPlaceholderText("Correo"), payload.correo);
+    await user.type(screen.getByPlaceholderText("Contacto"), payload.contacto);
 
     await user.click(screen.getByRole("button", { name: /crear/i }));
 
     await waitFor(() => expect(mockedCreateProveedor).toHaveBeenCalledTimes(1));
-    const [payload] = mockedCreateProveedor.mock.calls[0];
-    expect(payload).toEqual({
-      nombre: "Proveedor QA",
-      id_tax: "987654",
-      direccion: "Calle 99",
-      telefono: "3200000",
-      correo: "qa@test.com",
-      contacto: "Lina QA",
-      estado: "Activo",
-      certificado: null,
-    });
+    const [payloadLlamado] = mockedCreateProveedor.mock.calls[0];
+    expect(payloadLlamado).toEqual(payload);
 
     await waitFor(() => expect(mockedToast.success).toHaveBeenCalled());
     expect(onOpenChange).toHaveBeenCalledWith(false);

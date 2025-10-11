@@ -1,12 +1,20 @@
 import importlib
-from fastapi.testclient import TestClient
+import sys
+
+from faker import Faker
 from sqlalchemy.exc import OperationalError
 
-import app.main as main_module
+from backend.test_client import TestClient
 
 
 def reload_main():
-    return importlib.reload(main_module)
+    module = sys.modules.get("app.main")
+    if module is None:
+        module = importlib.import_module("app.main")
+    else:
+        module = importlib.reload(module)
+    return module
+import app.main as main_module  # noqa: E402
 
 
 def test_healthcheck_success():
@@ -19,11 +27,11 @@ def test_healthcheck_success():
     assert response.json() == {"status": "ok", "db": True}
 
 
-def test_healthcheck_failure(monkeypatch):
+def test_healthcheck_failure(monkeypatch, fake: Faker):
     module = reload_main()
 
     def failing_session():
-        raise OperationalError("SELECT 1", {}, Exception("outage"))
+        raise OperationalError("SELECT 1", {}, Exception(fake.word()))
 
     monkeypatch.setattr(module, "SessionLocal", failing_session)
     client = TestClient(module.app)

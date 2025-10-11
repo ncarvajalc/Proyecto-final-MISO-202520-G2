@@ -1,12 +1,19 @@
 import importlib
-from fastapi.testclient import TestClient
+import sys
+
 from sqlalchemy.exc import OperationalError
 
-import app.main as main_module
+from backend.test_client import TestClient
 
 
 def reload_main():
-    return importlib.reload(main_module)
+    module = sys.modules.get("app.main")
+    if module is None:
+        module = importlib.import_module("app.main")
+    else:
+        module = importlib.reload(module)
+    return module
+import app.main as main_module  # noqa: E402
 
 
 def test_healthcheck_returns_ok():

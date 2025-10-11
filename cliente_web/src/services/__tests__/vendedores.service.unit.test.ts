@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { faker } from "@faker-js/faker";
 
 import {
   createVendedor,
@@ -22,13 +23,18 @@ vi.mock("@/lib/api-client", () => ({
 }));
 
 describe("vendedores.service - unit", () => {
+  let apiUrl: string;
+
+  faker.seed(456);
+
   beforeEach(() => {
     postMock.mockReset();
     getMock.mockReset();
     putMock.mockReset();
     deleteMock.mockReset();
     vi.unstubAllEnvs();
-    vi.stubEnv("VITE_SALESFORCE_API_URL", "https://salesforce.test");
+    apiUrl = faker.internet.url();
+    vi.stubEnv("VITE_SALESFORCE_API_URL", apiUrl);
   });
 
   afterEach(() => {
@@ -38,106 +44,125 @@ describe("vendedores.service - unit", () => {
 
   it("normaliza el payload para createVendedor y transforma la respuesta", async () => {
     vi.useFakeTimers();
-    vi.setSystemTime(new Date("2024-06-01T12:00:00Z"));
+    const now = faker.date.past({ years: 1 });
+    vi.setSystemTime(now);
+
+    const fullName = faker.person.fullName();
+    const email = faker.internet.email();
+    const hireDate = now.toISOString().split("T")[0];
+    const vendorId = faker.string.uuid();
 
     const backendResponse = {
-      id: "vendor-1",
-      full_name: "Laura Pérez",
-      email: "laura.perez@example.com",
-      hire_date: "2024-06-01",
+      id: vendorId,
+      full_name: fullName,
+      email,
+      hire_date: hireDate,
       status: "active",
-      created_at: "2024-06-01T12:00:00Z",
-      updated_at: "2024-06-01T12:00:00Z",
+      created_at: `${hireDate}T00:00:00Z`,
+      updated_at: `${hireDate}T00:00:00Z`,
     };
     postMock.mockResolvedValue(backendResponse);
 
     const result = await createVendedor({
-      id: "vendor-1",
-      nombre: "Laura Pérez",
-      correo: "laura.perez@example.com",
+      id: vendorId,
+      nombre: fullName,
+      correo: email,
     });
 
     const { ApiClient } = await import("@/lib/api-client");
-    expect(ApiClient).toHaveBeenCalledWith("https://salesforce.test");
+    expect(ApiClient).toHaveBeenCalledWith(apiUrl);
     expect(postMock).toHaveBeenCalledWith("/vendedores", {
-      full_name: "Laura Pérez",
-      email: "laura.perez@example.com",
-      hire_date: "2024-06-01",
+      full_name: fullName,
+      email,
+      hire_date: hireDate,
       status: "active",
     });
 
     expect(result).toEqual({
-      id: "vendor-1",
-      nombre: "Laura Pérez",
-      correo: "laura.perez@example.com",
-      fechaContratacion: "2024-06-01",
+      id: vendorId,
+      nombre: fullName,
+      correo: email,
+      fechaContratacion: hireDate,
       planDeVenta: null,
     });
   });
 
   it("transforma la respuesta paginada en getVendedores", async () => {
+    const vendedorId = faker.string.uuid();
+    const fullName = faker.person.fullName();
+    const email = faker.internet.email();
+    const hireDate = faker.date.past({ years: 2 }).toISOString().split("T")[0];
+    const page = faker.number.int({ min: 1, max: 3 });
+    const limit = faker.number.int({ min: 1, max: 10 });
+
     getMock.mockResolvedValue({
       data: [
         {
-          id: "vend-1",
-          full_name: "Carlos", 
-          email: "carlos@example.com",
-          hire_date: "2024-01-01",
+          id: vendedorId,
+          full_name: fullName,
+          email,
+          hire_date: hireDate,
           status: "active",
-          created_at: "2024-01-01T00:00:00Z",
-          updated_at: "2024-01-01T00:00:00Z",
+          created_at: `${hireDate}T00:00:00Z`,
+          updated_at: `${hireDate}T00:00:00Z`,
         },
       ],
       total: 1,
-      page: 1,
-      limit: 10,
+      page,
+      limit,
       total_pages: 1,
     });
 
-    const result = await getVendedores({ page: 1, limit: 10 });
+    const result = await getVendedores({ page, limit });
 
     expect(getMock).toHaveBeenCalledWith(
       "/vendedores/",
-      expect.objectContaining({ params: { page: 1, limit: 10 } })
+      expect.objectContaining({ params: { page, limit } })
     );
     expect(result).toEqual({
       data: [
         {
-          id: "vend-1",
-          nombre: "Carlos",
-          correo: "carlos@example.com",
-          fechaContratacion: "2024-01-01",
+          id: vendedorId,
+          nombre: fullName,
+          correo: email,
+          fechaContratacion: hireDate,
           planDeVenta: null,
         },
       ],
       total: 1,
-      page: 1,
-      limit: 10,
+      page,
+      limit,
       totalPages: 1,
     });
   });
 
   it("envía solo los campos provistos en updateVendedor", async () => {
+    const vendedorId = faker.string.uuid();
+    const updatedName = faker.person.fullName();
+    const email = faker.internet.email();
+    const hireDate = faker.date.past({ years: 1 }).toISOString().split("T")[0];
+
     putMock.mockResolvedValue({
-      id: "vend-1",
-      full_name: "Carlos Renovado",
-      email: "carlos@example.com",
-      hire_date: "2024-01-01",
+      id: vendedorId,
+      full_name: updatedName,
+      email,
+      hire_date: hireDate,
       status: "active",
-      created_at: "2024-01-01T00:00:00Z",
-      updated_at: "2024-02-01T00:00:00Z",
+      created_at: `${hireDate}T00:00:00Z`,
+      updated_at: `${hireDate}T00:00:00Z`,
     });
 
-    const result = await updateVendedor("vend-1", { nombre: "Carlos Renovado" });
+    const result = await updateVendedor(vendedorId, { nombre: updatedName });
 
-    expect(putMock).toHaveBeenCalledWith("/vendedores/vend-1", {
-      full_name: "Carlos Renovado",
+    expect(putMock).toHaveBeenCalledWith(`/vendedores/${vendedorId}`, {
+      full_name: updatedName,
     });
-    expect(result.nombre).toBe("Carlos Renovado");
+    expect(result.nombre).toBe(updatedName);
   });
 
   it("invoca el endpoint correcto en deleteVendedor", async () => {
-    await deleteVendedor("vend-1");
-    expect(deleteMock).toHaveBeenCalledWith("/vendedores/vend-1");
+    const vendedorId = faker.string.uuid();
+    await deleteVendedor(vendedorId);
+    expect(deleteMock).toHaveBeenCalledWith(`/vendedores/${vendedorId}`);
   });
 });

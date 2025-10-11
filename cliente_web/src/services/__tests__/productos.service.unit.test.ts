@@ -6,9 +6,12 @@ import {
   it,
   vi,
 } from "vitest";
+import { faker } from "@faker-js/faker";
 
 const importService = async () =>
   await import("@/services/productos.service");
+
+faker.seed(2025);
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -23,13 +26,15 @@ afterEach(() => {
 describe("productos.service", () => {
   it("realiza la paginación sobre los datos simulados", async () => {
     const { getProductos } = await importService();
-    const promise = getProductos({ page: 1, limit: 3 });
+    const page = 1;
+    const limit = faker.number.int({ min: 1, max: 3 });
+    const promise = getProductos({ page, limit });
 
     await vi.advanceTimersByTimeAsync(500);
     const result = await promise;
 
-    expect(result.data).toHaveLength(3);
-    expect(result.total).toBeGreaterThan(3);
+    expect(result.data).toHaveLength(limit);
+    expect(result.total).toBeGreaterThan(limit);
     expect(result.totalPages).toBeGreaterThanOrEqual(2);
   });
 
@@ -39,15 +44,20 @@ describe("productos.service", () => {
     vi.spyOn(Date, "now").mockReturnValue(1700000000000);
 
     const payload = {
-      sku: "MED-999",
-      nombre: "Producto QA",
-      descripcion: "Producto de prueba",
-      precio: 9999,
+      sku: faker.string.alphanumeric({ length: 8 }).toUpperCase(),
+      nombre: faker.commerce.productName(),
+      descripcion: faker.commerce.productDescription(),
+      precio: faker.number.int({ min: 1000, max: 50000 }),
       activo: true,
-      especificaciones: [{ nombre: "Presentación", valor: "Caja" }],
+      especificaciones: [
+        {
+          nombre: faker.commerce.productMaterial(),
+          valor: faker.commerce.productAdjective(),
+        },
+      ],
       hojaTecnica: {
-        urlManual: "https://example.com/manual.pdf",
-        certificaciones: ["INVIMA"],
+        urlManual: faker.internet.url(),
+        certificaciones: [faker.company.catchPhraseAdjective()],
       },
     };
 
@@ -65,17 +75,23 @@ describe("productos.service", () => {
   });
 
   it("actualiza un producto existente combinando la información", async () => {
-    const { updateProducto } = await importService();
+    const { updateProducto, getProductos } = await importService();
 
-    const promise = updateProducto("1", {
-      nombre: "Paracetamol Actualizado",
+    const listPromise = getProductos({ page: 1, limit: 1 });
+    await vi.advanceTimersByTimeAsync(500);
+    const listado = await listPromise;
+    const producto = listado.data[0];
+    const nuevoNombre = faker.commerce.productName();
+
+    const promise = updateProducto(producto.id, {
+      nombre: nuevoNombre,
       activo: false,
     });
     await vi.advanceTimersByTimeAsync(500);
     const updated = await promise;
 
-    expect(updated.id).toBe("1");
-    expect(updated.nombre).toBe("Paracetamol Actualizado");
+    expect(updated.id).toBe(producto.id);
+    expect(updated.nombre).toBe(nuevoNombre);
     expect(updated.activo).toBe(false);
   });
 
@@ -83,28 +99,38 @@ describe("productos.service", () => {
     vi.useRealTimers();
     const { updateProducto } = await importService();
 
-    await expect(updateProducto("999", { nombre: "No existe" })).rejects.toThrow(
-      "Producto not found"
-    );
+    const idInexistente = faker.string.uuid();
+    await expect(
+      updateProducto(idInexistente, { nombre: faker.commerce.productName() })
+    ).rejects.toThrow("Producto not found");
     vi.useFakeTimers();
   });
 
   it("registra en consola cuando se solicita eliminar un producto válido", async () => {
-    const { deleteProducto } = await importService();
+    const { deleteProducto, getProductos } = await importService();
     const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => undefined);
 
-    const promise = deleteProducto("1");
+    const listPromise = getProductos({ page: 1, limit: 1 });
+    await vi.advanceTimersByTimeAsync(500);
+    const listado = await listPromise;
+    const producto = listado.data[0];
+
+    const promise = deleteProducto(producto.id);
     await vi.advanceTimersByTimeAsync(500);
     await promise;
 
-    expect(consoleSpy).toHaveBeenCalledWith("Producto 1 would be deleted");
+    expect(consoleSpy).toHaveBeenCalledWith(
+      `Producto ${producto.id} would be deleted`
+    );
   });
 
   it("lanza error cuando se intenta eliminar un producto inexistente", async () => {
     vi.useRealTimers();
     const { deleteProducto } = await importService();
 
-    await expect(deleteProducto("999")).rejects.toThrowError("Producto not found");
+    await expect(deleteProducto(faker.string.uuid())).rejects.toThrowError(
+      "Producto not found"
+    );
     vi.useFakeTimers();
   });
 
@@ -114,7 +140,11 @@ describe("productos.service", () => {
 
     await expect(
       bulkUploadProductos(
-        new File(["contenido"], "productos.txt", { type: "text/plain" })
+        new File(
+          [faker.lorem.paragraph()],
+          `${faker.string.alphanumeric({ length: 8 })}.txt`,
+          { type: "text/plain" }
+        )
       )
     ).rejects.toThrow("Solo se permiten archivos CSV");
     vi.useFakeTimers();
@@ -126,7 +156,11 @@ describe("productos.service", () => {
     vi.spyOn(Math, "random").mockReturnValue(0.5);
 
     const promise = bulkUploadProductos(
-      new File(["contenido"], "productos.csv", { type: "text/csv" })
+      new File(
+        [faker.lorem.paragraph()],
+        `${faker.string.alphanumeric({ length: 8 })}.csv`,
+        { type: "text/csv" }
+      )
     );
     await vi.advanceTimersByTimeAsync(1500);
     const result = await promise;

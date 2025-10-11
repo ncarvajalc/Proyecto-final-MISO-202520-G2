@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { faker } from "@faker-js/faker";
 
 vi.mock("@/services/proveedores.service", () => ({
   createProveedor: vi.fn(),
@@ -24,12 +25,21 @@ const mockedToast = vi.mocked(toast);
 
 const fillBaseForm = async () => {
   const user = userEvent.setup();
-  await user.type(screen.getByPlaceholderText("Nombre"), "Proveedor QA");
-  await user.type(screen.getByPlaceholderText("Id tax"), "987654");
-  await user.type(screen.getByPlaceholderText("Dirección"), "Calle 99");
-  await user.type(screen.getByPlaceholderText("Teléfono"), "3200000");
-  await user.type(screen.getByPlaceholderText("Correo"), "qa@test.com");
-  await user.type(screen.getByPlaceholderText("Contacto"), "Lina QA");
+  await user.type(screen.getByPlaceholderText("Nombre"), faker.company.name());
+  await user.type(
+    screen.getByPlaceholderText("Id tax"),
+    faker.string.alphanumeric({ length: 10 })
+  );
+  await user.type(
+    screen.getByPlaceholderText("Dirección"),
+    faker.location.streetAddress()
+  );
+  await user.type(screen.getByPlaceholderText("Teléfono"), faker.phone.number());
+  await user.type(screen.getByPlaceholderText("Correo"), faker.internet.email());
+  await user.type(
+    screen.getByPlaceholderText("Contacto"),
+    faker.person.fullName()
+  );
   return user;
 };
 
@@ -51,20 +61,22 @@ describe("CreateProveedorForm - Functional", () => {
     mockedCreateProveedor.mockReset();
     mockedToast.success.mockReset();
     mockedToast.error.mockReset();
+    faker.seed(802);
   });
 
   it("muestra feedback de error cuando la API falla", async () => {
     const { onOpenChange } = renderComponent();
     const user = await fillBaseForm();
 
-    mockedCreateProveedor.mockRejectedValue(new Error("Error al crear"));
+    const errorMessage = faker.lorem.sentence();
+    mockedCreateProveedor.mockRejectedValue(new Error(errorMessage));
 
     await user.click(screen.getByRole("button", { name: /crear/i }));
 
     await waitFor(() => expect(mockedCreateProveedor).toHaveBeenCalled());
     await waitFor(() =>
       expect(mockedToast.error).toHaveBeenCalledWith("Error al crear proveedor", {
-        description: "Error al crear",
+        description: errorMessage,
       })
     );
     expect(onOpenChange).not.toHaveBeenCalled();

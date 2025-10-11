@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { faker } from "@faker-js/faker";
 
 vi.mock("@/services/productos.service", () => ({
   createProducto: vi.fn(),
@@ -40,32 +41,40 @@ describe("CreateProductoForm - Functional", () => {
     mockedCreateProducto.mockReset();
     mockedToast.success.mockReset();
     mockedToast.error.mockReset();
+    faker.seed(902);
   });
 
   it("muestra un mensaje de error cuando la creación falla", async () => {
     const user = userEvent.setup();
     setup();
 
-    mockedCreateProducto.mockRejectedValue(new Error("Error inesperado"));
+    const errorMessage = faker.lorem.sentence();
+    mockedCreateProducto.mockRejectedValue(new Error(errorMessage));
 
-    await user.type(screen.getByPlaceholderText("MED-001"), "MED-654");
+    await user.type(
+      screen.getByPlaceholderText("MED-001"),
+      faker.string.alphanumeric({ length: 6 }).toUpperCase()
+    );
     await user.type(
       screen.getByPlaceholderText("Nombre del producto"),
-      "Producto Funcional"
+      faker.commerce.productName()
     );
     await user.type(
       screen.getByPlaceholderText("Descripción del producto"),
-      "Descripción funcional"
+      faker.commerce.productDescription()
     );
     await user.clear(screen.getByPlaceholderText("5000"));
-    await user.type(screen.getByPlaceholderText("5000"), "54321");
+    await user.type(
+      screen.getByPlaceholderText("5000"),
+      String(faker.number.int({ min: 1000, max: 90000 }))
+    );
 
     await user.click(screen.getByRole("button", { name: /crear/i }));
 
     await waitFor(() => expect(mockedCreateProducto).toHaveBeenCalled());
     await waitFor(() =>
       expect(mockedToast.error).toHaveBeenCalledWith("Error al crear producto", {
-        description: "Error inesperado",
+        description: errorMessage,
       })
     );
   });

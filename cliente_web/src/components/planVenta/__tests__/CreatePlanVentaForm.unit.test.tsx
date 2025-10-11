@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { faker } from "@faker-js/faker";
 
 vi.mock("@/services/planesVenta.service", () => ({
   createPlanVenta: vi.fn(),
@@ -26,20 +27,21 @@ import { getVendedores } from "@/services/vendedores.service";
 const mockedCreatePlanVenta = vi.mocked(createPlanVenta);
 const mockedGetVendedores = vi.mocked(getVendedores);
 
-const vendedoresResponse = {
-  data: [
-    {
-      id: "vend-1",
-      nombre: "Laura Pérez",
-      correo: "laura.perez@example.com",
-      fechaContratacion: "2024-01-15",
-      planDeVenta: null,
-    },
-  ],
-  total: 1,
-  page: 1,
-  limit: 100,
-  totalPages: 1,
+const buildVendedoresResponse = () => {
+  const vendedor = {
+    id: faker.string.uuid(),
+    nombre: faker.person.fullName(),
+    correo: faker.internet.email(),
+    fechaContratacion: faker.date.past().toISOString().split("T")[0],
+    planDeVenta: null,
+  };
+  return {
+    data: [vendedor],
+    total: 1,
+    page: 1,
+    limit: 100,
+    totalPages: 1,
+  };
 };
 
 const renderForm = () => {
@@ -57,7 +59,8 @@ const renderForm = () => {
 describe("CreatePlanVentaForm - Unit", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockedGetVendedores.mockResolvedValue(vendedoresResponse);
+    faker.seed(701);
+    mockedGetVendedores.mockResolvedValue(buildVendedoresResponse());
   });
 
   it("muestra mensajes de error cuando los campos requeridos están vacíos", async () => {

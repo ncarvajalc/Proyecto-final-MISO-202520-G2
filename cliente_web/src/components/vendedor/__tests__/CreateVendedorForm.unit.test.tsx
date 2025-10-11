@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { faker } from "@faker-js/faker";
 
 import { CreateVendedorForm } from "@/components/vendedor/CreateVendedorForm";
 import { createVendedor } from "@/services/vendedores.service";
@@ -27,6 +28,7 @@ describe("CreateVendedorForm - Unit", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(createVendedor).mockReset();
+    faker.seed(951);
   });
 
   it("muestra mensajes de error cuando se intenta enviar vacío", async () => {
@@ -49,9 +51,12 @@ describe("CreateVendedorForm - Unit", () => {
     const { onOpenChange } = renderForm();
     const user = userEvent.setup();
 
-    await user.type(screen.getByPlaceholderText("Nombre del vendedor"), "Ana");
+    await user.type(
+      screen.getByPlaceholderText("Nombre del vendedor"),
+      faker.person.fullName()
+    );
     const emailInput = screen.getByPlaceholderText("Email");
-    await user.type(emailInput, "correo-invalido");
+    await user.type(emailInput, faker.word.sample());
 
     await user.click(screen.getByRole("button", { name: /crear/i }));
 
