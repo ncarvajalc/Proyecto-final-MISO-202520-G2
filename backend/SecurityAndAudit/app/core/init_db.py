@@ -7,8 +7,13 @@ from sqlmodel import SQLModel
 from app.core.database import engine
 
 # Import all models to register them with SQLModel metadata
-from app.modules.access.models import User, Profile, Permission, ProfilePermission
-from app.modules.audit.models import Customer, Order
+from app.modules.access.models import (  # noqa: F401
+    User,
+    Profile,
+    Permission,
+    ProfilePermission,
+)
+from app.modules.audit.models import Customer, Order  # noqa: F401
 
 
 def init_db():

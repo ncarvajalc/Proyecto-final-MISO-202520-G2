@@ -1,8 +1,7 @@
-from fastapi import Depends
 from sqlalchemy.orm import Session
+
 from ..models.salespeople_model import Salespeople
 from ..schemas.salespeople import SalespeopleCreate, SalespeopleUpdate
-
 
 
 def get_salespeople(db: Session, salespeople_id: str):
@@ -13,7 +12,7 @@ def get_salespeople_by_email(db: Session, email: str):
 
 def get_salespeople_all(db: Session, skip: int = 0, limit: int = 10):
     total = db.query(Salespeople).count()
-    salespeople =  db.query(Salespeople).offset(skip).limit(limit).all()
+    salespeople = db.query(Salespeople).offset(skip).limit(limit).all()
     return {"salespeople": salespeople, "total": total}
 
 def create_salespeople(db: Session, salespeople: SalespeopleCreate):

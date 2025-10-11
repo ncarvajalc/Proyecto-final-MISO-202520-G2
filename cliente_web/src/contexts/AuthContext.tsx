@@ -31,7 +31,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               });
               setPermissions(profile.permissions || []);
               setIsAuthenticated(true);
-            } catch (profileError) {
+            } catch (error) {
+              console.warn("No se pudo obtener el perfil desde el backend:", error);
               // If we can't get profile but token is valid, use stored data
               if (storedUser) {
                 setUser(storedUser.user);

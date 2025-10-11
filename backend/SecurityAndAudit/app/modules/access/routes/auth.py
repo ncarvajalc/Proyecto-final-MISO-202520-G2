@@ -3,7 +3,7 @@ Authentication routes
 Implements the authentication endpoints following the contract from auth.service.ts
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status, Header
+from fastapi import APIRouter, Depends, Header, status
 from sqlalchemy.orm import Session
 from typing import Optional
 

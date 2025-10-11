@@ -3,7 +3,7 @@ Database seeding script
 Populates the database with initial data for testing and development
 """
 
-from datetime import datetime, date
+from datetime import date
 from decimal import Decimal
 from passlib.context import CryptContext
 from app.core.database import SessionLocal
