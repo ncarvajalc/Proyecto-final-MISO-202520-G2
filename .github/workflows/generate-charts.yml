@@ -1,0 +1,56 @@
+name: Generate Project Charts
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+    paths:
+      - "scripts-entregas/data/**"
+      - "scripts-entregas/*.py"
+      - ".github/workflows/generate-charts.yml"
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  generate-charts:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies
+        working-directory: scripts-entregas
+        run: |
+          uv sync
+
+      - name: Generate charts
+        working-directory: scripts-entregas
+        run: |
+          uv run python main.py
+
+      - name: Generate markdown report
+        working-directory: scripts-entregas
+        run: |
+          uv run python generate_report.py
+
+      - name: Commit and push charts
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add scripts-entregas/output/*.png
+          git add scripts-entregas/CHARTS.md
+          git add scripts-entregas/data/business_value_data.csv
+          git diff --quiet && git diff --staged --quiet || (git commit -m "chore: update project charts [skip ci]" && git push)
