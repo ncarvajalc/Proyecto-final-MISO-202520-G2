@@ -4,6 +4,7 @@ pytest
 sqlmodel
 python-dotenv
 pydantic-settings
+pydantic[email]
 python-multipart
 python-jose[cryptography]
 passlib[bcrypt]
