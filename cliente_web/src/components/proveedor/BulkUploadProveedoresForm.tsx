@@ -36,7 +36,7 @@ export function BulkUploadProveedoresForm({
     },
     onError: (error: Error) => {
       toast.error("Error en carga masiva", {
-        description: error.message,
+        description: error.detail,
       });
     },
   });

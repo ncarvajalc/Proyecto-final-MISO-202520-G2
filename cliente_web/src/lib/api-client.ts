@@ -24,7 +24,6 @@ import axios from "axios";
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
 import { getAuthToken, removeAuthToken } from "./auth";
 
-
 export class ApiClient {
   private axiosInstance: AxiosInstance;
 
@@ -72,9 +71,7 @@ export class ApiClient {
 
         // Handle other errors
         const errorMessage =
-          error.response?.data?.message ||
-          error.message ||
-          "An error occurred";
+          error.response?.data?.message || error.detail || "An error occurred";
 
         return Promise.reject(new Error(errorMessage));
       }
@@ -158,5 +155,3 @@ export class ApiClient {
     return this.axiosInstance;
   }
 }
-
-

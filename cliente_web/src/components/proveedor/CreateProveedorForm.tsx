@@ -110,7 +110,7 @@ export function CreateProveedorForm({
     },
     onError: (error: Error) => {
       toast.error("Error al crear proveedor", {
-        description: error.message,
+        description: error.detail,
       });
     },
   });

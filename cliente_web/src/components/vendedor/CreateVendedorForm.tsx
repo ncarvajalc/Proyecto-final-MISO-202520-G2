@@ -74,7 +74,7 @@ export function CreateVendedorForm({
     },
     onError: (error: Error) => {
       toast.error("Error al crear vendedor", {
-        description: error.message || "Ocurrió un error al crear el vendedor.",
+        description: error.detail || "Ocurrió un error al crear el vendedor.",
       });
     },
   });
