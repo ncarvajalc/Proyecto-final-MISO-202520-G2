@@ -36,7 +36,6 @@ const renderComponent = () => {
 
 const fillForm = async () => {
   const user = userEvent.setup();
-  await user.type(screen.getByPlaceholderText("VND-001"), "VEN-200");
   await user.type(screen.getByPlaceholderText("Nombre del vendedor"), "Beatriz");
   await user.type(screen.getByPlaceholderText("Email"), "bea@example.com");
   return user;

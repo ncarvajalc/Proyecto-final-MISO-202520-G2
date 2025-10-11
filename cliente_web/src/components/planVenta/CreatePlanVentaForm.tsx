@@ -1,8 +1,10 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { z } from "zod";
+import { useState } from "react";
+import { Check, ChevronsUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -21,7 +23,22 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 import { createPlanVenta } from "@/services/planesVenta.service";
+import { getVendedores } from "@/services/vendedores.service";
 import type { PlanVenta } from "@/types/planVenta";
 
 // Zod schema for validation
@@ -58,6 +75,7 @@ export function CreatePlanVentaForm({
   onOpenChange,
 }: CreatePlanVentaFormProps) {
   const queryClient = useQueryClient();
+  const [vendedorOpen, setVendedorOpen] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -69,6 +87,12 @@ export function CreatePlanVentaForm({
       vendedorId: "",
       meta: "",
     },
+  });
+
+  // Fetch vendedores for the combobox
+  const { data: vendedoresData, isLoading: isLoadingVendedores } = useQuery({
+    queryKey: ["vendedores"],
+    queryFn: () => getVendedores({ page: 1, limit: 100 }),
   });
 
   // Mutation for creating plan de venta
@@ -91,7 +115,9 @@ export function CreatePlanVentaForm({
     onError: (error: Error & { detail?: string }) => {
       toast.error("Error al crear plan de venta", {
         description:
-          error.detail || error.message || "Ocurrió un error al crear el plan de venta.",
+          error.detail ||
+          error.message ||
+          "Ocurrió un error al crear el plan de venta.",
       });
     },
   });
@@ -214,17 +240,85 @@ export function CreatePlanVentaForm({
               control={form.control}
               name="vendedorId"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="flex flex-col">
                   <FormLabel className="text-sm font-medium">
                     Vendedor
                   </FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Id del vendedor"
-                      {...field}
-                      disabled={createMutation.isPending}
-                    />
-                  </FormControl>
+                  <Popover
+                    modal={false}
+                    open={vendedorOpen}
+                    onOpenChange={setVendedorOpen}
+                  >
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={vendedorOpen}
+                          className={cn(
+                            "w-full justify-between",
+                            !field.value && "text-muted-foreground"
+                          )}
+                          disabled={
+                            createMutation.isPending || isLoadingVendedores
+                          }
+                        >
+                          {field.value
+                            ? vendedoresData?.data.find(
+                                (vendedor) => vendedor.id === field.value
+                              )?.nombre || "Vendedor no encontrado"
+                            : "Seleccione un vendedor"}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      className="w-[400px] p-0"
+                      portal={false}
+                      side="bottom"
+                      align="start"
+                    >
+                      <Command shouldFilter={true}>
+                        <CommandInput
+                          placeholder="Buscar vendedor..."
+                          className="h-9"
+                        />
+                        <CommandList>
+                          <CommandEmpty>
+                            No se encontraron vendedores.
+                          </CommandEmpty>
+                          <CommandGroup>
+                            {vendedoresData?.data.map((vendedor) => (
+                              <CommandItem
+                                key={vendedor.id}
+                                value={vendedor.id}
+                                keywords={[vendedor.nombre, vendedor.correo]}
+                                onSelect={(currentValue) => {
+                                  form.setValue("vendedorId", currentValue);
+                                  setVendedorOpen(false);
+                                }}
+                              >
+                                <div className="flex flex-col flex-1">
+                                  <span>{vendedor.nombre}</span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {vendedor.correo}
+                                  </span>
+                                </div>
+                                <Check
+                                  className={cn(
+                                    "ml-auto h-4 w-4",
+                                    field.value === vendedor.id
+                                      ? "opacity-100"
+                                      : "opacity-0"
+                                  )}
+                                />
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                   <FormMessage />
                 </FormItem>
               )}

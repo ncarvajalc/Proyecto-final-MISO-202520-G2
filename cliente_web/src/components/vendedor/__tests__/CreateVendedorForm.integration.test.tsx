@@ -53,7 +53,6 @@ describe("CreateVendedorForm - Integration", () => {
       planDeVenta: null,
     });
 
-    await user.type(screen.getByPlaceholderText("VND-001"), "VEN-123");
     await user.type(
       screen.getByPlaceholderText("Nombre del vendedor"),
       "Ana Torres"
@@ -65,7 +64,6 @@ describe("CreateVendedorForm - Integration", () => {
     await waitFor(() => expect(mockedCreateVendedor).toHaveBeenCalledTimes(1));
     expect(mockedCreateVendedor).toHaveBeenCalledWith(
       {
-        id: "VEN-123",
         nombre: "Ana Torres",
         correo: "ana.torres@example.com",
       },
@@ -82,7 +80,7 @@ describe("CreateVendedorForm - Integration", () => {
     );
     expect(onOpenChange).toHaveBeenCalledWith(false);
     await waitFor(() =>
-      expect(screen.getByPlaceholderText("VND-001")).toHaveValue("")
+      expect(screen.getByPlaceholderText("Nombre del vendedor")).toHaveValue("")
     );
   });
 });

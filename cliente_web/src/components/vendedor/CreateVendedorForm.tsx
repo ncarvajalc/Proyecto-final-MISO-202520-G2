@@ -24,9 +24,6 @@ import { createVendedor } from "@/services/vendedores.service";
 
 // Zod schema for validation
 const formSchema = z.object({
-  id: z.string().min(1, {
-    message: "El ID es requerido.",
-  }),
   nombre: z.string().min(2, {
     message: "El nombre debe tener al menos 2 caracteres.",
   }),
@@ -51,7 +48,6 @@ export function CreateVendedorForm({
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      id: "",
       nombre: "",
       correo: "",
     },
@@ -94,25 +90,6 @@ export function CreateVendedorForm({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {/* ID */}
-            <FormField
-              control={form.control}
-              name="id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-sm font-medium">ID</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="VND-001"
-                      {...field}
-                      disabled={createMutation.isPending}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
             {/* Nombre */}
             <FormField
               control={form.control}
