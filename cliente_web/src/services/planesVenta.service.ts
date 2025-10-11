@@ -7,7 +7,7 @@
  * The apiClient automatically includes JWT token in all requests.
  */
 
-// import { apiClient } from "@/lib/api-client";
+import { ApiClient } from "@/lib/api-client";
 import type { PlanVenta, PlanesVentaResponse, PaginationParams } from "@/types/planVenta";
 
 /**
@@ -222,20 +222,24 @@ export const getPlanesVenta = async (params: PaginationParams): Promise<PlanesVe
 export const createPlanVenta = async (
   planVenta: Omit<PlanVenta, "id" | "vendedorNombre" | "unidadesVendidas">
 ): Promise<PlanVenta> => {
-  await new Promise((resolve) => setTimeout(resolve, 500));
-  
-  // Mock response - Add to mock data for immediate visibility
-  const newPlanVenta: PlanVenta = {
-    id: String(Date.now()),
-    ...planVenta,
-    vendedorNombre: "Vendedor Mock", // In real app, backend populates this
-    unidadesVendidas: 0, // Initialized to 0
+  const apiClient = new ApiClient(import.meta.env.VITE_SALESFORCE_API_URL);
+
+  const response = await apiClient.post<PlanVenta>("/planes-venta/", {
+    identificador: planVenta.identificador,
+    nombre: planVenta.nombre,
+    descripcion: planVenta.descripcion,
+    periodo: planVenta.periodo,
+    meta: planVenta.meta,
+    vendedorId: planVenta.vendedorId,
+  });
+
+  return {
+    ...response,
+    meta: response.meta ?? planVenta.meta,
+    vendedorId: response.vendedorId ?? planVenta.vendedorId,
+    vendedorNombre: response.vendedorNombre ?? undefined,
+    unidadesVendidas: response.unidadesVendidas ?? 0,
   };
-  
-  // Add to mock data array (in real app, backend handles this)
-  MOCK_PLANES_VENTA.push(newPlanVenta);
-  
-  return newPlanVenta;
 };
 
 /**

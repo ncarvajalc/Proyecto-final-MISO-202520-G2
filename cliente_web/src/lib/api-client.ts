@@ -69,11 +69,17 @@ export class ApiClient {
           window.location.href = "/login";
         }
 
-        // Handle other errors
-        const errorMessage =
-          error.response?.data?.message || error.detail || "An error occurred";
+        // Handle other errors and surface backend details when present
+        const detail =
+          error.response?.data?.detail || error.response?.data?.message;
+        const message = detail || error.message || "An error occurred";
 
-        return Promise.reject(new Error(errorMessage));
+        const enhancedError = new Error(message) as Error & { detail?: string };
+        if (detail) {
+          enhancedError.detail = detail;
+        }
+
+        return Promise.reject(enhancedError);
       }
     );
   }
