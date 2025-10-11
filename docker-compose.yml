@@ -1,4 +1,4 @@
-version: '3.9'
+version: "3.9"
 services:
   security-audit-db:
     image: postgres:latest
@@ -26,9 +26,9 @@ services:
   security_audit:
     build: ./backend/SecurityAndAudit
     hostname: securityapp
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     volumes:
-      - app_user:/app/app
+      - ./backend/SecurityAndAudit/app:/app/app
     environment:
       - DATABASE_URL=postgresql://security_audit_user:security_audit_password@security-audit-db:5432/security_audit_schema
     ports:
@@ -51,6 +51,9 @@ services:
     build: ./cliente_web
     hostname: web
     command: pnpm run dev --host 0.0.0.0 --port 3000
+    volumes:
+      - ./cliente_web:/app
+      - /app/node_modules
     ports:
       - "3000:3000"
     environment:
@@ -87,9 +90,9 @@ services:
   purchases_suppliers:
     build: ./backend/PurchasesAndSuppliers
     hostname: purchasesapp
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8001
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
     volumes:
-      - app_purchases_suppliers:/app/app
+      - ./backend/PurchasesAndSuppliers/app:/app/app
     environment:
       - DATABASE_URL=postgresql://purchases_suppliers_user:purchases_suppliers_password@purchases_suppliers-db:5432/purchases_suppliers_schema
     ports:
@@ -108,7 +111,7 @@ services:
       - purchases_suppliers
     networks:
       - purchases_net
-  
+
   tracking-db:
     image: postgres:latest
     hostname: trackingdb
@@ -135,9 +138,9 @@ services:
   tracking:
     build: ./backend/Tracking
     hostname: trackingapp
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8002
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8002 --reload
     volumes:
-      - app_tracking:/app/app
+      - ./backend/Tracking/app:/app/app
     environment:
       - DATABASE_URL=postgresql://tracking_user:tracking_password@tracking-db:5432/tracking_schema
     ports:
@@ -183,9 +186,9 @@ services:
   warehouse:
     build: ./backend/Warehouse
     hostname: warehouseapp
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8003
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8003 --reload
     volumes:
-      - app_warehouse:/app/app
+      - ./backend/Warehouse/app:/app/app
     environment:
       - DATABASE_URL=postgresql://warehouse_user:warehouse_password@warehouse-db:5432/warehouse_schema
     ports:
@@ -231,9 +234,9 @@ services:
   salesforce:
     build: ./backend/SalesForce
     hostname: salesforceapp
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8004
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8004 --reload
     volumes:
-      - app_salesforce:/app/app
+      - ./backend/SalesForce/app:/app/app
     environment:
       - DATABASE_URL=postgresql://salesforce_user:salesforce_password@salesforce-db:5432/salesforce_schema
     ports:
@@ -255,15 +258,10 @@ services:
 
 volumes:
   security_audit_data:
-  app_user:
   purchases_suppliers_data:
-  app_purchases_suppliers:
   tracking_data:
-  app_tracking:
   warehouse_data:
-  app_warehouse:
   salesforce_data:
-  app_salesforce:
 
 networks:
   salesforce_net:
