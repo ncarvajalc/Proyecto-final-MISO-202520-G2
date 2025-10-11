@@ -30,12 +30,13 @@ export function LoginForm({
   const loginMutation = useMutation({
     mutationFn: login,
     onSuccess: (data) => {
-      authLogin(data.token);
+      // Pass token, user info, and permissions to auth context
+      authLogin(data.token, data.user, data.permissions || []);
       navigate("/");
     },
     onError: (error: Error & { detail?: string }) => {
       console.error("Login failed:", error);
-      setPasswordError("Credenciales inválidas");
+      setPasswordError(error.message || "Credenciales inválidas");
     },
   });
 
