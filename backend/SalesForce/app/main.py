@@ -1,10 +1,13 @@
 from fastapi import FastAPI
+from sqlalchemy.exc import OperationalError
+from sqlalchemy import text
+from app.core.database import SessionLocal, engine, Base
+
+from app.modules.salespeople.routes import salespeople
 
 app = FastAPI()
 
-from sqlalchemy.exc import OperationalError
-from sqlalchemy import text
-from app.core.database import SessionLocal
+Base.metadata.create_all(bind=engine) 
 
 @app.get("/health", tags=["health"])
 def healthcheck():
@@ -19,3 +22,5 @@ def healthcheck():
 @app.get("/")
 def read_root():
     return {"message": "Hello from FastAPI on Cloud Run!"}
+
+app.include_router(salespeople.router)

@@ -6,3 +6,4 @@ python-dotenv
 pydantic-settings
 python-multipart
 psycopg2-binary
+pydantic[email]

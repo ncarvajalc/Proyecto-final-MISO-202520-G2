@@ -21,6 +21,8 @@ services:
       - access
       - todo
       - backend
+    networks:
+      - security_net
   security_audit:
     build: ./backend/SecurityAndAudit
     hostname: securityapp
@@ -43,6 +45,8 @@ services:
       - access
       - todo
       - backend
+    networks:
+      - security_net
   cliente_web:
     build: ./cliente_web
     hostname: web
@@ -78,6 +82,8 @@ services:
       - todo
       - backend
       - purchases_suppliers
+    networks:
+      - purchases_net
   purchases_suppliers:
     build: ./backend/PurchasesAndSuppliers
     hostname: purchasesapp
@@ -85,7 +91,7 @@ services:
     volumes:
       - app_purchases_suppliers:/app/app
     environment:
-      - DATABASE_URL=postgresql://purchases_suppliers_user:purchases_suppliers_password@purchases_suppliers-db:5433/purchases_suppliers_schema
+      - DATABASE_URL=postgresql://purchases_suppliers_user:purchases_suppliers_password@purchases_suppliers-db:5432/purchases_suppliers_schema
     ports:
       - "8001:8001"
     depends_on:
@@ -100,6 +106,8 @@ services:
       - todo
       - backend
       - purchases_suppliers
+    networks:
+      - purchases_net
   
   tracking-db:
     image: postgres:latest
@@ -122,6 +130,8 @@ services:
       - todo
       - backend
       - tracking
+    networks:
+      - tracking_net
   tracking:
     build: ./backend/Tracking
     hostname: trackingapp
@@ -129,7 +139,7 @@ services:
     volumes:
       - app_tracking:/app/app
     environment:
-      - DATABASE_URL=postgresql://tracking_user:tracking_password@tracking-db:5434/tracking_schema
+      - DATABASE_URL=postgresql://tracking_user:tracking_password@tracking-db:5432/tracking_schema
     ports:
       - "8002:8002"
     depends_on:
@@ -144,6 +154,8 @@ services:
       - todo
       - backend
       - tracking
+    networks:
+      - tracking_net
 
   warehouse-db:
     image: postgres:latest
@@ -166,6 +178,8 @@ services:
       - todo
       - backend
       - warehouse
+    networks:
+      - warehouse_net
   warehouse:
     build: ./backend/Warehouse
     hostname: warehouseapp
@@ -173,7 +187,7 @@ services:
     volumes:
       - app_warehouse:/app/app
     environment:
-      - DATABASE_URL=postgresql://warehouse_user:warehouse_password@warehouse-db:5435/warehouse_schema
+      - DATABASE_URL=postgresql://warehouse_user:warehouse_password@warehouse-db:5432/warehouse_schema
     ports:
       - "8003:8003"
     depends_on:
@@ -188,6 +202,8 @@ services:
       - todo
       - backend
       - warehouse
+    networks:
+      - warehouse_net
 
   salesforce-db:
     image: postgres:latest
@@ -210,6 +226,8 @@ services:
       - todo
       - backend
       - salesforce
+    networks:
+      - salesforce_net
   salesforce:
     build: ./backend/SalesForce
     hostname: salesforceapp
@@ -217,7 +235,7 @@ services:
     volumes:
       - app_salesforce:/app/app
     environment:
-      - DATABASE_URL=postgresql://salesforce_user:salesforce_password@salesforce-db:5436/salesforce_schema
+      - DATABASE_URL=postgresql://salesforce_user:salesforce_password@salesforce-db:5432/salesforce_schema
     ports:
       - "8004:8004"
     depends_on:
@@ -232,6 +250,8 @@ services:
       - todo
       - backend
       - salesforce
+    networks:
+      - salesforce_net
 
 volumes:
   security_audit_data:
@@ -244,3 +264,10 @@ volumes:
   app_warehouse:
   salesforce_data:
   app_salesforce:
+
+networks:
+  salesforce_net:
+  warehouse_net:
+  tracking_net:
+  purchases_net:
+  security_net:
