@@ -51,7 +51,7 @@ const mapBackendToFrontend = (backend: BackendSalesperson): Vendedor => ({
  * Transform frontend Vendedor data to backend format for creation
  */
 const mapFrontendToBackendCreate = (
-  vendedor: Omit<Vendedor, "fechaContratacion" | "planDeVenta">
+  vendedor: Omit<Vendedor, "id" | "fechaContratacion" | "planDeVenta">
 ) => ({
   full_name: vendedor.nombre,
   email: vendedor.correo,
@@ -163,7 +163,7 @@ export const getVendedores = async (
  * }
  */
 export const createVendedor = async (
-  vendedor: Omit<Vendedor, "fechaContratacion" | "planDeVenta">
+  vendedor: Omit<Vendedor, "id" | "fechaContratacion" | "planDeVenta">
 ): Promise<Vendedor> => {
   const apiClient = new ApiClient(import.meta.env.VITE_SALESFORCE_API_URL);
 
