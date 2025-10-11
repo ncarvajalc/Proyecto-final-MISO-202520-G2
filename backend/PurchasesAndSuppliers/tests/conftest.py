@@ -10,7 +10,8 @@ os.environ.setdefault("TESTING", "1")
 
 from app.core.database import Base, SessionLocal, engine  # noqa: E402
 from app.main import app  # noqa: E402
-from tests.suppliers_test_app import Supplier, router  # noqa: E402
+from tests.products_test_app import Product, router as product_router  # noqa: E402
+from tests.suppliers_test_app import Supplier, router as supplier_router  # noqa: E402
 
 
 def _include_router_once() -> None:
@@ -18,7 +19,13 @@ def _include_router_once() -> None:
         route.path == "/api/proveedores" and "POST" in route.methods
         for route in app.router.routes
     ):
-        app.include_router(router)
+        app.include_router(supplier_router)
+
+    if not any(
+        route.path == "/api/productos" and "POST" in route.methods
+        for route in app.router.routes
+    ):
+        app.include_router(product_router)
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -37,6 +44,7 @@ def clean_tables() -> Generator[None, None, None]:
     yield
     with SessionLocal() as session:
         session.query(Supplier).delete()
+        session.query(Product).delete()
         session.commit()
 
 
@@ -65,6 +73,26 @@ def valid_supplier_payload() -> dict:
         "contacto": "Ana Pérez",
         "estado": "Activo",
         "certificado": None,
+    }
+
+
+@pytest.fixture
+def valid_product_payload() -> dict:
+    return {
+        "sku": "MED-900",
+        "nombre": "Producto de prueba",
+        "descripcion": "Descripción de producto",
+        "precio": 15000,
+        "activo": True,
+        "especificaciones": [
+            {"nombre": "Presentación", "valor": "Caja x 10"},
+            {"nombre": "Concentración", "valor": "500mg"},
+        ],
+        "hojaTecnica": {
+            "urlManual": "https://example.com/manual.pdf",
+            "urlHojaInstalacion": "https://example.com/instalacion.pdf",
+            "certificaciones": ["INVIMA", "FDA"],
+        },
     }
 
 
