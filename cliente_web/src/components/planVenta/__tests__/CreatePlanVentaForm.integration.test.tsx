@@ -8,6 +8,10 @@ vi.mock("@/services/planesVenta.service", () => ({
   createPlanVenta: vi.fn(),
 }));
 
+vi.mock("@/services/vendedores.service", () => ({
+  getVendedores: vi.fn(),
+}));
+
 vi.mock("sonner", () => ({
   toast: {
     success: vi.fn(),
@@ -17,10 +21,28 @@ vi.mock("sonner", () => ({
 
 import { CreatePlanVentaForm } from "@/components/planVenta/CreatePlanVentaForm";
 import { createPlanVenta } from "@/services/planesVenta.service";
+import { getVendedores } from "@/services/vendedores.service";
 import { toast } from "sonner";
 
 const mockedCreatePlanVenta = vi.mocked(createPlanVenta);
 const mockedToast = vi.mocked(toast);
+const mockedGetVendedores = vi.mocked(getVendedores);
+
+const vendedoresResponse = {
+  data: [
+    {
+      id: "vend-1",
+      nombre: "Laura Pérez",
+      correo: "laura.perez@example.com",
+      fechaContratacion: "2024-01-15",
+      planDeVenta: null,
+    },
+  ],
+  total: 1,
+  page: 1,
+  limit: 100,
+  totalPages: 1,
+};
 
 const setup = () => {
   const queryClient = new QueryClient();
@@ -34,11 +56,24 @@ const setup = () => {
   return { onOpenChange, ...utils };
 };
 
+const selectVendedor = async (
+  user: ReturnType<typeof userEvent.setup>,
+  nombre = "Laura Pérez"
+) => {
+  const trigger = screen.getByRole("combobox", { name: /vendedor/i });
+  await user.click(trigger);
+  const option = await screen.findByText(nombre, { selector: "*" });
+  await user.click(option);
+  await waitFor(() => expect(trigger).toHaveTextContent(nombre));
+};
+
 describe("CreatePlanVentaForm - Integration", () => {
   beforeEach(() => {
     mockedCreatePlanVenta.mockReset();
     mockedToast.success.mockReset();
     mockedToast.error.mockReset();
+    mockedGetVendedores.mockReset();
+    mockedGetVendedores.mockResolvedValue(vendedoresResponse);
   });
 
   it("envía la información y resetea el formulario tras éxito", async () => {
@@ -73,7 +108,8 @@ describe("CreatePlanVentaForm - Integration", () => {
       screen.getByPlaceholderText("Se espera que...."),
       "Plan del primer trimestre"
     );
-    await user.type(screen.getByPlaceholderText("Id del vendedor"), "vend-1");
+    await waitFor(() => expect(mockedGetVendedores).toHaveBeenCalled());
+    await selectVendedor(user);
     await user.type(screen.getByPlaceholderText("Cuota en monto ($)"), "150");
 
     await user.click(screen.getByRole("button", { name: /crear/i }));

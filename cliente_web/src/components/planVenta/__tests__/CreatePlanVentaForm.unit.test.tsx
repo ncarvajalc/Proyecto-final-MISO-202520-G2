@@ -8,6 +8,10 @@ vi.mock("@/services/planesVenta.service", () => ({
   createPlanVenta: vi.fn(),
 }));
 
+vi.mock("@/services/vendedores.service", () => ({
+  getVendedores: vi.fn(),
+}));
+
 vi.mock("sonner", () => ({
   toast: {
     success: vi.fn(),
@@ -17,8 +21,26 @@ vi.mock("sonner", () => ({
 
 import { CreatePlanVentaForm } from "@/components/planVenta/CreatePlanVentaForm";
 import { createPlanVenta } from "@/services/planesVenta.service";
+import { getVendedores } from "@/services/vendedores.service";
 
 const mockedCreatePlanVenta = vi.mocked(createPlanVenta);
+const mockedGetVendedores = vi.mocked(getVendedores);
+
+const vendedoresResponse = {
+  data: [
+    {
+      id: "vend-1",
+      nombre: "Laura Pérez",
+      correo: "laura.perez@example.com",
+      fechaContratacion: "2024-01-15",
+      planDeVenta: null,
+    },
+  ],
+  total: 1,
+  page: 1,
+  limit: 100,
+  totalPages: 1,
+};
 
 const renderForm = () => {
   const queryClient = new QueryClient();
@@ -35,6 +57,7 @@ const renderForm = () => {
 describe("CreatePlanVentaForm - Unit", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockedGetVendedores.mockResolvedValue(vendedoresResponse);
   });
 
   it("muestra mensajes de error cuando los campos requeridos están vacíos", async () => {

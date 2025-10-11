@@ -36,7 +36,6 @@ describe("CreateVendedorForm - Unit", () => {
     await user.click(screen.getByRole("button", { name: /crear/i }));
 
     await waitFor(() => {
-      expect(screen.getByText("El ID es requerido.")).toBeInTheDocument();
       expect(
         screen.getByText("El nombre debe tener al menos 2 caracteres.")
       ).toBeInTheDocument();
@@ -50,7 +49,6 @@ describe("CreateVendedorForm - Unit", () => {
     const { onOpenChange } = renderForm();
     const user = userEvent.setup();
 
-    await user.type(screen.getByPlaceholderText("VND-001"), "VEN-10");
     await user.type(screen.getByPlaceholderText("Nombre del vendedor"), "Ana");
     const emailInput = screen.getByPlaceholderText("Email");
     await user.type(emailInput, "correo-invalido");

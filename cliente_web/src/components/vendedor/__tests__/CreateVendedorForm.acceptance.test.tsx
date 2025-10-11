@@ -59,7 +59,6 @@ describe("CreateVendedorForm - Acceptance", () => {
     const deferredPromise = deferred();
     mockedCreateVendedor.mockImplementation(() => deferredPromise.promise);
 
-    await user.type(screen.getByPlaceholderText("VND-001"), "VEN-500");
     await user.type(
       screen.getByPlaceholderText("Nombre del vendedor"),
       "Bruno Castaño"
