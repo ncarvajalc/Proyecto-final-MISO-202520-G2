@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.modules.salespeople.models.salespeople_model import SalesPlan
 from app.modules.sales.schemas import SalesPlanCreate
@@ -39,3 +39,16 @@ def create_sales_plan(db: Session, sales_plan: SalesPlanCreate):
     db.commit()
     db.refresh(db_plan)
     return db_plan
+
+
+def list_sales_plans_paginated(db: Session, skip: int, limit: int):
+    query = (
+        db.query(SalesPlan)
+        .options(joinedload(SalesPlan.vendedor))
+        .order_by(SalesPlan.created_at.desc())
+    )
+
+    total = query.count()
+    items = query.offset(skip).limit(limit).all()
+
+    return {"items": items, "total": total}
