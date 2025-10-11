@@ -111,8 +111,9 @@ export function CreateProductoForm({
       onOpenChange(false);
     },
     onError: (error: Error & { detail?: string }) => {
+      const description = error.detail ?? error.message ?? "Error inesperado";
       toast.error("Error al crear producto", {
-        description: error.detail,
+        description,
       });
     },
   });
