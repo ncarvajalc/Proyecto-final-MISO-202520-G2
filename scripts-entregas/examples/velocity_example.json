@@ -1,0 +1,37 @@
+{
+  "team_name": "Grupo 2",
+  "sprints": [
+    {
+      "sprint_number": 1,
+      "sprint_name": "Semana 1",
+      "start_date": "2025-10-06",
+      "end_date": "2025-10-12",
+      "committed_points": 16,
+      "completed_points": 6
+    },
+    {
+      "sprint_number": 2,
+      "sprint_name": "Semana 2",
+      "start_date": "2025-10-13",
+      "end_date": "2025-10-19",
+      "committed_points": 16,
+      "completed_points": 0
+    },
+    {
+      "sprint_number": 3,
+      "sprint_name": "Semana 3",
+      "start_date": "2025-10-20",
+      "end_date": "2025-10-26",
+      "committed_points": 16.5,
+      "completed_points": 0
+    },
+    {
+      "sprint_number": 4,
+      "sprint_name": "Semana 4",
+      "start_date": "2025-10-27",
+      "end_date": "2025-11-02",
+      "committed_points": 16.5,
+      "completed_points": 0
+    }
+  ]
+}

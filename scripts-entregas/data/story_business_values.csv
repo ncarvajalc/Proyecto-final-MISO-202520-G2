@@ -1,0 +1,30 @@
+story_id,code,title,business_value,category
+PFM2G2-23,ASR-001,Disponibilidad 99.95% en pedidos e inventario,12,ASR
+PFM2G2-60,ASR-19,Disponibilidad en picos de pedidos,10,ASR
+PFM2G2-34,ASR-005,Confidencialidad de datos sensibles,10,ASR
+PFM2G2-46,ASR-12,Alerta ante operaciones sospechosas,8,ASR
+PFM2G2-79,HUP-016,Creación de pedido móvil,6,Core
+PFM2G2-84,HUP-021,Creación de pedido por cliente,5,Core
+PFM2G2-78,HUP-015,Consulta de inventario en tiempo real,5,Core
+PFM2G2-85,HUP-022,Consulta de estado de pedidos,4,Core
+PFM2G2-69,HUP-006,Definición de plan de ventas,4,Core 
+PFM2G2-87,HUP-024,Seguimiento de entregas,4,Core
+PFM2G2-74,HUP-011,Generación de rutas de entrega,3,Supporting
+PFM2G2-71,HUP-008,Generación de informes comerciales,3,Supporting
+PFM2G2-70,HUP-007,Consulta de reportes de vendedor,3,Supporting
+PFM2G2-86,HUP-023,Consulta de entregas programadas,3,Supporting
+PFM2G2-67,HUP-004,Carga masiva de productos,2,Setup
+PFM2G2-65,HUP-002,Registro masivo de proveedores,2,Setup
+PFM2G2-66,HUP-003,Registro individual de producto,2,Setup
+PFM2G2-64,HUP-001,Registro individual de proveedor,2,Setup
+PFM2G2-68,HUP-005,Registro de vendedor,2,Setup
+PFM2G2-82,HUP-019,Registro de cliente institucional,2,Setup
+PFM2G2-72,HUP-009,Consulta de productos en bodega,1,Supporting
+PFM2G2-73,HUP-010,Localización de productos,1,Supporting
+PFM2G2-75,HUP-012,Consulta de clientes asignados,1,Supporting
+PFM2G2-76,HUP-013,Consulta de ruta de visitas,1,Supporting
+PFM2G2-77,HUP-014,Registro de visita a cliente,1,Supporting
+PFM2G2-81,HUP-018,Generación de recomendaciones,1,Enhancement
+PFM2G2-83,HUP-020,Validación automática de identificación tributaria,1,Enhancement
+PFM2G2-80,HUP-017,Captura de video de productos,1,Enhancement
+
