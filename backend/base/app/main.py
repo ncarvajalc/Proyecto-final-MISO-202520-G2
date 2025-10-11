@@ -1,10 +1,11 @@
 from fastapi import FastAPI
+from sqlalchemy import text
+from sqlalchemy.exc import OperationalError
+
+from app.core.database import SessionLocal
 
 app = FastAPI()
 
-from sqlalchemy.exc import OperationalError
-from sqlalchemy import text
-from app.core.database import SessionLocal
 
 @app.get("/health", tags=["health"])
 def healthcheck():

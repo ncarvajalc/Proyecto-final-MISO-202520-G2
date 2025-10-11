@@ -1,12 +1,11 @@
 from fastapi import FastAPI
-
-app = FastAPI()
-
-from sqlalchemy.exc import OperationalError
 from sqlalchemy import text
+from sqlalchemy.exc import OperationalError
+
 from app.core.database import SessionLocal
 from app.modules.products.routes import bulk
 
+app = FastAPI()
 
 app.include_router(bulk.router)
 
@@ -24,5 +23,4 @@ def healthcheck():
 @app.get("/")
 def read_root():
     return {"message": "Hello from FastAPI on Cloud Run!"}
-
 

@@ -1,6 +1,7 @@
 fastapi
 uvicorn[standard]
 pytest
+pytest-cov
 sqlmodel
 python-dotenv
 pydantic-settings

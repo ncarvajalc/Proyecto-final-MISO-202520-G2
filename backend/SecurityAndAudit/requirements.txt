@@ -1,11 +1,14 @@
 fastapi
 uvicorn[standard]
 pytest
+pytest-cov
 sqlmodel
 python-dotenv
 pydantic-settings
+pydantic[email]
 python-multipart
-python-jose
+python-jose[cryptography]
+bcrypt==4.0.1
+passlib==1.7.4
 psycopg2-binary
 httpx
-pydantic[email]
