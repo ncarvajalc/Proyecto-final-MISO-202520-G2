@@ -88,7 +88,7 @@ export function CreatePlanVentaForm({
       onOpenChange(false);
       form.reset();
     },
-    onError: (error: Error) => {
+    onError: (error: Error & { detail?: string }) => {
       toast.error("Error al crear plan de venta", {
         description:
           error.detail || "Ocurrió un error al crear el plan de venta.",
