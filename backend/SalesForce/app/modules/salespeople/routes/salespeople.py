@@ -1,5 +1,5 @@
 from typing import List
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from ..schemas.salespeople import Salespeople, SalespeopleCreate, SalespeopleUpdate, SalespersonPaginated
@@ -7,7 +7,7 @@ from ..services.salespeople_service import create, read, read_one, update, delet
 
 router = APIRouter(prefix="/vendedores", tags=["vendedores"])
 
-@router.post("/", response_model=Salespeople)
+@router.post("/", response_model=Salespeople, status_code=status.HTTP_201_CREATED)
 def create_salespeople(salespeople: SalespeopleCreate, db: Session = Depends(get_db)):
     return create(db, salespeople)
 
@@ -23,6 +23,7 @@ def read_salespeople(salespeople_id: str, db: Session = Depends(get_db)):
 def update_salespeople(salespeople_id: str, salespeople: SalespeopleUpdate, db: Session = Depends(get_db)):
     return update(db,salespeople_id=salespeople_id, salespeople=salespeople)
 
-@router.delete("/{salespeople_id}", response_model=Salespeople)
+@router.delete("/{salespeople_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_salespeople(salespeople_id: str, db: Session = Depends(get_db)):
-    return delete(db,salespeople_id=salespeople_id)
+    delete(db,salespeople_id=salespeople_id)
+    return None
