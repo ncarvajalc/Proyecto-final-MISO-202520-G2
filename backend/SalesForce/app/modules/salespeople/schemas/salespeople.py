@@ -1,6 +1,6 @@
 
 from pydantic import BaseModel, EmailStr
-from typing import Optional
+from typing import Optional, List
 from datetime import date, datetime
 
 
@@ -26,3 +26,10 @@ class Salespeople(SalespeopleBase):
 
     class Config:
         from_attributes = True
+
+class SalespersonPaginated(BaseModel):
+    data: List[Salespeople]
+    total: int
+    page: int
+    limit: int
+    total_pages: int

@@ -2,7 +2,7 @@ from typing import List
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from ..schemas.salespeople import Salespeople, SalespeopleCreate, SalespeopleUpdate
+from ..schemas.salespeople import Salespeople, SalespeopleCreate, SalespeopleUpdate, SalespersonPaginated
 from ..services.salespeople_service import create, read, read_one, update, delete
 
 router = APIRouter(prefix="/vendedores", tags=["vendedores"])
@@ -11,9 +11,9 @@ router = APIRouter(prefix="/vendedores", tags=["vendedores"])
 def create_salespeople(salespeople: SalespeopleCreate, db: Session = Depends(get_db)):
     return create(db, salespeople)
 
-@router.get("/", response_model=List[Salespeople])
-def read_salespeople(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    return read(db,skip=skip, limit=limit)
+@router.get("/", response_model=SalespersonPaginated)
+def read_salespeople(page: int = 1, limit: int = 10, db: Session = Depends(get_db)):
+    return read(db,page=page, limit=limit)
 
 @router.get("/{salespeople_id}", response_model=Salespeople)
 def read_salespeople(salespeople_id: str, db: Session = Depends(get_db)):

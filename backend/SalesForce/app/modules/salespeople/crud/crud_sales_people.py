@@ -11,8 +11,10 @@ def get_salespeople(db: Session, salespeople_id: str):
 def get_salespeople_by_email(db: Session, email: str):
     return db.query(Salespeople).filter(Salespeople.email == email).first()
 
-def get_salespeople_all(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(Salespeople).offset(skip).limit(limit).all()
+def get_salespeople_all(db: Session, skip: int = 0, limit: int = 10):
+    total = db.query(Salespeople).count()
+    salespeople =  db.query(Salespeople).offset(skip).limit(limit).all()
+    return {"salespeople": salespeople, "total": total}
 
 def create_salespeople(db: Session, salespeople: SalespeopleCreate):
     db_salespeople = Salespeople(**salespeople.model_dump())
@@ -22,7 +24,7 @@ def create_salespeople(db: Session, salespeople: SalespeopleCreate):
     return db_salespeople
 
 def update_salespeople(db: Session, salespeople_id: str, salespeople: SalespeopleUpdate):
-    db_salespeople = get_salespeople(salespeople_id)
+    db_salespeople = get_salespeople(db, salespeople_id)
     if not db_salespeople:
         return None
     update_data = salespeople.model_dump(exclude_unset=True)
@@ -34,7 +36,7 @@ def update_salespeople(db: Session, salespeople_id: str, salespeople: Salespeopl
     return db_salespeople
 
 def delete_salespeople(db: Session, salespeople_id: str):
-    db_salespeople = get_salespeople(salespeople_id)
+    db_salespeople = get_salespeople(db, salespeople_id)
     if not db_salespeople:
         return None
     db.delete(db_salespeople)
