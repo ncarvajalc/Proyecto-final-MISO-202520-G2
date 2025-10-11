@@ -7,7 +7,6 @@
  * The apiClient automatically includes JWT token in all requests.
  */
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 // import { apiClient } from "@/lib/api-client";
 import type { Producto, ProductosResponse, PaginationParams } from "@/types/producto";
 

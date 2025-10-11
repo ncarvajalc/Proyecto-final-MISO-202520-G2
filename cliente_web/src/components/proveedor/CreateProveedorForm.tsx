@@ -24,6 +24,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -71,6 +72,21 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
+const defaultValues: FormValues = {
+  nombre: "",
+  idTax: "",
+  direccion: "",
+  telefono: "",
+  correo: "",
+  contacto: "",
+  estado: "Activo",
+  certificadoNombre: "",
+  certificadoCuerpo: "",
+  certificadoFechaCertificacion: "",
+  certificadoFechaVencimiento: "",
+  certificadoUrl: "",
+};
+
 interface CreateProveedorFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -84,20 +100,7 @@ export function CreateProveedorForm({
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      nombre: "",
-      idTax: "",
-      direccion: "",
-      telefono: "",
-      correo: "",
-      contacto: "",
-      estado: "Activo",
-      certificadoNombre: "",
-      certificadoCuerpo: "",
-      certificadoFechaCertificacion: "",
-      certificadoFechaVencimiento: "",
-      certificadoUrl: "",
-    },
+    defaultValues,
   });
 
   const createMutation = useMutation({
@@ -105,12 +108,13 @@ export function CreateProveedorForm({
     onSuccess: () => {
       toast.success("Proveedor creado exitosamente");
       queryClient.invalidateQueries({ queryKey: ["proveedores"] });
-      form.reset();
+      form.reset(defaultValues);
       onOpenChange(false);
     },
     onError: (error: Error & { detail?: string }) => {
+      const description = error.detail ?? error.message ?? "Error inesperado";
       toast.error("Error al crear proveedor", {
-        description: error.detail,
+        description,
       });
     },
   });
@@ -148,9 +152,19 @@ export function CreateProveedorForm({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent
+        aria-describedby="create-proveedor-description"
+        className="max-w-2xl max-h-[90vh] overflow-y-auto"
+      >
         <DialogHeader>
           <DialogTitle>Crear proveedor</DialogTitle>
+          <DialogDescription
+            id="create-proveedor-description"
+            className="sr-only"
+          >
+            Completa el formulario para registrar un proveedor y guardar su
+            información en el sistema.
+          </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
@@ -246,10 +260,7 @@ export function CreateProveedorForm({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Estado</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecciona un estado" />

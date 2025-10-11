@@ -7,3 +7,5 @@ pydantic-settings
 python-multipart
 python-jose
 psycopg2-binary
+httpx
+pydantic[email]
