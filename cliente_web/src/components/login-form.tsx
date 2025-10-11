@@ -33,7 +33,7 @@ export function LoginForm({
       authLogin(data.token);
       navigate("/");
     },
-    onError: (error: Error) => {
+    onError: (error: Error & { detail?: string }) => {
       console.error("Login failed:", error);
       setPasswordError("Credenciales inválidas");
     },
