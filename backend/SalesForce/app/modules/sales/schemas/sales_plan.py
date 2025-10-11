@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -23,3 +23,13 @@ class SalesPlan(SalesPlanCreate):
     vendedor_nombre: Optional[str] = Field(default=None, alias="vendedorNombre")
     created_at: datetime = Field(alias="createdAt")
     updated_at: datetime = Field(alias="updatedAt")
+
+
+class SalesPlanPaginated(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    data: List[SalesPlan]
+    total: int
+    page: int
+    limit: int
+    total_pages: int = Field(alias="totalPages")

@@ -1,10 +1,10 @@
 /**
  * Planes de Venta Service
- * 
- * Handles all API calls related to Planes de Venta (Sales Plans).
- * Currently using mock data - replace with real API calls when backend is ready.
- * 
- * The apiClient automatically includes JWT token in all requests.
+ *
+ * Handles all API calls related to Planes de Venta (Sales Plans) against the
+ * SalesForce backend. The ApiClient automatically includes the JWT token in
+ * every request so the service can focus on translating between the backend
+ * contract and the shape expected by the UI.
  */
 
 import { ApiClient } from "@/lib/api-client";
@@ -143,23 +143,71 @@ const MOCK_PLANES_VENTA: PlanVenta[] = [
  * };
  * ```
  */
+type BackendPlanVenta = {
+  id: string;
+  identificador: string;
+  nombre: string;
+  descripcion: string;
+  periodo: string;
+  meta?: number | string;
+  vendedorId?: string;
+  vendedor_id?: string;
+  vendedorNombre?: string | null;
+  vendedor_nombre?: string | null;
+  unidadesVendidas?: number;
+  unidades_vendidas?: number;
+};
+
+type BackendPaginatedResponse = {
+  data: BackendPlanVenta[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages?: number;
+  total_pages?: number;
+};
+
 export const getPlanesVenta = async (params: PaginationParams): Promise<PlanesVentaResponse> => {
-  // Simulate API delay
-  await new Promise((resolve) => setTimeout(resolve, 500));
+  const apiClient = new ApiClient(import.meta.env.VITE_SALESFORCE_API_URL);
 
-  // Simulate server-side pagination
-  const startIndex = (params.page - 1) * params.limit;
-  const endIndex = startIndex + params.limit;
-  const paginatedData = MOCK_PLANES_VENTA.slice(startIndex, endIndex);
-  const totalPages = Math.ceil(MOCK_PLANES_VENTA.length / params.limit);
+  const response = await apiClient.get<BackendPaginatedResponse>("/planes-venta/", {
+    params: {
+      page: params.page,
+      limit: params.limit,
+    },
+  });
 
-  // Mock response matching backend contract
+  const normalizedData: PlanVenta[] = response.data.map((plan) => ({
+    id: plan.id,
+    identificador: plan.identificador,
+    nombre: plan.nombre,
+    descripcion: plan.descripcion,
+    periodo: plan.periodo,
+    meta:
+      typeof plan.meta === "number"
+        ? plan.meta
+        : Number(plan.meta ?? 0),
+    vendedorId:
+      plan.vendedorId ??
+      plan.vendedor_id ??
+      "",
+    vendedorNombre:
+      plan.vendedorNombre ?? plan.vendedor_nombre ?? undefined,
+    unidadesVendidas:
+      plan.unidadesVendidas ?? plan.unidades_vendidas ?? 0,
+  }));
+
+  const totalPages =
+    response.totalPages ??
+    response.total_pages ??
+    (response.total > 0 ? Math.ceil(response.total / params.limit) : 0);
+
   return {
-    data: paginatedData,
-    total: MOCK_PLANES_VENTA.length,
-    page: params.page,
-    limit: params.limit,
-    totalPages: totalPages,
+    data: normalizedData,
+    total: response.total,
+    page: response.page,
+    limit: response.limit,
+    totalPages,
   };
 };
 
@@ -224,7 +272,7 @@ export const createPlanVenta = async (
 ): Promise<PlanVenta> => {
   const apiClient = new ApiClient(import.meta.env.VITE_SALESFORCE_API_URL);
 
-  const response = await apiClient.post<PlanVenta>("/planes-venta/", {
+  const response = await apiClient.post<BackendPlanVenta>("/planes-venta/", {
     identificador: planVenta.identificador,
     nombre: planVenta.nombre,
     descripcion: planVenta.descripcion,
@@ -234,11 +282,23 @@ export const createPlanVenta = async (
   });
 
   return {
-    ...response,
-    meta: response.meta ?? planVenta.meta,
-    vendedorId: response.vendedorId ?? planVenta.vendedorId,
-    vendedorNombre: response.vendedorNombre ?? undefined,
-    unidadesVendidas: response.unidadesVendidas ?? 0,
+    id: response.id,
+    identificador: response.identificador,
+    nombre: response.nombre,
+    descripcion: response.descripcion,
+    periodo: response.periodo,
+    meta:
+      typeof response.meta === "number"
+        ? response.meta
+        : Number(response.meta ?? planVenta.meta),
+    vendedorId:
+      response.vendedorId ??
+      response.vendedor_id ??
+      planVenta.vendedorId,
+    vendedorNombre:
+      response.vendedorNombre ?? response.vendedor_nombre ?? undefined,
+    unidadesVendidas:
+      response.unidadesVendidas ?? response.unidades_vendidas ?? 0,
   };
 };
 

@@ -1,3 +1,3 @@
-from .sales_plan import SalesPlan, SalesPlanCreate
+from .sales_plan import SalesPlan, SalesPlanCreate, SalesPlanPaginated
 
-__all__ = ["SalesPlan", "SalesPlanCreate"]
+__all__ = ["SalesPlan", "SalesPlanCreate", "SalesPlanPaginated"]

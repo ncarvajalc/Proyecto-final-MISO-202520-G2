@@ -30,6 +30,7 @@ export default defineConfig(({ mode }) => {
       include: [
         "src/components/proveedor/CreateProveedorForm.tsx",
         "src/services/proveedores.service.ts",
+        "src/services/planesVenta.service.ts",
       ],
     },
     include: [
