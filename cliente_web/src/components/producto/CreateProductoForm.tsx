@@ -110,9 +110,9 @@ export function CreateProductoForm({
       form.reset();
       onOpenChange(false);
     },
-    onError: (error: Error) => {
+    onError: (error: Error & { detail?: string }) => {
       toast.error("Error al crear producto", {
-        description: error.message,
+        description: error.detail,
       });
     },
   });

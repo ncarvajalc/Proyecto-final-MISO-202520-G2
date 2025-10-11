@@ -34,9 +34,9 @@ export function BulkUploadProveedoresForm({
       setSelectedFile(null);
       onOpenChange(false);
     },
-    onError: (error: Error) => {
+    onError: (error: Error & { detail?: string }) => {
       toast.error("Error en carga masiva", {
-        description: error.message,
+        description: error.detail,
       });
     },
   });
