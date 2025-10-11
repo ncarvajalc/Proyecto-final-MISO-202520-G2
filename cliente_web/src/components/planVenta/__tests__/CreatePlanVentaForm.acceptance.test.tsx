@@ -1,0 +1,118 @@
+import React from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("@/services/planesVenta.service", () => ({
+  createPlanVenta: vi.fn(),
+}));
+
+vi.mock("sonner", () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
+import { CreatePlanVentaForm } from "@/components/planVenta/CreatePlanVentaForm";
+import { createPlanVenta } from "@/services/planesVenta.service";
+import { toast } from "sonner";
+
+const mockedCreatePlanVenta = vi.mocked(createPlanVenta);
+const mockedToast = vi.mocked(toast);
+
+const renderComponent = () => {
+  const queryClient = new QueryClient();
+  const onOpenChange = vi.fn();
+  const utils = render(
+    <QueryClientProvider client={queryClient}>
+      <CreatePlanVentaForm open={true} onOpenChange={onOpenChange} />
+    </QueryClientProvider>
+  );
+  utils.container.querySelector("form")?.setAttribute("novalidate", "true");
+  return { onOpenChange, ...utils };
+};
+
+describe("CreatePlanVentaForm - Acceptance", () => {
+  beforeEach(() => {
+    mockedCreatePlanVenta.mockReset();
+    mockedToast.success.mockReset();
+    mockedToast.error.mockReset();
+  });
+
+  it("notifica al usuario cuando el backend responde con un error", async () => {
+    const user = userEvent.setup();
+    renderComponent();
+
+    mockedCreatePlanVenta.mockRejectedValue(
+      Object.assign(new Error("Backend error"), { detail: "Capacidad superada" })
+    );
+
+    await user.type(
+      screen.getByPlaceholderText("Identificador del plan"),
+      "PV-2025-Q1"
+    );
+    await user.type(
+      screen.getByPlaceholderText("Plan Ventas Q1 2025"),
+      "Plan Q1"
+    );
+    await user.type(
+      screen.getByPlaceholderText("ej. 01/01/2025 - 31/03/2025"),
+      "2025-Q1"
+    );
+    await user.type(
+      screen.getByPlaceholderText("Se espera que...."),
+      "Plan del primer trimestre"
+    );
+    await user.type(screen.getByPlaceholderText("Id del vendedor"), "vend-1");
+    await user.type(screen.getByPlaceholderText("Cuota en monto ($)"), "150");
+
+    await user.click(screen.getByRole("button", { name: /crear/i }));
+
+    await waitFor(() => expect(mockedCreatePlanVenta).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(mockedToast.error).toHaveBeenCalledWith("Error al crear plan de venta", {
+        description: "Capacidad superada",
+      })
+    );
+    expect(screen.getByPlaceholderText("Identificador del plan")).toHaveValue(
+      "PV-2025-Q1"
+    );
+  });
+
+  it("muestra el mensaje de error genérico cuando no hay detalle específico", async () => {
+    const user = userEvent.setup();
+    renderComponent();
+
+    mockedCreatePlanVenta.mockRejectedValue(new Error("Identificador duplicado"));
+
+    await user.type(
+      screen.getByPlaceholderText("Identificador del plan"),
+      "PV-2025-Q2"
+    );
+    await user.type(
+      screen.getByPlaceholderText("Plan Ventas Q1 2025"),
+      "Plan Q2"
+    );
+    await user.type(
+      screen.getByPlaceholderText("ej. 01/01/2025 - 31/03/2025"),
+      "2025-Q2"
+    );
+    await user.type(
+      screen.getByPlaceholderText("Se espera que...."),
+      "Plan del segundo trimestre"
+    );
+    await user.type(screen.getByPlaceholderText("Id del vendedor"), "vend-2");
+    await user.type(screen.getByPlaceholderText("Cuota en monto ($)"), "200");
+
+    await user.click(screen.getByRole("button", { name: /crear/i }));
+
+    await waitFor(() => expect(mockedCreatePlanVenta).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(mockedToast.error).toHaveBeenCalledWith("Error al crear plan de venta", {
+        description: "Identificador duplicado",
+      })
+    );
+  });
+});
