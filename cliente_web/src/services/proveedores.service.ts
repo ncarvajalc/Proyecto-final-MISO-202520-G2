@@ -9,7 +9,12 @@
 
 
 import { ApiClient } from "@/lib/api-client";
-import type { Proveedor, ProveedoresResponse, PaginationParams } from "@/types/proveedor";
+import type {
+  BulkUploadResponse,
+  Proveedor,
+  ProveedoresResponse,
+  PaginationParams,
+} from "@/types/proveedor";
 
 /**
  * Fetch proveedores with pagination
@@ -113,7 +118,7 @@ export const createProveedor = async (
  * 
  * Backend Contract Example:
  * 
- * POST /api/proveedores/bulk-upload
+ * POST /proveedores/bulk-upload
  * Content-Type: multipart/form-data
  * 
  * Request Body:
@@ -145,23 +150,19 @@ export const createProveedor = async (
  */
 export const bulkUploadProveedores = async (
   file: File
-): Promise<{ success: boolean; created: number; message: string }> => {
-  // Simulate API delay
-  await new Promise((resolve) => setTimeout(resolve, 1500));
+): Promise<BulkUploadResponse> => {
+  const apiClient = new ApiClient(import.meta.env.VITE_PROVEEDORES_API_URL);
+  const formData = new FormData();
+  formData.append("file", file);
 
-  // Mock validation - check if file is CSV
-  if (!file.name.endsWith(".csv")) {
-    throw new Error("Solo se permiten archivos CSV");
-  }
-
-  // Mock parsing CSV and creating proveedores
-  // In real implementation, backend would parse and create
-  const mockCreatedCount = Math.floor(Math.random() * 10) + 5; // Random 5-15
-
-  return {
-    success: true,
-    created: mockCreatedCount,
-    message: `${mockCreatedCount} proveedores creados exitosamente`,
-  };
+  return apiClient.post<BulkUploadResponse>(
+    "/proveedores/bulk-upload",
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    }
+  );
 };
 

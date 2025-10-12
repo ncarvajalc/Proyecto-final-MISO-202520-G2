@@ -118,37 +118,59 @@ describe("getProveedores service", () => {
 });
 
 describe("bulkUploadProveedores service", () => {
+  let apiUrl: string;
+
+  beforeEach(() => {
+    postMock.mockReset();
+    vi.unstubAllEnvs();
+    apiUrl = faker.internet.url();
+    vi.stubEnv("VITE_PROVEEDORES_API_URL", apiUrl);
+  });
+
   afterEach(() => {
-    vi.useRealTimers();
-    vi.spyOn(Math, "random").mockRestore?.();
+    vi.unstubAllEnvs();
   });
 
-  it("rechaza archivos que no sean CSV", async () => {
-    const file = new File(
-      [faker.lorem.paragraph()],
-      `${faker.string.alphanumeric({ length: 8 })}.txt`,
-      { type: "text/plain" }
+  it("envía el archivo como multipart/form-data al endpoint esperado", async () => {
+    const file = new File(["contenido"], "proveedores.csv", { type: "text/csv" });
+    const responseData = {
+      success: true,
+      message: "2 proveedores creados, 0 con errores",
+      file: { filename: "proveedores.csv", contentType: "text/csv", rows: [] },
+      summary: { totalRows: 2, processedRows: 2, succeeded: 2, failed: 0 },
+      errors: [],
+      createdSuppliers: [],
+    };
+
+    postMock.mockResolvedValue(responseData);
+
+    const result = await bulkUploadProveedores(file);
+
+    const { ApiClient } = await import("@/lib/api-client");
+    expect(ApiClient).toHaveBeenCalledWith(apiUrl);
+    expect(postMock).toHaveBeenCalledWith(
+      "/proveedores/bulk-upload",
+      expect.any(FormData),
+      expect.objectContaining({
+        headers: { "Content-Type": "multipart/form-data" },
+      })
     );
-    await expect(bulkUploadProveedores(file)).rejects.toThrow(
-      "Solo se permiten archivos CSV"
-    );
+
+    const formDataArg = postMock.mock.calls[0][1] as FormData;
+    const entries = Array.from(formDataArg.entries());
+    expect(entries).toHaveLength(1);
+    expect(entries[0][0]).toBe("file");
+    expect(entries[0][1]).toBeInstanceOf(File);
+    expect((entries[0][1] as File).name).toBe("proveedores.csv");
+
+    expect(result).toEqual(responseData);
   });
 
-  it("devuelve un conteo determinístico cuando el archivo es CSV", async () => {
-    vi.useFakeTimers();
-    vi.spyOn(Math, "random").mockReturnValue(0.4);
-    const file = new File(
-      [faker.lorem.paragraph()],
-      `${faker.string.alphanumeric({ length: 8 })}.csv`,
-      { type: "text/csv" }
-    );
+  it("propaga errores cuando la API responde con fallo", async () => {
+    const file = new File(["contenido"], "proveedores.csv", { type: "text/csv" });
+    const apiError = new Error("falló el backend");
+    postMock.mockRejectedValue(apiError);
 
-    const promise = bulkUploadProveedores(file);
-    await vi.advanceTimersByTimeAsync(1500);
-    const result = await promise;
-
-    expect(result.success).toBe(true);
-    expect(result.created).toBe(9);
-    expect(result.message).toContain("9 proveedores");
+    await expect(bulkUploadProveedores(file)).rejects.toThrow("falló el backend");
   });
 });

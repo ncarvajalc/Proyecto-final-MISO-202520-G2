@@ -1,6 +1,7 @@
 """Data models for supplier domain."""
 
 from .supplier import SupplierCertificate, SupplierCreate
+from .orm import Supplier
 from .bulk_upload import (
     SupplierBulkUploadError,
     SupplierBulkUploadFile,
@@ -13,6 +14,7 @@ from .bulk_upload import (
 __all__ = [
     "SupplierCertificate",
     "SupplierCreate",
+    "Supplier",
     "SupplierBulkUploadRow",
     "SupplierBulkUploadError",
     "SupplierBulkUploadSummary",
