@@ -1,13 +1,26 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
 
-from app.core.database import SessionLocal
+from app.core.database import Base, SessionLocal, engine
 from app.modules.products.routes import bulk
+from app.modules.suppliers.routes import bulk_upload_router
 
 app = FastAPI()
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+Base.metadata.create_all(bind=engine)
+
 app.include_router(bulk.router)
+app.include_router(bulk_upload_router)
 
 
 @app.get("/health", tags=["health"])

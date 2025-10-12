@@ -27,8 +27,16 @@ export function BulkUploadProveedoresForm({
   const uploadMutation = useMutation({
     mutationFn: bulkUploadProveedores,
     onSuccess: (data) => {
-      toast.success("Carga masiva exitosa", {
-        description: data.message,
+      const hasErrors = data.summary.failed > 0;
+      const title = hasErrors
+        ? "Carga masiva con observaciones"
+        : "Carga masiva exitosa";
+      const description = hasErrors
+        ? `${data.summary.succeeded} proveedores creados y ${data.summary.failed} con errores.`
+        : data.message;
+
+      toast.success(title, {
+        description,
       });
       queryClient.invalidateQueries({ queryKey: ["proveedores"] });
       setSelectedFile(null);
@@ -36,7 +44,7 @@ export function BulkUploadProveedoresForm({
     },
     onError: (error: Error & { detail?: string }) => {
       toast.error("Error en carga masiva", {
-        description: error.detail,
+        description: error.detail ?? error.message,
       });
     },
   });

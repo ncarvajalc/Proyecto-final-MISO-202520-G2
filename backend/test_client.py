@@ -3,10 +3,21 @@
 from __future__ import annotations
 
 import asyncio
+import io
 import json
 from dataclasses import dataclass
 from types import TracebackType
-from typing import Any, Dict, Iterable, Mapping, MutableMapping, Optional, Tuple, Type
+from typing import (
+    Any,
+    Dict,
+    Iterable,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Tuple,
+    Type,
+)
+from uuid import uuid4
 from urllib.parse import urlencode, urljoin, urlsplit
 
 
@@ -51,8 +62,19 @@ class TestClient:
         *,
         json: Optional[Any] = None,
         params: Optional[Mapping[str, Any]] = None,
+        data: Optional[Any] = None,
+        files: Optional[Mapping[str, Tuple[str, Any, Optional[str]]]] = None,
+        headers: Optional[Mapping[str, str]] = None,
     ) -> Response:
-        return self.request("POST", url, json=json, params=params)
+        return self.request(
+            "POST",
+            url,
+            json=json,
+            params=params,
+            data=data,
+            files=files,
+            headers=headers,
+        )
 
     def put(
         self,
@@ -60,8 +82,19 @@ class TestClient:
         *,
         json: Optional[Any] = None,
         params: Optional[Mapping[str, Any]] = None,
+        data: Optional[Any] = None,
+        files: Optional[Mapping[str, Tuple[str, Any, Optional[str]]]] = None,
+        headers: Optional[Mapping[str, str]] = None,
     ) -> Response:
-        return self.request("PUT", url, json=json, params=params)
+        return self.request(
+            "PUT",
+            url,
+            json=json,
+            params=params,
+            data=data,
+            files=files,
+            headers=headers,
+        )
 
     def patch(
         self,
@@ -69,8 +102,19 @@ class TestClient:
         *,
         json: Optional[Any] = None,
         params: Optional[Mapping[str, Any]] = None,
+        data: Optional[Any] = None,
+        files: Optional[Mapping[str, Tuple[str, Any, Optional[str]]]] = None,
+        headers: Optional[Mapping[str, str]] = None,
     ) -> Response:
-        return self.request("PATCH", url, json=json, params=params)
+        return self.request(
+            "PATCH",
+            url,
+            json=json,
+            params=params,
+            data=data,
+            files=files,
+            headers=headers,
+        )
 
     def delete(
         self,
@@ -87,6 +131,8 @@ class TestClient:
         *,
         json: Optional[Any] = None,
         params: Optional[Mapping[str, Any]] = None,
+        data: Optional[Any] = None,
+        files: Optional[Mapping[str, Tuple[str, Any, Optional[str]]]] = None,
         headers: Optional[Mapping[str, str]] = None,
     ) -> Response:
         if self._closed:
@@ -98,9 +144,20 @@ class TestClient:
         if headers:
             request_headers.update({k.lower(): v for k, v in headers.items()})
 
-        if json is not None:
+        if files:
+            body, content_type = encode_multipart(data or {}, files)
+            request_headers["content-type"] = content_type
+        elif json is not None:
             body = json_dumps(json)
             request_headers.setdefault("content-type", "application/json")
+        elif data is not None:
+            if isinstance(data, (bytes, bytearray)):
+                body = bytes(data)
+            elif isinstance(data, str):
+                body = data.encode("utf-8")
+            else:
+                body = urlencode(list(_expand_params(data))).encode("utf-8")
+            request_headers.setdefault("content-type", "application/x-www-form-urlencoded")
 
         scope = {
             "type": "http",
@@ -200,6 +257,44 @@ def _expand_params(params: Mapping[str, Any]) -> Iterable[Tuple[str, Any]]:
                 yield key, item
         else:
             yield key, value
+
+
+def encode_multipart(
+    data: Mapping[str, Any],
+    files: Mapping[str, Tuple[str, Any, Optional[str]]],
+) -> Tuple[bytes, str]:
+    boundary = f"----TestClientBoundary{uuid4().hex}"
+    buffer = io.BytesIO()
+    boundary_bytes = boundary.encode("utf-8")
+
+    for key, value in data.items():
+        buffer.write(b"--" + boundary_bytes + b"\r\n")
+        buffer.write(
+            f'Content-Disposition: form-data; name="{key}"'.encode("utf-8")
+        )
+        buffer.write(b"\r\n\r\n")
+        buffer.write(str(value).encode("utf-8"))
+        buffer.write(b"\r\n")
+
+    for key, file_info in files.items():
+        filename, content, content_type = file_info
+        buffer.write(b"--" + boundary_bytes + b"\r\n")
+        disposition = (
+            f'Content-Disposition: form-data; name="{key}"; filename="{filename}"'
+        )
+        buffer.write(disposition.encode("utf-8"))
+        buffer.write(b"\r\n")
+        ct = content_type or "application/octet-stream"
+        buffer.write(f"Content-Type: {ct}".encode("utf-8"))
+        buffer.write(b"\r\n\r\n")
+        if isinstance(content, str):
+            buffer.write(content.encode("utf-8"))
+        else:
+            buffer.write(content)
+        buffer.write(b"\r\n")
+
+    buffer.write(b"--" + boundary_bytes + b"--\r\n")
+    return buffer.getvalue(), f"multipart/form-data; boundary={boundary}"
 
 
 def json_dumps(data: Any) -> bytes:
