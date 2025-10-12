@@ -1,8 +1,8 @@
 import asyncio
 from typing import List, Tuple
-from uuid import uuid4
 
 import pytest
+from faker import Faker
 from fastapi import HTTPException
 
 from app.modules.access.models import Profile, Permission, ProfilePermission, User
@@ -12,18 +12,21 @@ from app.modules.access.services.auth_service import AuthService, pwd_context
 
 def _create_user_with_permissions(
     session,
+    fake: Faker,
     *,
     email: str | None = None,
-    password: str = "password123",
+    password: str | None = None,
     is_active: bool = True,
     permission_names: List[str] | None = None,
 ) -> Tuple[User, str, List[str], Profile]:
     if email is None:
-        email = f"user_{uuid4().hex[:8]}@example.com"
+        email = fake.unique.email()
+    if password is None:
+        password = fake.password()
     if permission_names is None:
-        permission_names = ["view_reports"]
+        permission_names = [fake.unique.word()]
 
-    profile = Profile(profile_name=f"Profile-{uuid4().hex[:6]}")
+    profile = Profile(profile_name=fake.bothify(text="Profile-####"))
     session.add(profile)
     session.commit()
     session.refresh(profile)
@@ -55,12 +58,18 @@ def _create_user_with_permissions(
     return user, password, created_permissions, profile
 
 
-def test_authenticate_successfully_returns_token_and_permissions(db_session):
-    user, plain_password, permissions, _ = _create_user_with_permissions(
+def test_authenticate_successfully_returns_token_and_permissions(
+    db_session, fake: Faker
+):
+    expected_permissions = [fake.unique.word(), fake.unique.word()]
+    user_email = fake.unique.email()
+    user_password = fake.password()
+    user, plain_password, _, _ = _create_user_with_permissions(
         db_session,
-        email="alice@example.com",
-        password="alice-password",
-        permission_names=["manage_users", "edit_orders"],
+        fake,
+        email=user_email,
+        password=user_password,
+        permission_names=expected_permissions,
     )
 
     service = AuthService(db_session)
@@ -69,21 +78,21 @@ def test_authenticate_successfully_returns_token_and_permissions(db_session):
     response = asyncio.run(service.authenticate(credentials))
 
     assert response.user.id == user.id
-    assert response.user.email == "alice@example.com"
-    assert set(response.permissions or []) == {"manage_users", "edit_orders"}
+    assert response.user.email == user_email
+    assert set(response.permissions or []) == set(expected_permissions)
     assert response.token
 
     db_session.refresh(user)
     assert user.last_login_at is not None
 
 
-def test_authenticate_raises_for_unknown_email(db_session):
+def test_authenticate_raises_for_unknown_email(db_session, fake: Faker):
     service = AuthService(db_session)
 
     with pytest.raises(HTTPException) as exc_info:
         asyncio.run(
             service.authenticate(
-                LoginCredentials(email="ghost@example.com", password="secret")
+                LoginCredentials(email=fake.unique.email(), password=fake.password())
             )
         )
 
@@ -91,9 +100,9 @@ def test_authenticate_raises_for_unknown_email(db_session):
     assert "Invalid credentials" in exc_info.value.detail
 
 
-def test_authenticate_rejects_inactive_user(db_session):
+def test_authenticate_rejects_inactive_user(db_session, fake: Faker):
     user, _, _, _ = _create_user_with_permissions(
-        db_session, email="bob@example.com", is_active=False
+        db_session, fake, email=fake.unique.email(), is_active=False
     )
 
     service = AuthService(db_session)
@@ -101,7 +110,7 @@ def test_authenticate_rejects_inactive_user(db_session):
     with pytest.raises(HTTPException) as exc_info:
         asyncio.run(
             service.authenticate(
-                LoginCredentials(email=user.email, password="password123")
+                LoginCredentials(email=user.email, password=fake.password())
             )
         )
 
@@ -109,26 +118,30 @@ def test_authenticate_rejects_inactive_user(db_session):
     assert "inactive" in exc_info.value.detail
 
 
-def test_authenticate_rejects_invalid_password(db_session):
-    user, _, _, _ = _create_user_with_permissions(
-        db_session, email="carol@example.com"
+def test_authenticate_rejects_invalid_password(db_session, fake: Faker):
+    user, real_password, _, _ = _create_user_with_permissions(
+        db_session, fake, email=fake.unique.email()
     )
 
     service = AuthService(db_session)
 
+    wrong_password = fake.password()
+    while wrong_password == real_password:
+        wrong_password = fake.password()
+
     with pytest.raises(HTTPException) as exc_info:
         asyncio.run(
             service.authenticate(
-                LoginCredentials(email=user.email, password="wrong-password")
+                LoginCredentials(email=user.email, password=wrong_password)
             )
         )
 
     assert exc_info.value.status_code == 401
 
 
-def test_validate_token_returns_valid_payload(db_session):
+def test_validate_token_returns_valid_payload(db_session, fake: Faker):
     user, plain_password, _, _ = _create_user_with_permissions(
-        db_session, email="dana@example.com"
+        db_session, fake, email=fake.unique.email()
     )
     service = AuthService(db_session)
     token = asyncio.run(
@@ -144,9 +157,9 @@ def test_validate_token_returns_valid_payload(db_session):
     assert validation.email == user.email
 
 
-def test_validate_token_returns_invalid_when_user_inactive(db_session):
+def test_validate_token_returns_invalid_when_user_inactive(db_session, fake: Faker):
     user, plain_password, _, _ = _create_user_with_permissions(
-        db_session, email="erin@example.com"
+        db_session, fake, email=fake.unique.email()
     )
     service = AuthService(db_session)
     token = asyncio.run(
@@ -175,11 +188,13 @@ def test_validate_token_handles_missing_header(db_session):
     assert validation.user_id is None
 
 
-def test_get_current_user_returns_profile_information(db_session):
+def test_get_current_user_returns_profile_information(db_session, fake: Faker):
+    permission_names = [fake.unique.word(), fake.unique.word()]
     user, plain_password, permissions, profile = _create_user_with_permissions(
         db_session,
-        email="frank@example.com",
-        permission_names=["perm_a", "perm_b"],
+        fake,
+        email=fake.unique.email(),
+        permission_names=permission_names,
     )
     service = AuthService(db_session)
     token = asyncio.run(
@@ -216,9 +231,9 @@ def test_get_current_user_raises_for_invalid_token(db_session):
     assert exc_info.value.status_code == 401
 
 
-def test_get_current_user_handles_missing_user(db_session):
+def test_get_current_user_handles_missing_user(db_session, fake: Faker):
     user, plain_password, _, _ = _create_user_with_permissions(
-        db_session, email="gina@example.com"
+        db_session, fake, email=fake.unique.email()
     )
     service = AuthService(db_session)
     token = asyncio.run(
@@ -236,9 +251,9 @@ def test_get_current_user_handles_missing_user(db_session):
     assert exc_info.value.status_code == 404
 
 
-def test_get_current_user_handles_inactive_user(db_session):
+def test_get_current_user_handles_inactive_user(db_session, fake: Faker):
     user, plain_password, _, _ = _create_user_with_permissions(
-        db_session, email="helen@example.com"
+        db_session, fake, email=fake.unique.email()
     )
     service = AuthService(db_session)
     token = asyncio.run(

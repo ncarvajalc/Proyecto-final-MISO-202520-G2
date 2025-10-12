@@ -1,8 +1,8 @@
 import os
-from datetime import date
 
 import pytest
-from fastapi.testclient import TestClient
+from backend.test_client import TestClient
+from faker import Faker
 
 os.environ.setdefault("TESTING", "1")
 
@@ -19,12 +19,12 @@ def client():
     Base.metadata.drop_all(bind=engine)
 
 
-def test_create_salesperson_endpoint_success(client):
+def test_create_salesperson_endpoint_success(client, fake: Faker):
     payload = {
-        "full_name": "Carlos López",
-        "email": "carlos.lopez@example.com",
-        "hire_date": date(2024, 3, 1).isoformat(),
-        "status": "active",
+        "full_name": fake.name(),
+        "email": fake.unique.email(),
+        "hire_date": fake.date_between(start_date="-2y", end_date="today").isoformat(),
+        "status": fake.random_element(("active", "inactive")),
     }
 
     response = client.post("/vendedores/", json=payload)
@@ -36,12 +36,12 @@ def test_create_salesperson_endpoint_success(client):
     assert data["status"] == payload["status"]
 
 
-def test_create_salesperson_endpoint_rejects_duplicate_email(client):
+def test_create_salesperson_endpoint_rejects_duplicate_email(client, fake: Faker):
     payload = {
-        "full_name": "Diana Castro",
-        "email": "diana.castro@example.com",
-        "hire_date": date(2024, 5, 20).isoformat(),
-        "status": "active",
+        "full_name": fake.name(),
+        "email": fake.unique.email(),
+        "hire_date": fake.date_between(start_date="-2y", end_date="today").isoformat(),
+        "status": fake.random_element(("active", "inactive")),
     }
 
     first = client.post("/vendedores/", json=payload)

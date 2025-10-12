@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi, afterEach } from "vitest";
+import { faker } from "@faker-js/faker";
 
 import {
   createProveedor,
@@ -19,11 +20,16 @@ vi.mock("@/lib/api-client", () => {
 });
 
 describe("createProveedor service", () => {
+  let apiUrl: string;
+
+  faker.seed(209);
+
   beforeEach(() => {
     postMock.mockReset();
     getMock.mockReset();
     vi.unstubAllEnvs();
-    vi.stubEnv("VITE_PROVEEDORES_API_URL", "http://api.test");
+    apiUrl = faker.internet.url();
+    vi.stubEnv("VITE_PROVEEDORES_API_URL", apiUrl);
   });
 
   afterEach(() => {
@@ -31,34 +37,40 @@ describe("createProveedor service", () => {
   });
 
   it("envía el payload al endpoint esperado", async () => {
+    const estado = faker.helpers.arrayElement(["Activo", "Inactivo"]) as
+      | "Activo"
+      | "Inactivo";
     const payload = {
-      nombre: "Proveedor Uno",
-      id_tax: "123",
-      direccion: "Calle 123",
-      telefono: "5551234",
-      correo: "correo@test.com",
-      contacto: "Ana",
-      estado: "Activo" as const,
+      nombre: faker.company.name(),
+      id_tax: faker.string.alphanumeric({ length: 8 }).toUpperCase(),
+      direccion: faker.location.streetAddress(),
+      telefono: faker.phone.number(),
+      correo: faker.internet.email(),
+      contacto: faker.person.firstName(),
+      estado,
       certificado: null,
     };
 
-    const responseData = { ...payload, id: 1 };
+    const responseData = { ...payload, id: faker.number.int({ min: 1, max: 999 }) };
     postMock.mockResolvedValue(responseData);
 
     const result = await createProveedor(payload);
 
     const { ApiClient } = await import("@/lib/api-client");
-    expect(ApiClient).toHaveBeenCalledWith("http://api.test");
+    expect(ApiClient).toHaveBeenCalledWith(apiUrl);
     expect(postMock).toHaveBeenCalledWith("/proveedores", payload);
     expect(result).toEqual(responseData);
   });
 });
 
 describe("getProveedores service", () => {
+  let apiUrl: string;
+
   beforeEach(() => {
     getMock.mockReset();
     vi.unstubAllEnvs();
-    vi.stubEnv("VITE_PROVEEDORES_API_URL", "http://api.test");
+    apiUrl = faker.internet.url();
+    vi.stubEnv("VITE_PROVEEDORES_API_URL", apiUrl);
   });
 
   afterEach(() => {
@@ -66,11 +78,17 @@ describe("getProveedores service", () => {
   });
 
   it("transforma una respuesta en array a paginación", async () => {
-    const proveedores = [
-      { id: 1, nombre: "A", id_tax: "1", direccion: "", telefono: "", correo: "a@test.com", contacto: "", estado: "Activo", certificado: null },
-      { id: 2, nombre: "B", id_tax: "2", direccion: "", telefono: "", correo: "b@test.com", contacto: "", estado: "Activo", certificado: null },
-      { id: 3, nombre: "C", id_tax: "3", direccion: "", telefono: "", correo: "c@test.com", contacto: "", estado: "Activo", certificado: null },
-    ];
+    const proveedores = Array.from({ length: 3 }, () => ({
+      id: faker.number.int({ min: 1, max: 1000 }),
+      nombre: faker.company.name(),
+      id_tax: faker.string.alphanumeric({ length: 8 }).toUpperCase(),
+      direccion: faker.location.streetAddress(),
+      telefono: faker.phone.number(),
+      correo: faker.internet.email(),
+      contacto: faker.person.firstName(),
+      estado: faker.helpers.arrayElement(["Activo", "Inactivo"] as const),
+      certificado: null,
+    }));
     getMock.mockResolvedValue(proveedores);
 
     const result = await getProveedores({ page: 1, limit: 2 });
@@ -106,7 +124,11 @@ describe("bulkUploadProveedores service", () => {
   });
 
   it("rechaza archivos que no sean CSV", async () => {
-    const file = new File(["data"], "proveedor.txt", { type: "text/plain" });
+    const file = new File(
+      [faker.lorem.paragraph()],
+      `${faker.string.alphanumeric({ length: 8 })}.txt`,
+      { type: "text/plain" }
+    );
     await expect(bulkUploadProveedores(file)).rejects.toThrow(
       "Solo se permiten archivos CSV"
     );
@@ -115,7 +137,11 @@ describe("bulkUploadProveedores service", () => {
   it("devuelve un conteo determinístico cuando el archivo es CSV", async () => {
     vi.useFakeTimers();
     vi.spyOn(Math, "random").mockReturnValue(0.4);
-    const file = new File(["data"], "proveedor.csv", { type: "text/csv" });
+    const file = new File(
+      [faker.lorem.paragraph()],
+      `${faker.string.alphanumeric({ length: 8 })}.csv`,
+      { type: "text/csv" }
+    );
 
     const promise = bulkUploadProveedores(file);
     await vi.advanceTimersByTimeAsync(1500);

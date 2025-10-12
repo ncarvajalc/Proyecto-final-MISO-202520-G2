@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
-import { randomUUID } from "node:crypto";
+import { faker } from "@faker-js/faker";
 
 import { createPlanVenta, getPlanesVenta } from "@/services/planesVenta.service";
 import type { PlanVenta } from "@/types/planVenta";
@@ -21,6 +21,18 @@ const startServer = async (
 describe("planesVenta.service - acceptance", () => {
   it("permite crear un plan y luego listarlo con los datos normalizados", async () => {
     const plans: PlanVenta[] = [];
+    faker.seed(1603);
+
+    const payload = {
+      identificador: faker.string.alphanumeric({ length: 8 }).toUpperCase(),
+      nombre: faker.commerce.productName(),
+      descripcion: faker.lorem.sentence(),
+      periodo: `${faker.date.future({ years: 1 }).getFullYear()}-Q${faker.number.int({ min: 1, max: 4 })}`,
+      meta: faker.number.int({ min: 100, max: 400 }),
+      vendedorId: faker.string.uuid(),
+    };
+    const vendedorNombre = faker.person.fullName();
+    const unidadesVendidas = faker.number.int({ min: 1, max: 25 });
 
     const server = await startServer((req, res) => {
       if (req.method === "OPTIONS") {
@@ -42,13 +54,13 @@ describe("planesVenta.service - acceptance", () => {
         });
         req.on("end", () => {
           const parsed = JSON.parse(body || "{}");
-          const id = randomUUID();
+          const id = faker.string.uuid();
           const stored = {
             ...parsed,
             id,
             meta: parsed.meta,
-            vendedor_nombre: "Lucía Gómez",
-            unidades_vendidas: 12,
+            vendedor_nombre: vendedorNombre,
+            unidades_vendidas: unidadesVendidas,
           };
           plans.push(stored);
 
@@ -93,24 +105,24 @@ describe("planesVenta.service - acceptance", () => {
 
     try {
       const created = await createPlanVenta({
-        identificador: "PV-2025-Q4",
-        nombre: "Plan Q4",
-        descripcion: "Plan del cuarto trimestre",
-        periodo: "2025-Q4",
-        meta: 210,
-        vendedorId: "vend-9",
+        identificador: payload.identificador,
+        nombre: payload.nombre,
+        descripcion: payload.descripcion,
+        periodo: payload.periodo,
+        meta: payload.meta,
+        vendedorId: payload.vendedorId,
       });
 
-      expect(created.vendedorNombre).toBe("Lucía Gómez");
-      expect(created.unidadesVendidas).toBe(12);
+      expect(created.vendedorNombre).toBe(vendedorNombre);
+      expect(created.unidadesVendidas).toBe(unidadesVendidas);
 
       const listado = await getPlanesVenta({ page: 1, limit: 5 });
 
       expect(listado.total).toBe(1);
       expect(listado.totalPages).toBe(1);
       expect(listado.data[0].id).toBe(created.id);
-      expect(listado.data[0].vendedorNombre).toBe("Lucía Gómez");
-      expect(listado.data[0].unidadesVendidas).toBe(12);
+      expect(listado.data[0].vendedorNombre).toBe(vendedorNombre);
+      expect(listado.data[0].unidadesVendidas).toBe(unidadesVendidas);
     } finally {
       await server.close();
       vi.unstubAllEnvs();

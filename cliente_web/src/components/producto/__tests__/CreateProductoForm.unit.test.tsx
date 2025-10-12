@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { faker } from "@faker-js/faker";
 
 import { CreateProductoForm } from "@/components/producto/CreateProductoForm";
 import { createProducto } from "@/services/productos.service";
@@ -36,6 +37,7 @@ const renderForm = () => {
 describe("CreateProductoForm - Unit", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    faker.seed(901);
   });
 
   it("muestra errores cuando los campos requeridos están vacíos", async () => {
@@ -59,11 +61,17 @@ describe("CreateProductoForm - Unit", () => {
     const user = userEvent.setup();
     renderForm();
 
-    await user.type(screen.getByPlaceholderText("MED-001"), "MED-777");
-    await user.type(screen.getByPlaceholderText("Nombre del producto"), "Producto QA");
+    await user.type(
+      screen.getByPlaceholderText("MED-001"),
+      faker.string.alphanumeric({ length: 6 }).toUpperCase()
+    );
+    await user.type(
+      screen.getByPlaceholderText("Nombre del producto"),
+      faker.commerce.productName()
+    );
     await user.type(
       screen.getByPlaceholderText("Descripción del producto"),
-      "Descripción de QA"
+      faker.commerce.productDescription()
     );
     await user.clear(screen.getByPlaceholderText("5000"));
     await user.type(screen.getByPlaceholderText("5000"), "0");

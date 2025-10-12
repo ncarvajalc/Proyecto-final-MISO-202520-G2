@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { faker } from "@faker-js/faker";
 
 vi.mock("@/services/vendedores.service", () => ({
   createVendedor: vi.fn(),
@@ -39,33 +40,36 @@ describe("CreateVendedorForm - Integration", () => {
     mockedCreateVendedor.mockReset();
     mockedToast.success.mockReset();
     mockedToast.error.mockReset();
+    faker.seed(953);
   });
 
   it("envía la información correcta y resetea el formulario tras éxito", async () => {
     const user = userEvent.setup();
     const { onOpenChange } = setup();
 
-    mockedCreateVendedor.mockResolvedValue({
-      id: "VEN-123",
-      nombre: "Ana Torres",
-      correo: "ana.torres@example.com",
-      fechaContratacion: "2024-01-01",
+    const vendedorCreado = {
+      id: faker.string.uuid(),
+      nombre: faker.person.fullName(),
+      correo: faker.internet.email(),
+      fechaContratacion: faker.date.past().toISOString().split("T")[0],
       planDeVenta: null,
-    });
+    };
+
+    mockedCreateVendedor.mockResolvedValue(vendedorCreado);
 
     await user.type(
       screen.getByPlaceholderText("Nombre del vendedor"),
-      "Ana Torres"
+      vendedorCreado.nombre
     );
-    await user.type(screen.getByPlaceholderText("Email"), "ana.torres@example.com");
+    await user.type(screen.getByPlaceholderText("Email"), vendedorCreado.correo);
 
     await user.click(screen.getByRole("button", { name: /crear/i }));
 
     await waitFor(() => expect(mockedCreateVendedor).toHaveBeenCalledTimes(1));
     expect(mockedCreateVendedor).toHaveBeenCalledWith(
       {
-        nombre: "Ana Torres",
-        correo: "ana.torres@example.com",
+        nombre: vendedorCreado.nombre,
+        correo: vendedorCreado.correo,
       },
       expect.anything()
     );

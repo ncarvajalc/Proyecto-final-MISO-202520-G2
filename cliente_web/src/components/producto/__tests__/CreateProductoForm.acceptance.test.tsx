@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { faker } from "@faker-js/faker";
 
 vi.mock("@/services/productos.service", () => ({
   createProducto: vi.fn(),
@@ -45,6 +46,7 @@ describe("CreateProductoForm - Acceptance", () => {
     mockedCreateProducto.mockReset();
     mockedToast.success.mockReset();
     mockedToast.error.mockReset();
+    faker.seed(904);
   });
 
   it(
@@ -53,33 +55,49 @@ describe("CreateProductoForm - Acceptance", () => {
       const user = userEvent.setup();
       const { onOpenChange } = renderForm();
 
-      mockedCreateProducto.mockResolvedValue({ id: "777" });
+      mockedCreateProducto.mockResolvedValue({ id: faker.string.uuid() });
 
-      await user.type(screen.getByPlaceholderText("MED-001"), "MED-432");
+      const producto = {
+        sku: faker.string.alphanumeric({ length: 6 }).toUpperCase(),
+        nombre: faker.commerce.productName(),
+        descripcion: faker.commerce.productDescription(),
+        precio: faker.number.int({ min: 1000, max: 90000 }),
+      };
+      const especificacion = {
+        nombre: faker.commerce.productMaterial(),
+        valor: faker.commerce.productAdjective(),
+      };
+      const manualUrl = faker.internet.url();
+      const instalacionUrl = faker.internet.url();
+
+      await user.type(screen.getByPlaceholderText("MED-001"), producto.sku);
       await user.type(
         screen.getByPlaceholderText("Nombre del producto"),
-        "Producto Acceptance"
+        producto.nombre
       );
       await user.type(
         screen.getByPlaceholderText("Descripción del producto"),
-        "Descripción completa"
+        producto.descripcion
       );
       await user.clear(screen.getByPlaceholderText("5000"));
-      await user.type(screen.getByPlaceholderText("5000"), "22222");
+      await user.type(
+        screen.getByPlaceholderText("5000"),
+        String(producto.precio)
+      );
 
       await user.click(screen.getByRole("button", { name: /agregar/i }));
       const [nombreEspecificacion] = screen.getAllByPlaceholderText("Nombre");
       const [valorEspecificacion] = screen.getAllByPlaceholderText("Valor");
-      await user.type(nombreEspecificacion, "Presentación");
-      await user.type(valorEspecificacion, "Caja x 50");
+      await user.type(nombreEspecificacion, especificacion.nombre);
+      await user.type(valorEspecificacion, especificacion.valor);
 
       await user.type(
         screen.getByPlaceholderText("https://ejemplo.com/manual.pdf"),
-        "https://example.com/manual.pdf"
+        manualUrl
       );
       await user.type(
         screen.getByPlaceholderText("https://ejemplo.com/instalacion.pdf"),
-        "https://example.com/instalacion.pdf"
+        instalacionUrl
       );
 
       const certCombobox = screen.getByRole("combobox");
@@ -92,15 +110,12 @@ describe("CreateProductoForm - Acceptance", () => {
       await waitFor(() => expect(mockedCreateProducto).toHaveBeenCalledTimes(1));
       const [payload] = mockedCreateProducto.mock.calls[0];
       expect(payload).toEqual({
-        sku: "MED-432",
-        nombre: "Producto Acceptance",
-        descripcion: "Descripción completa",
-        precio: 22222,
+        ...producto,
         activo: true,
-        especificaciones: [{ nombre: "Presentación", valor: "Caja x 50" }],
+        especificaciones: [especificacion],
         hojaTecnica: {
-          urlManual: "https://example.com/manual.pdf",
-          urlHojaInstalacion: "https://example.com/instalacion.pdf",
+          urlManual: manualUrl,
+          urlHojaInstalacion: instalacionUrl,
           certificaciones: ["INVIMA"],
         },
       });

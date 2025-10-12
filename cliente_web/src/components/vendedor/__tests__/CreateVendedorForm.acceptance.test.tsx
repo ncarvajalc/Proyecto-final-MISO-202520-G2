@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { faker } from "@faker-js/faker";
 
 vi.mock("@/services/vendedores.service", () => ({
   createVendedor: vi.fn(),
@@ -17,6 +18,7 @@ vi.mock("sonner", () => ({
 
 import { CreateVendedorForm } from "@/components/vendedor/CreateVendedorForm";
 import { createVendedor } from "@/services/vendedores.service";
+import type { Vendedor } from "@/types/vendedor";
 import { toast } from "sonner";
 
 const mockedCreateVendedor = vi.mocked(createVendedor);
@@ -35,10 +37,10 @@ const renderForm = () => {
   return { onOpenChange, queryClient, ...utils };
 };
 
-const deferred = () => {
-  let resolve!: (value: unknown) => void;
+const deferred = <T,>() => {
+  let resolve!: (value: T) => void;
   let reject!: (reason?: unknown) => void;
-  const promise = new Promise((res, rej) => {
+  const promise = new Promise<T>((res, rej) => {
     resolve = res;
     reject = rej;
   });
@@ -50,20 +52,23 @@ describe("CreateVendedorForm - Acceptance", () => {
     mockedCreateVendedor.mockReset();
     mockedToast.success.mockReset();
     mockedToast.error.mockReset();
+    faker.seed(954);
   });
 
   it("permite registrar un vendedor y muestra estados intermedios", async () => {
     const user = userEvent.setup();
     const { onOpenChange, queryClient } = renderForm();
 
-    const deferredPromise = deferred();
+    const deferredPromise = deferred<Vendedor>();
     mockedCreateVendedor.mockImplementation(() => deferredPromise.promise);
 
-    await user.type(
-      screen.getByPlaceholderText("Nombre del vendedor"),
-      "Bruno Castaño"
-    );
-    await user.type(screen.getByPlaceholderText("Email"), "bruno@example.com");
+    const nombre = faker.person.fullName();
+    const correo = faker.internet.email();
+    const fechaContratacion = faker.date.past().toISOString().split("T")[0];
+    const vendedorId = faker.string.uuid();
+
+    await user.type(screen.getByPlaceholderText("Nombre del vendedor"), nombre);
+    await user.type(screen.getByPlaceholderText("Email"), correo);
 
     const submitButton = screen.getByRole("button", { name: /crear/i });
     await user.click(submitButton);
@@ -72,10 +77,10 @@ describe("CreateVendedorForm - Acceptance", () => {
     expect(submitButton).toHaveTextContent(/creando/i);
 
     deferredPromise.resolve({
-      id: "VEN-500",
-      nombre: "Bruno Castaño",
-      correo: "bruno@example.com",
-      fechaContratacion: "2024-03-03",
+      id: vendedorId,
+      nombre,
+      correo,
+      fechaContratacion,
       planDeVenta: null,
     });
 

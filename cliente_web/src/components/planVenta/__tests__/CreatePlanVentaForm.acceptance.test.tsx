@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { faker } from "@faker-js/faker";
 
 vi.mock("@/services/planesVenta.service", () => ({
   createPlanVenta: vi.fn(),
@@ -28,27 +29,20 @@ const mockedCreatePlanVenta = vi.mocked(createPlanVenta);
 const mockedToast = vi.mocked(toast);
 const mockedGetVendedores = vi.mocked(getVendedores);
 
-const vendedoresResponse = {
-  data: [
-    {
-      id: "vend-1",
-      nombre: "Laura Pérez",
-      correo: "laura.perez@example.com",
-      fechaContratacion: "2024-01-15",
+const buildVendedoresResponse = () => {
+  return {
+    data: Array.from({ length: 2 }, () => ({
+      id: faker.string.uuid(),
+      nombre: faker.person.fullName(),
+      correo: faker.internet.email(),
+      fechaContratacion: faker.date.past().toISOString().split("T")[0],
       planDeVenta: null,
-    },
-    {
-      id: "vend-2",
-      nombre: "Carlos Gómez",
-      correo: "carlos.gomez@example.com",
-      fechaContratacion: "2023-12-01",
-      planDeVenta: null,
-    },
-  ],
-  total: 2,
-  page: 1,
-  limit: 100,
-  totalPages: 1,
+    })),
+    total: 2,
+    page: 1,
+    limit: 100,
+    totalPages: 1,
+  };
 };
 
 const renderComponent = () => {
@@ -80,47 +74,46 @@ describe("CreatePlanVentaForm - Acceptance", () => {
     mockedToast.success.mockReset();
     mockedToast.error.mockReset();
     mockedGetVendedores.mockReset();
-    mockedGetVendedores.mockResolvedValue(vendedoresResponse);
+    faker.seed(704);
+    mockedGetVendedores.mockResolvedValue(buildVendedoresResponse());
   });
 
   it("notifica al usuario cuando el backend responde con un error", async () => {
     const user = userEvent.setup();
     renderComponent();
 
+    const errorDetail = faker.lorem.sentence();
     mockedCreatePlanVenta.mockRejectedValue(
-      Object.assign(new Error("Backend error"), { detail: "Capacidad superada" })
+      Object.assign(new Error(faker.lorem.sentence()), { detail: errorDetail })
     );
 
-    await user.type(
-      screen.getByPlaceholderText("Identificador del plan"),
-      "PV-2025-Q1"
-    );
-    await user.type(
-      screen.getByPlaceholderText("Plan Ventas Q1 2025"),
-      "Plan Q1"
-    );
-    await user.type(
-      screen.getByPlaceholderText("ej. 01/01/2025 - 31/03/2025"),
-      "2025-Q1"
-    );
-    await user.type(
-      screen.getByPlaceholderText("Se espera que...."),
-      "Plan del primer trimestre"
-    );
     await waitFor(() => expect(mockedGetVendedores).toHaveBeenCalled());
-    await selectVendedor(user, "Laura Pérez");
-    await user.type(screen.getByPlaceholderText("Cuota en monto ($)"), "150");
+    const vendedores = await mockedGetVendedores.mock.results[0]!.value;
+    const vendedor = vendedores.data[0];
+    const identificador = faker.string.alphanumeric({ length: 8 }).toUpperCase();
+    const nombrePlan = faker.company.catchPhrase();
+    const periodo = `${faker.date.future({ years: 1 }).getFullYear()}-Q${faker.number.int({ min: 1, max: 4 })}`;
+    const descripcion = faker.lorem.sentence();
+    const meta = faker.number.int({ min: 50, max: 500 });
+
+    await user.type(screen.getByPlaceholderText("Identificador del plan"), identificador);
+    await user.type(screen.getByPlaceholderText("Plan Ventas Q1 2025"), nombrePlan);
+    await user.type(screen.getByPlaceholderText("ej. 01/01/2025 - 31/03/2025"), periodo);
+    await user.type(screen.getByPlaceholderText("Se espera que...."), descripcion);
+    await waitFor(() => expect(mockedGetVendedores).toHaveBeenCalled());
+    await selectVendedor(user, vendedor.nombre);
+    await user.type(screen.getByPlaceholderText("Cuota en monto ($)"), String(meta));
 
     await user.click(screen.getByRole("button", { name: /crear/i }));
 
     await waitFor(() => expect(mockedCreatePlanVenta).toHaveBeenCalled());
     await waitFor(() =>
       expect(mockedToast.error).toHaveBeenCalledWith("Error al crear plan de venta", {
-        description: "Capacidad superada",
+        description: errorDetail,
       })
     );
     expect(screen.getByPlaceholderText("Identificador del plan")).toHaveValue(
-      "PV-2025-Q1"
+      identificador
     );
   });
 
@@ -128,34 +121,32 @@ describe("CreatePlanVentaForm - Acceptance", () => {
     const user = userEvent.setup();
     renderComponent();
 
-    mockedCreatePlanVenta.mockRejectedValue(new Error("Identificador duplicado"));
-
-    await user.type(
-      screen.getByPlaceholderText("Identificador del plan"),
-      "PV-2025-Q2"
-    );
-    await user.type(
-      screen.getByPlaceholderText("Plan Ventas Q1 2025"),
-      "Plan Q2"
-    );
-    await user.type(
-      screen.getByPlaceholderText("ej. 01/01/2025 - 31/03/2025"),
-      "2025-Q2"
-    );
-    await user.type(
-      screen.getByPlaceholderText("Se espera que...."),
-      "Plan del segundo trimestre"
-    );
     await waitFor(() => expect(mockedGetVendedores).toHaveBeenCalled());
-    await selectVendedor(user, "Carlos Gómez");
-    await user.type(screen.getByPlaceholderText("Cuota en monto ($)"), "200");
+    const vendedores = await mockedGetVendedores.mock.results[0]!.value;
+    const vendedor = vendedores.data[1];
+    const identificador = faker.string.alphanumeric({ length: 8 }).toUpperCase();
+    const nombrePlan = faker.company.catchPhrase();
+    const periodo = `${faker.date.future({ years: 1 }).getFullYear()}-Q${faker.number.int({ min: 1, max: 4 })}`;
+    const descripcion = faker.lorem.sentence();
+    const meta = faker.number.int({ min: 50, max: 500 });
+    const errorMessage = faker.lorem.sentence();
+
+    mockedCreatePlanVenta.mockRejectedValue(new Error(errorMessage));
+
+    await user.type(screen.getByPlaceholderText("Identificador del plan"), identificador);
+    await user.type(screen.getByPlaceholderText("Plan Ventas Q1 2025"), nombrePlan);
+    await user.type(screen.getByPlaceholderText("ej. 01/01/2025 - 31/03/2025"), periodo);
+    await user.type(screen.getByPlaceholderText("Se espera que...."), descripcion);
+    await waitFor(() => expect(mockedGetVendedores).toHaveBeenCalled());
+    await selectVendedor(user, vendedor.nombre);
+    await user.type(screen.getByPlaceholderText("Cuota en monto ($)"), String(meta));
 
     await user.click(screen.getByRole("button", { name: /crear/i }));
 
     await waitFor(() => expect(mockedCreatePlanVenta).toHaveBeenCalled());
     await waitFor(() =>
       expect(mockedToast.error).toHaveBeenCalledWith("Error al crear plan de venta", {
-        description: "Identificador duplicado",
+        description: errorMessage,
       })
     );
   });

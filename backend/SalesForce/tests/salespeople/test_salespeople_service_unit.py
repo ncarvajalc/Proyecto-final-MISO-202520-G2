@@ -1,8 +1,8 @@
 import os
-from datetime import date
 
 import pytest
 from fastapi import HTTPException
+from faker import Faker
 
 os.environ.setdefault("TESTING", "1")
 
@@ -11,16 +11,19 @@ from app.modules.salespeople.services import salespeople_service as service
 
 
 @pytest.fixture()
-def sample_salesperson():
+def sample_salesperson(fake: Faker):
+    hire_date = fake.date_between(start_date="-2y", end_date="today")
     return SalespeopleCreate(
-        full_name="Ana Pérez",
-        email="ana.perez@example.com",
-        hire_date=date(2024, 1, 1),
-        status="active",
+        full_name=fake.name(),
+        email=fake.unique.email(),
+        hire_date=hire_date,
+        status=fake.random_element(("active", "inactive")),
     )
 
 
-def test_create_salespeople_raises_when_email_exists(monkeypatch, sample_salesperson):
+def test_create_salespeople_raises_when_email_exists(
+    monkeypatch, sample_salesperson: SalespeopleCreate
+):
     db = object()
 
     def fake_get_salespeople_by_email(db_session, email):
@@ -48,7 +51,9 @@ def test_create_salespeople_raises_when_email_exists(monkeypatch, sample_salespe
     assert create_called is False
 
 
-def test_create_salespeople_calls_crud_when_email_free(monkeypatch, sample_salesperson):
+def test_create_salespeople_calls_crud_when_email_free(
+    monkeypatch, sample_salesperson: SalespeopleCreate
+):
     db = object()
     created = object()
 
@@ -97,13 +102,17 @@ def test_read_one_salespeople_raises_when_not_found(monkeypatch):
     assert exc_info.value.detail == "Salespeople not found"
 
 
-def test_update_salespeople_raises_when_not_found(monkeypatch):
+def test_update_salespeople_raises_when_not_found(monkeypatch, fake: Faker):
     db = object()
 
     monkeypatch.setattr(service, "update_salespeople", lambda *args, **kwargs: None)
 
     with pytest.raises(HTTPException):
-        service.update(db, "123", SalespeopleUpdate(full_name="Nuevo"))
+        service.update(
+            db,
+            "123",
+            SalespeopleUpdate(full_name=fake.name(), status=fake.random_element(("active", "inactive"))),
+        )
 
 
 def test_delete_salespeople_raises_when_not_found(monkeypatch):

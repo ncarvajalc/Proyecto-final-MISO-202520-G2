@@ -1,8 +1,8 @@
 import os
-from datetime import date
 
 import pytest
-from fastapi.testclient import TestClient
+from backend.test_client import TestClient
+from faker import Faker
 
 os.environ.setdefault("TESTING", "1")
 
@@ -19,27 +19,27 @@ def client():
     Base.metadata.drop_all(bind=engine)
 
 
-def create_salesperson(client):
+def create_salesperson(client: TestClient, fake: Faker) -> dict:
     payload = {
-        "full_name": "Laura Ramírez",
-        "email": "laura.ramirez@example.com",
-        "hire_date": date(2024, 1, 1).isoformat(),
-        "status": "active",
+        "full_name": fake.name(),
+        "email": fake.unique.email(),
+        "hire_date": fake.date_between(start_date="-2y", end_date="today").isoformat(),
+        "status": fake.random_element(("active", "inactive")),
     }
     response = client.post("/vendedores/", json=payload)
     assert response.status_code == 200
     return response.json()
 
 
-def test_create_sales_plan_endpoint_success(client):
-    salesperson = create_salesperson(client)
+def test_create_sales_plan_endpoint_success(client, fake: Faker):
+    salesperson = create_salesperson(client, fake)
 
     payload = {
-        "identificador": "PV-2025-Q1",
-        "nombre": "Plan Q1",
-        "descripcion": "Plan para Q1",
-        "periodo": "2025-Q1",
-        "meta": 200.0,
+        "identificador": fake.unique.bothify(text="PV-####-Q#"),
+        "nombre": fake.catch_phrase(),
+        "descripcion": fake.text(max_nb_chars=60),
+        "periodo": f"{fake.random_int(min=2020, max=2030)}-Q{fake.random_int(min=1, max=4)}",
+        "meta": float(round(fake.pyfloat(min_value=50, max_value=500, right_digits=2), 2)),
         "vendedorId": salesperson["id"],
     }
 
@@ -52,14 +52,14 @@ def test_create_sales_plan_endpoint_success(client):
     assert data["unidadesVendidas"] == 0.0
 
 
-def test_create_sales_plan_endpoint_requires_existing_salesperson(client):
+def test_create_sales_plan_endpoint_requires_existing_salesperson(client, fake: Faker):
     payload = {
-        "identificador": "PV-2025-Q2",
-        "nombre": "Plan Q2",
-        "descripcion": "Plan para Q2",
-        "periodo": "2025-Q2",
-        "meta": 210.0,
-        "vendedorId": "missing",
+        "identificador": fake.unique.bothify(text="PV-####-Q#"),
+        "nombre": fake.catch_phrase(),
+        "descripcion": fake.text(max_nb_chars=60),
+        "periodo": f"{fake.random_int(min=2020, max=2030)}-Q{fake.random_int(min=1, max=4)}",
+        "meta": float(round(fake.pyfloat(min_value=50, max_value=500, right_digits=2), 2)),
+        "vendedorId": fake.uuid4(),
     }
 
     response = client.post("/planes-venta/", json=payload)
@@ -68,16 +68,16 @@ def test_create_sales_plan_endpoint_requires_existing_salesperson(client):
     assert response.json()["detail"] == "Salesperson not found"
 
 
-def test_list_sales_plan_endpoint_returns_paginated_payload(client):
-    salesperson = create_salesperson(client)
+def test_list_sales_plan_endpoint_returns_paginated_payload(client, fake: Faker):
+    salesperson = create_salesperson(client, fake)
 
-    for idx in range(3):
+    for _ in range(3):
         payload = {
-            "identificador": f"PV-2025-Q{idx + 1}",
-            "nombre": f"Plan Q{idx + 1}",
-            "descripcion": f"Plan para Q{idx + 1}",
-            "periodo": f"2025-Q{idx + 1}",
-            "meta": 200.0 + idx,
+            "identificador": fake.unique.bothify(text="PV-####-Q#"),
+            "nombre": fake.catch_phrase(),
+            "descripcion": fake.text(max_nb_chars=60),
+            "periodo": f"{fake.random_int(min=2020, max=2030)}-Q{fake.random_int(min=1, max=4)}",
+            "meta": float(round(fake.pyfloat(min_value=50, max_value=500, right_digits=2), 2)),
             "vendedorId": salesperson["id"],
         }
         create_response = client.post("/planes-venta/", json=payload)

@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { faker } from "@faker-js/faker";
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 
@@ -19,6 +20,23 @@ const startServer = async (
 describe("planesVenta.service - functional", () => {
   it("consume un backend HTTP real para listar planes", async () => {
     const requests: Array<{ method: string; page: number; limit: number }> = [];
+    faker.seed(333);
+
+    const plan = {
+      id: faker.string.uuid(),
+      identificador: faker.string.alphanumeric({ length: 8 }).toUpperCase(),
+      nombre: faker.commerce.productName(),
+      descripcion: faker.lorem.sentence(),
+      periodo: `${faker.date.future({ years: 1 }).getFullYear()}-Q${faker.number.int({ min: 1, max: 4 })}`,
+      meta: faker.number.int({ min: 50, max: 500 }),
+      vendedorId: faker.string.uuid(),
+      vendedorNombre: faker.person.fullName(),
+      unidadesVendidas: faker.number.int({ min: 0, max: 200 }),
+    };
+    const total = faker.number.int({ min: 2, max: 10 });
+    const page = faker.number.int({ min: 1, max: 5 });
+    const limit = faker.number.int({ min: 1, max: 3 });
+    const totalPages = faker.number.int({ min: 1, max: 5 });
 
     const server = await startServer((req, res) => {
       if (req.method === "OPTIONS") {
@@ -41,23 +59,11 @@ describe("planesVenta.service - functional", () => {
         });
 
         const body = {
-          data: [
-            {
-              id: "plan-1",
-              identificador: "PV-2025-Q1",
-              nombre: "Plan Q1",
-              descripcion: "Plan del primer trimestre",
-              periodo: "2025-Q1",
-              meta: 150,
-              vendedorId: "vend-1",
-              vendedorNombre: "Laura Pérez",
-              unidadesVendidas: 25,
-            },
-          ],
-          total: 3,
+          data: [plan],
+          total,
           page: Number(url.searchParams.get("page")),
           limit: Number(url.searchParams.get("limit")),
-          totalPages: 3,
+          totalPages,
         };
 
         res.writeHead(200, {
@@ -75,34 +81,23 @@ describe("planesVenta.service - functional", () => {
     vi.stubEnv("VITE_SALESFORCE_API_URL", server.url);
 
     try {
-      const result = await getPlanesVenta({ page: 2, limit: 1 });
+      const result = await getPlanesVenta({ page, limit });
 
       expect(requests).toEqual([
         {
           method: "GET",
-          page: 2,
-          limit: 1,
+          page,
+          limit,
         },
       ]);
       expect(result).toEqual({
-        data: [
-          {
-            id: "plan-1",
-            identificador: "PV-2025-Q1",
-            nombre: "Plan Q1",
-            descripcion: "Plan del primer trimestre",
-            periodo: "2025-Q1",
-            meta: 150,
-            vendedorId: "vend-1",
-            vendedorNombre: "Laura Pérez",
-            unidadesVendidas: 25,
-          },
-        ],
-        total: 3,
-        page: 2,
-        limit: 1,
-        totalPages: 3,
+        data: [plan],
+        total,
+        page,
+        limit,
+        totalPages,
       });
+      expect(result.totalPages).toBe(totalPages);
     } finally {
       await server.close();
       vi.unstubAllEnvs();

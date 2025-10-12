@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { faker } from "@faker-js/faker";
 
 vi.mock("@/services/vendedores.service", () => ({
   createVendedor: vi.fn(),
@@ -36,8 +37,14 @@ const renderComponent = () => {
 
 const fillForm = async () => {
   const user = userEvent.setup();
-  await user.type(screen.getByPlaceholderText("Nombre del vendedor"), "Beatriz");
-  await user.type(screen.getByPlaceholderText("Email"), "bea@example.com");
+  await user.type(
+    screen.getByPlaceholderText("Nombre del vendedor"),
+    faker.person.fullName()
+  );
+  await user.type(
+    screen.getByPlaceholderText("Email"),
+    faker.internet.email()
+  );
   return user;
 };
 
@@ -46,14 +53,16 @@ describe("CreateVendedorForm - Functional", () => {
     mockedCreateVendedor.mockReset();
     mockedToast.success.mockReset();
     mockedToast.error.mockReset();
+    faker.seed(952);
   });
 
   it("muestra feedback cuando la API devuelve un error", async () => {
     const { onOpenChange } = renderComponent();
     const user = await fillForm();
 
+    const errorMessage = faker.lorem.sentence();
     mockedCreateVendedor.mockRejectedValue({
-      detail: "El correo ya está registrado",
+      detail: errorMessage,
     });
 
     await user.click(screen.getByRole("button", { name: /crear/i }));
@@ -63,7 +72,7 @@ describe("CreateVendedorForm - Functional", () => {
       expect(mockedToast.error).toHaveBeenCalledWith(
         "Error al crear vendedor",
         expect.objectContaining({
-          description: "El correo ya está registrado",
+          description: errorMessage,
         })
       )
     );

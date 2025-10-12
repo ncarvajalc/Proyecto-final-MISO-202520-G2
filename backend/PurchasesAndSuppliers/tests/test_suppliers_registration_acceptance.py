@@ -1,4 +1,4 @@
-from fastapi.testclient import TestClient
+from backend.test_client import TestClient
 
 
 def test_register_supplier_acceptance_flow(

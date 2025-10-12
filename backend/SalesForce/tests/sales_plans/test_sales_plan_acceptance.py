@@ -1,8 +1,8 @@
 import os
-from datetime import date
 
 import pytest
-from fastapi.testclient import TestClient
+from backend.test_client import TestClient
+from faker import Faker
 
 os.environ.setdefault("TESTING", "1")
 
@@ -20,23 +20,23 @@ def client():
     Base.metadata.drop_all(bind=engine)
 
 
-def test_sales_plan_creation_end_to_end(client):
+def test_sales_plan_creation_end_to_end(client, fake: Faker):
     vendor_payload = {
-        "full_name": "Andrea Salas",
-        "email": "andrea.salas@example.com",
-        "hire_date": date(2024, 1, 15).isoformat(),
-        "status": "active",
+        "full_name": fake.name(),
+        "email": fake.unique.email(),
+        "hire_date": fake.date_between(start_date="-2y", end_date="today").isoformat(),
+        "status": fake.random_element(("active", "inactive")),
     }
     vendor_response = client.post("/vendedores/", json=vendor_payload)
     assert vendor_response.status_code == 200
     vendor_id = vendor_response.json()["id"]
 
     plan_payload = {
-        "identificador": "PV-2025-Q1",
-        "nombre": "Plan Trimestral",
-        "descripcion": "Plan estratégico del Q1",
-        "periodo": "2025-Q1",
-        "meta": 180.0,
+        "identificador": fake.unique.bothify(text="PV-####-Q#"),
+        "nombre": fake.catch_phrase(),
+        "descripcion": fake.text(max_nb_chars=60),
+        "periodo": f"{fake.random_int(min=2020, max=2030)}-Q{fake.random_int(min=1, max=4)}",
+        "meta": float(round(fake.pyfloat(min_value=50, max_value=500, right_digits=2), 2)),
         "vendedorId": vendor_id,
     }
 
