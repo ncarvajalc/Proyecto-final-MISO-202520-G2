@@ -1,0 +1,46 @@
+steps:
+  # Paso 1: Instalar dependencias y ejecutar pruebas
+  - name: 'python:3.11-slim'
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        pip install --no-cache-dir -r requirementsProveedores.txt
+        pytest --maxfail=1 --disable-warnings -q
+
+  # Paso 2: Construir la imagen Docker
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/fastapi-app', '.']
+
+  # Paso 3: Push al Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/fastapi-app']
+
+  # Paso 4: Desplegar en Cloud Run con conexión a Cloud SQL
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        echo "Desplegando con conexión a: $_CLOUDSQL_CONNECTION_NAME"
+        echo "Usando DATABASE_URL: $_DATABASE_URL"
+
+        gcloud run deploy fastapi-app \
+          --image gcr.io/$PROJECT_ID/fastapi-app \
+          --platform managed \
+          --region us-central1 \
+          --allow-unauthenticated \
+          --add-cloudsql-instances $_CLOUDSQL_CONNECTION_NAME \
+          --set-env-vars DATABASE_URL=$_DATABASE_URL \
+          --set-env-vars CLOUDSQL_CONNECTION_NAME=$_CLOUDSQL_CONNECTION_NAME
+
+images:
+  - 'gcr.io/$PROJECT_ID/fastapi-app'
+
+# ✅ Sustituciones personalizadas (deben comenzar con "_")
+substitutions:
+  _CLOUDSQL_CONNECTION_NAME: "the-respect-435301-u2:us-central1:proveedores-db"
+  _DATABASE_URL: "postgresql+psycopg2://postgres:TuPasswordSegura123@/proveedores?host=/cloudsql/the-respect-435301-u2:us-central1:proveedores-db"
+
+options:
+  logging: CLOUD_LOGGING_ONLY
