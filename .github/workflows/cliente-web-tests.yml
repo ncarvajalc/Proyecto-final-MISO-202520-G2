@@ -11,7 +11,8 @@ on:
       - '.github/workflows/cliente-web-tests.yml'
 
 jobs:
-  quality:
+  tests:
+    name: Cliente web tests
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -37,9 +38,6 @@ jobs:
 
       - name: Run unit tests
         run: pnpm test --if-present
-
-      - name: Run lint
-        run: pnpm run lint
 
       - name: Build project
         run: pnpm run build

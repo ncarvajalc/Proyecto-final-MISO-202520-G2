@@ -1,14 +1,14 @@
-name: Cliente Móvil tests
+name: Cliente Móvil Tests
 
 on:
   push:
     paths:
       - 'cliente_movil/**'
-      - '.github/workflows/cliente-movil-ci.yml'
+      - '.github/workflows/cliente-movil-tests.yml'
   pull_request:
     paths:
       - 'cliente_movil/**'
-      - '.github/workflows/cliente-movil-ci.yml'
+      - '.github/workflows/cliente-movil-tests.yml'
 
 concurrency:
   group: cliente-movil-tests-${{ github.ref }}
@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   tests:
-    name: ${{ matrix.label }}
+    name: Cliente móvil tests - ${{ matrix.label }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
