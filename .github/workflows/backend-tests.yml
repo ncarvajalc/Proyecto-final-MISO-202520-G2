@@ -11,8 +11,8 @@ on:
       - '.github/workflows/backend-tests.yml'
 
 jobs:
-  pytest:
-    name: Pytest (${{ matrix.service }})
+  tests:
+    name: Backend tests (${{ matrix.service }})
     runs-on: ubuntu-latest
     strategy:
       matrix:
