@@ -9,7 +9,7 @@ import {
   type Route,
 } from "@playwright/test";
 
-const CSV_HEADERS = [
+export const CSV_HEADERS = [
   "nombre",
   "id_tax",
   "direccion",
@@ -30,7 +30,7 @@ const escapeCsvValue = (value: string): string => {
   return needsEscaping ? `"${escaped}"` : escaped;
 };
 
-const toCsvRow = (payload: SupplierPayload): string => {
+export const toCsvRow = (payload: SupplierPayload): string => {
   const certificado = payload.certificado ?? null;
   const values = [
     payload.nombre,
@@ -48,6 +48,10 @@ const toCsvRow = (payload: SupplierPayload): string => {
   ];
 
   return values.map((value) => escapeCsvValue(value ?? "")).join(",");
+};
+
+export const buildCsvFromPayloads = (payloads: SupplierPayload[]): string => {
+  return [CSV_HEADERS.join(","), ...payloads.map(toCsvRow)].join("\n");
 };
 
 export type SupplierPayload = {
@@ -157,7 +161,7 @@ const uploadSuppliersFromPayloads = async (
     return [];
   }
 
-  const csvBody = [CSV_HEADERS.join(","), ...payloads.map(toCsvRow)].join("\n");
+  const csvBody = buildCsvFromPayloads(payloads);
   const response = await api.post("/proveedores/bulk-upload", {
     multipart: {
       file: {
@@ -257,7 +261,12 @@ export const trackProveedoresRequests = (page: Page): ProveedoresRequestTracker 
   const tracked: RequestEntry[] = [];
   const listener = (request: Request) => {
     const url = request.url();
-    if (!url.startsWith(`${PROVEEDORES_API_URL}/proveedores`)) {
+    if (!url.includes("/proveedores")) {
+      return;
+    }
+
+    const resourceType = request.resourceType();
+    if (resourceType !== "fetch" && resourceType !== "xhr") {
       return;
     }
 
@@ -289,7 +298,8 @@ export const trackProveedoresRequests = (page: Page): ProveedoresRequestTracker 
     assertAllAuthorized: () => {
       expect(tracked.length).toBeGreaterThan(0);
       for (const entry of tracked) {
-        expect(entry.request.headers()["authorization"]).toMatch(/^Bearer\s.+/);
+        const headers = entry.request.headers();
+        expect(headers["authorization"]).toMatch(/^Bearer\s.+/);
       }
     },
     stop: () => {
