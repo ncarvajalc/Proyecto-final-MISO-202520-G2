@@ -1,0 +1,86 @@
+name: Cliente Web E2E Tests
+
+on:
+  push:
+    paths:
+      - 'cliente_web/**'
+      - 'backend/SecurityAndAudit/**'
+      - 'backend/PurchasesAndSuppliers/**'
+      - '.github/workflows/cliente-web-e2e-tests.yml'
+  pull_request:
+    paths:
+      - 'cliente_web/**'
+      - 'backend/SecurityAndAudit/**'
+      - 'backend/PurchasesAndSuppliers/**'
+      - '.github/workflows/cliente-web-e2e-tests.yml'
+
+jobs:
+  run-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SECURITY_API_URL: http://127.0.0.1:8000
+      PROVEEDORES_API_URL: http://127.0.0.1:8001
+      WEB_BASE_URL: http://127.0.0.1:5173
+      VITE_API_URL: http://127.0.0.1:8000
+      VITE_PROVEEDORES_API_URL: http://127.0.0.1:8001
+      VITE_SALESFORCE_API_URL: http://127.0.0.1:8001
+      VITE_BASE: /
+      E2E_ADMIN_EMAIL: admin@example.com
+      E2E_ADMIN_PASSWORD: admin123
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          cache-dependency-path: cliente_web/pnpm-lock.yaml
+
+      - name: Install dependencies and build frontend
+        working-directory: cliente_web
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm exec playwright install --with-deps
+          pnpm run build
+
+      - name: Start backend services
+        run: docker compose --profile backend up -d --wait security_audit purchases_suppliers
+
+      - name: Run E2E tests
+        working-directory: cliente_web
+        env:
+          SECURITY_API_URL: ${{ env.SECURITY_API_URL }}
+          PROVEEDORES_API_URL: ${{ env.PROVEEDORES_API_URL }}
+          WEB_BASE_URL: ${{ env.WEB_BASE_URL }}
+        run: |
+          pnpm run preview --host 0.0.0.0 --port 5173 --strictPort &
+          FRONT_PID=$!
+          trap 'kill "$FRONT_PID" || true' EXIT
+          pnpm dlx wait-on \
+            http-get://127.0.0.1:5173 \
+            http-get://127.0.0.1:8000/health \
+            http-get://127.0.0.1:8001/health
+          pnpm run test:e2e
+
+      - name: Upload Playwright artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cliente-web-e2e-artifacts
+          path: |
+            cliente_web/playwright-report
+            cliente_web/tests/e2e/.playwright
+          if-no-files-found: ignore
+
+      - name: Tear down services
+        if: always()
+        run: docker compose down --volumes
