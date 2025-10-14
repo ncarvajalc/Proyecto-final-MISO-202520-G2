@@ -24,7 +24,7 @@ const router = createBrowserRouter(
     },
   ],
   {
-    basename: import.meta.env.VITE_BASE,
+    basename: import.meta.env.VITE_BASE ?? "/Proyecto-final-MISO-202520-G2/",
   }
 );
 
