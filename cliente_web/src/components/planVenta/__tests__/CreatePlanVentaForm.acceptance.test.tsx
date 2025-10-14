@@ -78,13 +78,14 @@ describe("CreatePlanVentaForm - Acceptance", () => {
     mockedGetVendedores.mockResolvedValue(buildVendedoresResponse());
   });
 
-  it("notifica al usuario cuando el backend responde con un error", async () => {
+  it("notifica al usuario cuando el backend responde con un detail específico", async () => {
     const user = userEvent.setup();
     renderComponent();
 
     const errorDetail = faker.lorem.sentence();
+    const spacedDetail = `  ${errorDetail}  `;
     mockedCreatePlanVenta.mockRejectedValue(
-      Object.assign(new Error(faker.lorem.sentence()), { detail: errorDetail })
+      Object.assign(new Error(faker.lorem.sentence()), { detail: spacedDetail })
     );
 
     await waitFor(() => expect(mockedGetVendedores).toHaveBeenCalled());
@@ -117,37 +118,69 @@ describe("CreatePlanVentaForm - Acceptance", () => {
     );
   });
 
-  it("muestra el mensaje de error genérico cuando no hay detalle específico", async () => {
-    const user = userEvent.setup();
-    renderComponent();
+  it.each([
+    {
+      title: "cuando el backend no envía detail",
+      rejection: () => new Error(""),
+    },
+    {
+      title: "cuando el backend envía detail vacío",
+      rejection: () => Object.assign(new Error("fallo"), { detail: "   " }),
+    },
+  ])(
+    "muestra el mensaje de error genérico $title",
+    async ({ rejection }) => {
+      const user = userEvent.setup();
+      renderComponent();
 
-    await waitFor(() => expect(mockedGetVendedores).toHaveBeenCalled());
-    const vendedores = await mockedGetVendedores.mock.results[0]!.value;
-    const vendedor = vendedores.data[1];
-    const identificador = faker.string.alphanumeric({ length: 8 }).toUpperCase();
-    const nombrePlan = faker.company.catchPhrase();
-    const periodo = `${faker.date.future({ years: 1 }).getFullYear()}-Q${faker.number.int({ min: 1, max: 4 })}`;
-    const descripcion = faker.lorem.sentence();
-    const meta = faker.number.int({ min: 50, max: 500 });
-    const errorMessage = faker.lorem.sentence();
+      await waitFor(() => expect(mockedGetVendedores).toHaveBeenCalled());
+      const vendedores = await mockedGetVendedores.mock.results[0]!.value;
+      const vendedor = vendedores.data[1];
+      const identificador = faker.string.alphanumeric({ length: 8 }).toUpperCase();
+      const nombrePlan = faker.company.catchPhrase();
+      const periodo = `${faker.date.future({ years: 1 }).getFullYear()}-Q${faker.number.int({
+        min: 1,
+        max: 4,
+      })}`;
+      const descripcion = faker.lorem.sentence();
+      const meta = faker.number.int({ min: 50, max: 500 });
 
-    mockedCreatePlanVenta.mockRejectedValue(new Error(errorMessage));
+      mockedCreatePlanVenta.mockRejectedValue(rejection());
 
-    await user.type(screen.getByPlaceholderText("Identificador del plan"), identificador);
-    await user.type(screen.getByPlaceholderText("Plan Ventas Q1 2025"), nombrePlan);
-    await user.type(screen.getByPlaceholderText("ej. 01/01/2025 - 31/03/2025"), periodo);
-    await user.type(screen.getByPlaceholderText("Se espera que...."), descripcion);
-    await waitFor(() => expect(mockedGetVendedores).toHaveBeenCalled());
-    await selectVendedor(user, vendedor.nombre);
-    await user.type(screen.getByPlaceholderText("Cuota en monto ($)"), String(meta));
+      await user.type(
+        screen.getByPlaceholderText("Identificador del plan"),
+        identificador
+      );
+      await user.type(
+        screen.getByPlaceholderText("Plan Ventas Q1 2025"),
+        nombrePlan
+      );
+      await user.type(
+        screen.getByPlaceholderText("ej. 01/01/2025 - 31/03/2025"),
+        periodo
+      );
+      await user.type(
+        screen.getByPlaceholderText("Se espera que...."),
+        descripcion
+      );
+      await waitFor(() => expect(mockedGetVendedores).toHaveBeenCalled());
+      await selectVendedor(user, vendedor.nombre);
+      await user.type(
+        screen.getByPlaceholderText("Cuota en monto ($)"),
+        String(meta)
+      );
 
-    await user.click(screen.getByRole("button", { name: /crear/i }));
+      await user.click(screen.getByRole("button", { name: /crear/i }));
 
-    await waitFor(() => expect(mockedCreatePlanVenta).toHaveBeenCalled());
-    await waitFor(() =>
-      expect(mockedToast.error).toHaveBeenCalledWith("Error al crear plan de venta", {
-        description: errorMessage,
-      })
-    );
-  });
+      await waitFor(() => expect(mockedCreatePlanVenta).toHaveBeenCalled());
+      await waitFor(() =>
+        expect(mockedToast.error).toHaveBeenCalledWith(
+          "Error al crear plan de venta",
+          {
+            description: "Ocurrió un error al crear el plan de venta.",
+          }
+        )
+      );
+    }
+  );
 });
