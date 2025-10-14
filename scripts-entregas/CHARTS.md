@@ -1,6 +1,6 @@
 # Gráficas del proyecto no generadas por Jira - Proyecto Final MISO 202520 G2
 
-**Última actualización:** 2025-10-13 01:38:28 UTC
+**Última actualización:** 2025-10-14 13:41:00 UTC
 
 ## Resumen de métricas del proyecto
 
