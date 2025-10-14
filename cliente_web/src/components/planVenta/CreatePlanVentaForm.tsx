@@ -113,11 +113,12 @@ export function CreatePlanVentaForm({
       form.reset();
     },
     onError: (error: Error & { detail?: string }) => {
+      const detailMessage = error.detail?.trim();
       toast.error("Error al crear plan de venta", {
         description:
-          error.detail ||
-          error.message ||
-          "Ocurrió un error al crear el plan de venta.",
+          detailMessage && detailMessage.length > 0
+            ? detailMessage
+            : "Ocurrió un error al crear el plan de venta.",
       });
     },
   });
@@ -292,7 +293,13 @@ export function CreatePlanVentaForm({
                               <CommandItem
                                 key={vendedor.id}
                                 value={vendedor.id}
-                                keywords={[vendedor.nombre, vendedor.correo]}
+                                keywords={
+                                  [vendedor.nombre, vendedor.correo].filter(
+                                    (keyword): keyword is string =>
+                                      typeof keyword === "string" &&
+                                      keyword.trim().length > 0
+                                  )
+                                }
                                 onSelect={(currentValue) => {
                                   form.setValue("vendedorId", currentValue);
                                   setVendedorOpen(false);
