@@ -5,7 +5,7 @@ from textwrap import dedent
 from sqlalchemy.orm import Session
 
 from backend.test_client import TestClient
-from tests.suppliers_test_app import Supplier
+from app.modules.suppliers.models.orm import Supplier
 from faker import Faker
 
 

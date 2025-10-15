@@ -2,12 +2,10 @@ import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeAll, afterAll, afterEach, describe, expect, it, vi } from "vitest";
 import { faker } from "@faker-js/faker";
-
-vi.mock("@/services/proveedores.service", () => ({
-  createProveedor: vi.fn(),
-}));
+import { setupServer } from "msw/node";
+import { http, HttpResponse } from "msw";
 
 vi.mock("sonner", () => ({
   toast: {
@@ -17,13 +15,18 @@ vi.mock("sonner", () => ({
 }));
 
 import { CreateProveedorForm } from "@/components/proveedor/CreateProveedorForm";
-import { createProveedor } from "@/services/proveedores.service";
 import { toast } from "sonner";
 
-const mockedCreateProveedor = vi.mocked(createProveedor);
-const mockedToast = vi.mocked(toast);
+const server = setupServer();
 
-const setup = () => {
+beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
+afterAll(() => server.close());
+afterEach(() => {
+  server.resetHandlers();
+  vi.unstubAllEnvs();
+});
+
+const renderComponent = () => {
   const queryClient = new QueryClient();
   const onOpenChange = vi.fn();
   const utils = render(
@@ -37,16 +40,24 @@ const setup = () => {
 };
 
 describe("CreateProveedorForm - Integration", () => {
-  beforeEach(() => {
-    mockedCreateProveedor.mockReset();
-    mockedToast.success.mockReset();
-    mockedToast.error.mockReset();
-    faker.seed(803);
-  });
+  const mockedToast = vi.mocked(toast);
 
-  it("envía la información normalizada y resetea el formulario tras éxito", async () => {
+  it("envía la información normalizada y gestiona el éxito end-to-end", async () => {
+    faker.seed(803);
+    const apiUrl = "http://localhost:4013";
+    vi.stubEnv("VITE_PROVEEDORES_API_URL", apiUrl);
+
+    const capturedPayloads: unknown[] = [];
+    server.use(
+      http.post(`${apiUrl}/proveedores`, async ({ request }) => {
+        const body = await request.json();
+        capturedPayloads.push(body);
+        return HttpResponse.json({ id: faker.number.int({ min: 1, max: 999 }), ...body }, { status: 201 });
+      })
+    );
+
     const user = userEvent.setup();
-    const { onOpenChange } = setup();
+    const { onOpenChange } = renderComponent();
 
     const payload = {
       nombre: faker.company.name(),
@@ -59,10 +70,6 @@ describe("CreateProveedorForm - Integration", () => {
       certificado: null,
     };
 
-    mockedCreateProveedor.mockResolvedValue({
-      id: faker.number.int({ min: 1, max: 999 }),
-    });
-
     await user.type(screen.getByPlaceholderText("Nombre"), payload.nombre);
     await user.type(screen.getByPlaceholderText("Id tax"), payload.id_tax);
     await user.type(screen.getByPlaceholderText("Dirección"), payload.direccion);
@@ -72,14 +79,11 @@ describe("CreateProveedorForm - Integration", () => {
 
     await user.click(screen.getByRole("button", { name: /crear/i }));
 
-    await waitFor(() => expect(mockedCreateProveedor).toHaveBeenCalledTimes(1));
-    const [payloadLlamado] = mockedCreateProveedor.mock.calls[0];
-    expect(payloadLlamado).toEqual(payload);
+    await waitFor(() => expect(capturedPayloads).toHaveLength(1));
+    expect(capturedPayloads[0]).toEqual(payload);
 
-    await waitFor(() => expect(mockedToast.success).toHaveBeenCalled());
+    await waitFor(() => expect(mockedToast.success).toHaveBeenCalledWith("Proveedor creado exitosamente"));
     expect(onOpenChange).toHaveBeenCalledWith(false);
-    await waitFor(() =>
-      expect(screen.getByPlaceholderText("Nombre")).toHaveValue("")
-    );
+    await waitFor(() => expect(screen.getByPlaceholderText("Nombre")).toHaveValue(""));
   });
 });

@@ -4,7 +4,10 @@ import pytest
 from faker import Faker
 from pydantic import ValidationError
 
-from tests.suppliers_test_app import SupplierCertificate, SupplierCreate
+from app.modules.suppliers.models.supplier import (
+    SupplierCertificate,
+    SupplierCreate,
+)
 
 
 def test_supplier_create_schema_accepts_valid_payload(valid_supplier_payload: dict[str, Any]) -> None:
