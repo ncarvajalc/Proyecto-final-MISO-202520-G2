@@ -5,8 +5,7 @@
  * Integrates with the SecurityAndAudit backend service.
  */
 
-// API Base URL - update this based on your environment
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+import { getApiBaseUrl } from "@/config/api";
 
 export interface LoginCredentials {
   email: string;
@@ -47,8 +46,9 @@ export interface UserProfile {
 export const login = async (
   credentials: LoginCredentials
 ): Promise<AuthResponse> => {
+  const apiBaseUrl = getApiBaseUrl();
   try {
-    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+    const response = await fetch(`${apiBaseUrl}/auth/login`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -85,7 +85,8 @@ export const validateToken = async (token: string): Promise<boolean> => {
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/auth/validate`, {
+    const apiBaseUrl = getApiBaseUrl();
+    const response = await fetch(`${apiBaseUrl}/auth/validate`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -112,8 +113,9 @@ export const validateToken = async (token: string): Promise<boolean> => {
  * @throws Error if request fails
  */
 export const getCurrentUser = async (token: string): Promise<UserProfile> => {
+  const apiBaseUrl = getApiBaseUrl();
   try {
-    const response = await fetch(`${API_BASE_URL}/auth/me`, {
+    const response = await fetch(`${apiBaseUrl}/auth/me`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,

@@ -78,7 +78,7 @@ describe("planesVenta.service - functional", () => {
       res.end();
     });
 
-    vi.stubEnv("VITE_SALESFORCE_API_URL", server.url);
+    vi.stubEnv("VITE_API_URL", server.url);
 
     try {
       const result = await getPlanesVenta({ page, limit });

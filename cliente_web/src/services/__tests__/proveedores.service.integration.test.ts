@@ -18,7 +18,7 @@ describe("createProveedor service - Integration", () => {
   it("envía el payload y recibe la respuesta del backend", async () => {
     faker.seed(309);
     const apiUrl = "http://localhost:4011";
-    vi.stubEnv("VITE_PROVEEDORES_API_URL", apiUrl);
+    vi.stubEnv("VITE_API_URL", apiUrl);
 
     const payload = {
       nombre: faker.company.name(),
@@ -46,7 +46,7 @@ describe("createProveedor service - Integration", () => {
   it("propaga el error de conflicto del backend", async () => {
     faker.seed(310);
     const apiUrl = "http://localhost:4011";
-    vi.stubEnv("VITE_PROVEEDORES_API_URL", apiUrl);
+    vi.stubEnv("VITE_API_URL", apiUrl);
 
     const payload = {
       nombre: faker.company.name(),

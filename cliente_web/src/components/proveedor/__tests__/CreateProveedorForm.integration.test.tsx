@@ -45,7 +45,7 @@ describe("CreateProveedorForm - Integration", () => {
   it("envía la información normalizada y gestiona el éxito end-to-end", async () => {
     faker.seed(803);
     const apiUrl = "http://localhost:4013";
-    vi.stubEnv("VITE_PROVEEDORES_API_URL", apiUrl);
+    vi.stubEnv("VITE_API_URL", apiUrl);
 
     const capturedPayloads: unknown[] = [];
     server.use(

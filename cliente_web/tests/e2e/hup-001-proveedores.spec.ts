@@ -14,7 +14,7 @@ import {
   goToPage,
   gotoProveedores,
   loginAsAdmin,
-  PROVEEDORES_API_URL,
+  API_GATEWAY_URL,
   seedSuppliers,
   trackProveedoresRequests,
   waitForCreateRequest,
@@ -113,7 +113,7 @@ test.describe.serial("HUP-001 Registro individual de proveedor", () => {
 
     const providersRequestPromise = page.waitForRequest(
       (request) =>
-        request.url().startsWith(`${PROVEEDORES_API_URL}/proveedores`) &&
+        request.url().startsWith(`${API_GATEWAY_URL}/proveedores`) &&
         request.method() === "GET"
     );
 
@@ -187,7 +187,7 @@ test.describe.serial("HUP-001 Registro individual de proveedor", () => {
 
     const errorResponsePromise = page.waitForResponse(
       (response) =>
-        response.url().startsWith(`${PROVEEDORES_API_URL}/proveedores`) &&
+        response.url().startsWith(`${API_GATEWAY_URL}/proveedores`) &&
         response.request().method() === "GET" &&
         response.status() >= 500
     );
@@ -197,7 +197,7 @@ test.describe.serial("HUP-001 Registro individual de proveedor", () => {
 
     const successResponsePromise = page.waitForResponse(
       (response) =>
-        response.url().startsWith(`${PROVEEDORES_API_URL}/proveedores`) &&
+        response.url().startsWith(`${API_GATEWAY_URL}/proveedores`) &&
         response.request().method() === "GET" &&
         response.ok()
     );

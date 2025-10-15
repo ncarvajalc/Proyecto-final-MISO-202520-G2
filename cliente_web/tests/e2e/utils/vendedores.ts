@@ -3,9 +3,8 @@ import { expect, type APIRequestContext, type Page, type Request, type Response 
 export {
   ADMIN_EMAIL,
   ADMIN_PASSWORD,
-  SECURITY_API_URL,
+  API_GATEWAY_URL,
   loginAsAdmin,
-  SALESFORCE_API_URL,
   createSalesforceApi,
   createVendedorViaApi,
   seedVendedor,

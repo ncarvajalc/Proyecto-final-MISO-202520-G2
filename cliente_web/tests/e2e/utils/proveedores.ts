@@ -85,10 +85,8 @@ export const ADMIN_EMAIL =
   process.env.E2E_ADMIN_EMAIL ?? "admin@example.com";
 export const ADMIN_PASSWORD =
   process.env.E2E_ADMIN_PASSWORD ?? "admin123";
-export const SECURITY_API_URL =
-  process.env.SECURITY_API_URL ?? "http://localhost:8000";
-export const PROVEEDORES_API_URL =
-  process.env.PROVEEDORES_API_URL ?? "http://localhost:8001";
+export const API_GATEWAY_URL =
+  process.env.API_GATEWAY_URL ?? "http://localhost:8080";
 
 export const ITEMS_PER_PAGE = 5;
 
@@ -119,7 +117,7 @@ export type AuthBootstrap = {
 
 export const loginAsAdmin = async (): Promise<AuthBootstrap> => {
   const securityContext = await request.newContext({
-    baseURL: SECURITY_API_URL,
+    baseURL: API_GATEWAY_URL,
     extraHTTPHeaders: {
       "Content-Type": "application/json",
     },
@@ -146,7 +144,7 @@ export const createProveedoresApi = async (
   token: string
 ): Promise<APIRequestContext> => {
   return request.newContext({
-    baseURL: PROVEEDORES_API_URL,
+    baseURL: API_GATEWAY_URL,
     extraHTTPHeaders: {
       Authorization: `Bearer ${token}`,
     },
