@@ -1,20 +1,31 @@
 from fastapi import Depends
-from sqlalchemy.orm import Session
-from ..models.salespeople_model import Salespeople
+from sqlalchemy.orm import Session, joinedload
+from ..models.salespeople_model import Salespeople, SalespeopleGoal, SalesPlan
 from ..schemas.salespeople import SalespeopleCreate, SalespeopleUpdate
-
 
 
 def get_salespeople(db: Session, salespeople_id: str):
     return db.query(Salespeople).filter(Salespeople.id == salespeople_id).first()
 
+
+def get_salespeople_with_goals(db: Session, salespeople_id: str):
+    """
+    Obtiene un vendedor con sus objetivos y planes de venta asociados
+    """
+    return db.query(Salespeople).options(
+        joinedload(Salespeople.goals).joinedload(SalespeopleGoal.sales_plan)
+    ).filter(Salespeople.id == salespeople_id).first()
+
+
 def get_salespeople_by_email(db: Session, email: str):
     return db.query(Salespeople).filter(Salespeople.email == email).first()
 
+
 def get_salespeople_all(db: Session, skip: int = 0, limit: int = 10):
     total = db.query(Salespeople).count()
-    salespeople =  db.query(Salespeople).offset(skip).limit(limit).all()
+    salespeople = db.query(Salespeople).offset(skip).limit(limit).all()
     return {"salespeople": salespeople, "total": total}
+
 
 def create_salespeople(db: Session, salespeople: SalespeopleCreate):
     db_salespeople = Salespeople(**salespeople.model_dump())
@@ -22,6 +33,7 @@ def create_salespeople(db: Session, salespeople: SalespeopleCreate):
     db.commit()
     db.refresh(db_salespeople)
     return db_salespeople
+
 
 def update_salespeople(db: Session, salespeople_id: str, salespeople: SalespeopleUpdate):
     db_salespeople = get_salespeople(db, salespeople_id)
@@ -34,6 +46,7 @@ def update_salespeople(db: Session, salespeople_id: str, salespeople: Salespeopl
     db.commit()
     db.refresh(db_salespeople)
     return db_salespeople
+
 
 def delete_salespeople(db: Session, salespeople_id: str):
     db_salespeople = get_salespeople(db, salespeople_id)
