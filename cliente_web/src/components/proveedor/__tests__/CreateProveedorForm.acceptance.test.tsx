@@ -2,12 +2,19 @@ import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  beforeAll,
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import { faker } from "@faker-js/faker";
-
-vi.mock("@/services/proveedores.service", () => ({
-  createProveedor: vi.fn(),
-}));
+import { setupServer } from "msw/node";
+import { http, HttpResponse } from "msw";
 
 vi.mock("sonner", () => ({
   toast: {
@@ -17,11 +24,16 @@ vi.mock("sonner", () => ({
 }));
 
 import { CreateProveedorForm } from "@/components/proveedor/CreateProveedorForm";
-import { createProveedor } from "@/services/proveedores.service";
 import { toast } from "sonner";
 
-const mockedCreateProveedor = vi.mocked(createProveedor);
-const mockedToast = vi.mocked(toast);
+const server = setupServer();
+
+beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
+afterAll(() => server.close());
+afterEach(() => {
+  server.resetHandlers();
+  vi.unstubAllEnvs();
+});
 
 const renderForm = () => {
   const queryClient = new QueryClient();
@@ -37,22 +49,32 @@ const renderForm = () => {
 };
 
 describe("CreateProveedorForm - Acceptance", () => {
+  const mockedToast = vi.mocked(toast);
+
   beforeEach(() => {
-    mockedCreateProveedor.mockReset();
-    mockedToast.success.mockReset();
-    mockedToast.error.mockReset();
     faker.seed(804);
   });
 
   it(
     "permite registrar un proveedor con certificado y estado personalizado",
     async () => {
+      const apiUrl = "http://localhost:4014";
+      vi.stubEnv("VITE_PROVEEDORES_API_URL", apiUrl);
+
+      const expectedResponse = { id: faker.number.int({ min: 1, max: 1000 }) };
+      let receivedBody: unknown;
+      server.use(
+        http.post(`${apiUrl}/proveedores`, async ({ request }) => {
+          receivedBody = await request.json();
+          return HttpResponse.json(
+            { ...expectedResponse, ...(receivedBody as Record<string, unknown>) },
+            { status: 201 }
+          );
+        })
+      );
+
       const user = userEvent.setup({ delay: 0 });
       const { onOpenChange } = renderForm();
-
-      mockedCreateProveedor.mockResolvedValue({
-        id: faker.number.int({ min: 1, max: 1000 }),
-      });
 
       const estadoSeleccionado = faker.helpers.arrayElement([
         "Activo",
@@ -81,10 +103,7 @@ describe("CreateProveedorForm - Acceptance", () => {
 
       await user.type(screen.getByPlaceholderText("Nombre"), proveedor.nombre);
       await user.type(screen.getByPlaceholderText("Id tax"), proveedor.id_tax);
-      await user.type(
-        screen.getByPlaceholderText("Dirección"),
-        proveedor.direccion
-      );
+      await user.type(screen.getByPlaceholderText("Dirección"), proveedor.direccion);
       await user.type(screen.getByPlaceholderText("Teléfono"), proveedor.telefono);
       await user.type(screen.getByPlaceholderText("Correo"), proveedor.correo);
       await user.type(screen.getByPlaceholderText("Contacto"), proveedor.contacto);
@@ -94,10 +113,7 @@ describe("CreateProveedorForm - Acceptance", () => {
       const option = await screen.findByRole("option", { name: estadoSeleccionado });
       await user.click(option);
 
-      await user.type(
-        screen.getByPlaceholderText("Nombre certificado"),
-        certificado.nombre
-      );
+      await user.type(screen.getByPlaceholderText("Nombre certificado"), certificado.nombre);
       await user.type(
         screen.getByPlaceholderText("Cuerpo certificador"),
         certificado.cuerpoCertificador
@@ -117,17 +133,27 @@ describe("CreateProveedorForm - Acceptance", () => {
 
       await user.click(screen.getByRole("button", { name: /crear/i }));
 
-      await waitFor(() => expect(mockedCreateProveedor).toHaveBeenCalledTimes(1));
-      const [payload] = mockedCreateProveedor.mock.calls[0];
-      expect(payload).toEqual({
+      const expectedPayload = {
         ...proveedor,
         estado: estadoSeleccionado,
         certificado,
-      });
+      };
 
-      await waitFor(() => expect(mockedToast.success).toHaveBeenCalled());
+      await waitFor(() =>
+        expect(mockedToast.success).toHaveBeenCalledWith("Proveedor creado exitosamente")
+      );
       expect(onOpenChange).toHaveBeenCalledWith(false);
+
+      await waitFor(() =>
+        expect(mockedToast.error).not.toHaveBeenCalled()
+      );
+
+      await waitFor(() =>
+        expect(screen.getByPlaceholderText("Nombre")).toHaveValue("")
+      );
+
+      await waitFor(() => expect(receivedBody).toEqual(expectedPayload));
     },
-    10000
+    15000
   );
 });

@@ -105,8 +105,7 @@ export const createProveedor = async (
   proveedor: Omit<Proveedor, "id">
 ): Promise<Proveedor> => {
   const apiClient = new ApiClient(import.meta.env.VITE_PROVEEDORES_API_URL);
-  const response = await apiClient.post<Proveedor>('/proveedores', proveedor);
-  console.log(response);
+  const response = await apiClient.post<Proveedor>("/proveedores", proveedor);
   return response;
 };
 

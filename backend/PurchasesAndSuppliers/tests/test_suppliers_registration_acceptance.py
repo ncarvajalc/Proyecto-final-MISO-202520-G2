@@ -5,7 +5,7 @@ def test_register_supplier_acceptance_flow(
     client: TestClient, valid_supplier_payload: dict, supplier_certificate_payload: dict
 ) -> None:
     payload = {**valid_supplier_payload, "certificado": supplier_certificate_payload}
-    response = client.post("/api/proveedores", json=payload)
+    response = client.post("/proveedores", json=payload)
 
     assert response.status_code == 201
     body = response.json()
@@ -19,7 +19,7 @@ def test_register_supplier_acceptance_flow(
 def test_register_supplier_acceptance_without_certificate(
     client: TestClient, valid_supplier_payload: dict
 ) -> None:
-    response = client.post("/api/proveedores", json=valid_supplier_payload)
+    response = client.post("/proveedores", json=valid_supplier_payload)
 
     assert response.status_code == 201
     body = response.json()

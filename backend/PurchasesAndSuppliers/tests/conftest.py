@@ -40,16 +40,10 @@ SessionLocal = db_module.SessionLocal
 engine = db_module.engine
 from app.main import app  # noqa: E402
 from tests.products_test_app import Product, router as product_router  # noqa: E402
-from tests.suppliers_test_app import Supplier, router as supplier_router  # noqa: E402
+from app.modules.suppliers.models.orm import Supplier  # noqa: E402
 
 
 def _include_router_once() -> None:
-    if not any(
-        route.path == "/api/proveedores" and "POST" in route.methods
-        for route in app.router.routes
-    ):
-        app.include_router(supplier_router)
-
     if not any(
         route.path == "/api/productos" and "POST" in route.methods
         for route in app.router.routes
