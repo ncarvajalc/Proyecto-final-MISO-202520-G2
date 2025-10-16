@@ -1,21 +1,26 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
 import { Download } from "lucide-react";
-import { bulkUploadProductos } from "@/services/productos.service";
+import { toast } from "sonner";
+
 import { Button } from "@/components/ui/button";
-import { InputFile } from "@/components/ui/input-file";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { InputFile } from "@/components/ui/input-file";
+import { bulkUploadProductos } from "@/services/productos.service";
 
 interface BulkUploadProductosFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
+
+const PRODUCTOS_TEMPLATE = `sku,nombre,descripcion,precio,especificaciones,urlManual,urlHojaInstalacion,certificaciones
+MED-001,Paracetamol 500mg,Analgésico y antipirético,5000,"[{""nombre"":""Presentación"",""valor"":""Caja x 20""}]",https://ejemplo.com/manual.pdf,https://ejemplo.com/instalacion.pdf,"INVIMA,FDA"
+MED-002,Ibuprofeno 400mg,Antiinflamatorio,8500,"[{""nombre"":""Presentación"",""valor"":""Caja x 30""}]",,,INVIMA`;
 
 export function BulkUploadProductosForm({
   open,
@@ -36,36 +41,33 @@ export function BulkUploadProductosForm({
     },
     onError: (error: Error & { detail?: string }) => {
       toast.error("Error en carga masiva", {
-        description: error.detail,
+        description: error.detail ?? error.message,
       });
     },
   });
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
 
-    if (file) {
-      // Validate CSV file type
-      if (!file.name.endsWith(".csv")) {
-        toast.error("Archivo inválido", {
-          description: "Solo se permiten archivos CSV",
-        });
-        e.target.value = ""; // Reset input
-        return;
-      }
-
-      setSelectedFile(file);
+    if (!file) {
+      return;
     }
+
+    if (!file.name.toLowerCase().endsWith(".csv")) {
+      toast.error("Archivo inválido", {
+        description: "Solo se permiten archivos CSV",
+      });
+      event.target.value = "";
+      return;
+    }
+
+    setSelectedFile(file);
   };
 
   const handleDownloadTemplate = () => {
-    // Create CSV content with simple structure
-    const csvContent = `sku,nombre,descripcion,precio,especificaciones,urlManual,urlHojaInstalacion,certificaciones
-MED-001,Paracetamol 500mg,Analgésico y antipirético,5000,"[{""nombre"":""Presentación"",""valor"":""Caja x 20""}]",https://ejemplo.com/manual.pdf,https://ejemplo.com/instalacion.pdf,"INVIMA,FDA"
-MED-002,Ibuprofeno 400mg,Antiinflamatorio,8500,"[{""nombre"":""Presentación"",""valor"":""Caja x 30""}]",,,INVIMA`;
-
-    // Create blob and download
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const blob = new Blob([PRODUCTOS_TEMPLATE], {
+      type: "text/csv;charset=utf-8;",
+    });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
 
@@ -81,8 +83,8 @@ MED-002,Ibuprofeno 400mg,Antiinflamatorio,8500,"[{""nombre"":""Presentación"","
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
 
     if (!selectedFile) {
       toast.error("Selecciona un archivo", {
@@ -96,6 +98,7 @@ MED-002,Ibuprofeno 400mg,Antiinflamatorio,8500,"[{""nombre"":""Presentación"","
 
   const handleCancel = () => {
     setSelectedFile(null);
+    uploadMutation.reset();
     onOpenChange(false);
   };
 
@@ -107,13 +110,11 @@ MED-002,Ibuprofeno 400mg,Antiinflamatorio,8500,"[{""nombre"":""Presentación"","
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Instructions */}
           <p className="text-sm text-muted-foreground">
-            Cargue un archivo csv con la información de los productos que desee
-            cargar. Descargue la plantilla y súbala con los datos llenos.
+            Cargue un archivo csv con la información de los productos que desee cargar.
+            Descargue la plantilla y súbala con los datos llenos.
           </p>
 
-          {/* Step 1: Download Template */}
           <div className="space-y-3">
             <h3 className="text-base font-semibold">1. Descargar plantilla</h3>
             <Button
@@ -127,7 +128,6 @@ MED-002,Ibuprofeno 400mg,Antiinflamatorio,8500,"[{""nombre"":""Presentación"","
             </Button>
           </div>
 
-          {/* Step 2: Upload File */}
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-3">
               <h3 className="text-base font-semibold">2. Subir plantilla</h3>
@@ -140,13 +140,11 @@ MED-002,Ibuprofeno 400mg,Antiinflamatorio,8500,"[{""nombre"":""Presentación"","
               />
               {selectedFile && (
                 <p className="text-sm text-muted-foreground">
-                  Archivo seleccionado:{" "}
-                  <span className="font-medium">{selectedFile.name}</span>
+                  Archivo seleccionado: <span className="font-medium">{selectedFile.name}</span>
                 </p>
               )}
             </div>
 
-            {/* Buttons */}
             <div className="flex justify-end gap-3 pt-4">
               <Button
                 type="button"
@@ -156,10 +154,7 @@ MED-002,Ibuprofeno 400mg,Antiinflamatorio,8500,"[{""nombre"":""Presentación"","
               >
                 Cancelar
               </Button>
-              <Button
-                type="submit"
-                disabled={uploadMutation.isPending || !selectedFile}
-              >
+              <Button type="submit" disabled={uploadMutation.isPending || !selectedFile}>
                 {uploadMutation.isPending ? "Cargando..." : "Crear"}
               </Button>
             </div>
