@@ -59,7 +59,7 @@ describe("CreateProveedorForm - Acceptance", () => {
     "permite registrar un proveedor con certificado y estado personalizado",
     async () => {
       const apiUrl = "http://localhost:4014";
-      vi.stubEnv("VITE_PROVEEDORES_API_URL", apiUrl);
+      vi.stubEnv("VITE_API_URL", apiUrl);
 
       const expectedResponse = { id: faker.number.int({ min: 1, max: 1000 }) };
       let receivedBody: unknown;

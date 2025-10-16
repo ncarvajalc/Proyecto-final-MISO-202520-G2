@@ -3,7 +3,7 @@ import { test, expect, type Page } from "@playwright/test";
 import {
   ADMIN_EMAIL,
   ADMIN_PASSWORD,
-  SECURITY_API_URL,
+  API_GATEWAY_URL,
   loginAsAdmin,
   buildVendedorPayload,
   buildPlanVentaPayload,
@@ -115,14 +115,14 @@ test.describe.serial("HUP-003 Gestión de Planes de venta", () => {
 
     const loginRequestPromise = page.waitForRequest((request) => {
       return (
-        request.url().startsWith(`${SECURITY_API_URL}/auth/login`) &&
+        request.url().startsWith(`${API_GATEWAY_URL}/auth/login`) &&
         request.method() === "POST"
       );
     });
 
     const loginResponsePromise = page.waitForResponse((response) => {
       return (
-        response.url().startsWith(`${SECURITY_API_URL}/auth/login`) &&
+        response.url().startsWith(`${API_GATEWAY_URL}/auth/login`) &&
         response.request().method() === "POST"
       );
     });

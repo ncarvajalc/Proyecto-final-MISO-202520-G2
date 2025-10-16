@@ -23,7 +23,7 @@ describe("planesVenta.service - unit", () => {
     getMock.mockReset();
     vi.unstubAllEnvs();
     apiUrl = faker.internet.url();
-    vi.stubEnv("VITE_SALESFORCE_API_URL", apiUrl);
+    vi.stubEnv("VITE_API_URL", apiUrl);
   });
 
   it("envía el payload esperado y normaliza la respuesta", async () => {

@@ -19,7 +19,7 @@ import {
   gotoProveedores,
   ITEMS_PER_PAGE,
   loginAsAdmin,
-  PROVEEDORES_API_URL,
+  API_GATEWAY_URL,
   seedSuppliers,
   trackProveedoresRequests,
   waitForAnyListResponse,
@@ -32,7 +32,7 @@ import type {
 } from "./utils/proveedores";
 
 const SEED_PREFIX = `HUP002-${Date.now()}`;
-const BULK_UPLOAD_ENDPOINT = `${PROVEEDORES_API_URL}/proveedores/bulk-upload`;
+const BULK_UPLOAD_ENDPOINT = `${API_GATEWAY_URL}/proveedores/bulk-upload`;
 const REAL_SMOKE_FLAG = process.env.E2E_RUN_SMOKE_BULK === "true";
 
 type Deferred<T> = {

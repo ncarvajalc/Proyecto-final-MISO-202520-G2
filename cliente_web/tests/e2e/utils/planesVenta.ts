@@ -10,15 +10,14 @@ import {
   type Route,
 } from "@playwright/test";
 
-export {
+import {
   ADMIN_EMAIL,
   ADMIN_PASSWORD,
-  SECURITY_API_URL,
+  API_GATEWAY_URL,
   loginAsAdmin,
 } from "./proveedores";
 
-export const SALESFORCE_API_URL =
-  process.env.SALESFORCE_API_URL ?? "http://localhost:8002";
+export { ADMIN_EMAIL, ADMIN_PASSWORD, API_GATEWAY_URL, loginAsAdmin };
 
 export type VendedorPayload = {
   nombre: string;
@@ -101,7 +100,7 @@ export const createSalesforceApi = async (
   token: string
 ): Promise<APIRequestContext> => {
   return request.newContext({
-    baseURL: SALESFORCE_API_URL,
+    baseURL: API_GATEWAY_URL,
     extraHTTPHeaders: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",

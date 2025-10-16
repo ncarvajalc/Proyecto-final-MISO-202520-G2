@@ -101,7 +101,7 @@ describe("planesVenta.service - acceptance", () => {
       res.end();
     });
 
-    vi.stubEnv("VITE_SALESFORCE_API_URL", server.url);
+    vi.stubEnv("VITE_API_URL", server.url);
 
     try {
       const created = await createPlanVenta({

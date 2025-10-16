@@ -7,6 +7,7 @@
  * The apiClient automatically includes JWT token in all requests.
  */
 
+import { getApiBaseUrl } from "@/config/api";
 import { ApiClient } from "@/lib/api-client";
 import type {
   Vendedor,
@@ -110,7 +111,7 @@ const mapFrontendToBackendUpdate = (
 export const getVendedores = async (
   params: PaginationParams
 ): Promise<VendedoresResponse> => {
-  const apiClient = new ApiClient(import.meta.env.VITE_SALESFORCE_API_URL);
+  const apiClient = new ApiClient(getApiBaseUrl());
 
   const response = await apiClient.get<BackendSalespersonPaginated>(
     "/vendedores/",
@@ -165,7 +166,7 @@ export const getVendedores = async (
 export const createVendedor = async (
   vendedor: Omit<Vendedor, "id" | "fechaContratacion" | "planDeVenta">
 ): Promise<Vendedor> => {
-  const apiClient = new ApiClient(import.meta.env.VITE_SALESFORCE_API_URL);
+  const apiClient = new ApiClient(getApiBaseUrl());
 
   const backendData = mapFrontendToBackendCreate(vendedor);
   const response = await apiClient.post<BackendSalesperson>(
@@ -211,7 +212,7 @@ export const updateVendedor = async (
   id: string,
   vendedor: Partial<Omit<Vendedor, "id" | "fechaContratacion">>
 ): Promise<Vendedor> => {
-  const apiClient = new ApiClient(import.meta.env.VITE_SALESFORCE_API_URL);
+  const apiClient = new ApiClient(getApiBaseUrl());
 
   const backendData = mapFrontendToBackendUpdate(vendedor);
   const response = await apiClient.put<BackendSalesperson>(
@@ -243,7 +244,7 @@ export const updateVendedor = async (
  * }
  */
 export const deleteVendedor = async (id: string): Promise<void> => {
-  const apiClient = new ApiClient(import.meta.env.VITE_SALESFORCE_API_URL);
+  const apiClient = new ApiClient(getApiBaseUrl());
 
   await apiClient.delete(`/vendedores/${id}`);
 };

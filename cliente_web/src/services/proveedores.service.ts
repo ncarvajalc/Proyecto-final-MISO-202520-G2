@@ -8,6 +8,7 @@
  */
 
 
+import { getApiBaseUrl } from "@/config/api";
 import { ApiClient } from "@/lib/api-client";
 import type {
   BulkUploadResponse,
@@ -63,7 +64,7 @@ import type {
  */
 export const getProveedores = async (params: PaginationParams): Promise<ProveedoresResponse> => {
   // Simulate API delay
-  const apiClient = new ApiClient(import.meta.env.VITE_PROVEEDORES_API_URL);
+  const apiClient = new ApiClient(getApiBaseUrl());
   const response = await apiClient.get<ProveedoresResponse | Proveedor[]>('/proveedores', {
     params: {
       page: params.page,
@@ -104,7 +105,7 @@ export const getProveedores = async (params: PaginationParams): Promise<Proveedo
 export const createProveedor = async (
   proveedor: Omit<Proveedor, "id">
 ): Promise<Proveedor> => {
-  const apiClient = new ApiClient(import.meta.env.VITE_PROVEEDORES_API_URL);
+  const apiClient = new ApiClient(getApiBaseUrl());
   const response = await apiClient.post<Proveedor>("/proveedores", proveedor);
   return response;
 };
@@ -150,7 +151,7 @@ export const createProveedor = async (
 export const bulkUploadProveedores = async (
   file: File
 ): Promise<BulkUploadResponse> => {
-  const apiClient = new ApiClient(import.meta.env.VITE_PROVEEDORES_API_URL);
+  const apiClient = new ApiClient(getApiBaseUrl());
   const formData = new FormData();
   formData.append("file", file);
 

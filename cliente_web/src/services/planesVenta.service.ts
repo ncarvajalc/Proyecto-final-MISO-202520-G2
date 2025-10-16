@@ -7,6 +7,7 @@
  * contract and the shape expected by the UI.
  */
 
+import { getApiBaseUrl } from "@/config/api";
 import { ApiClient } from "@/lib/api-client";
 import type { PlanVenta, PlanesVentaResponse, PaginationParams } from "@/types/planVenta";
 
@@ -168,7 +169,7 @@ type BackendPaginatedResponse = {
 };
 
 export const getPlanesVenta = async (params: PaginationParams): Promise<PlanesVentaResponse> => {
-  const apiClient = new ApiClient(import.meta.env.VITE_SALESFORCE_API_URL);
+  const apiClient = new ApiClient(getApiBaseUrl());
 
   const response = await apiClient.get<BackendPaginatedResponse>("/planes-venta/", {
     params: {
@@ -270,7 +271,7 @@ export const getPlanesVenta = async (params: PaginationParams): Promise<PlanesVe
 export const createPlanVenta = async (
   planVenta: Omit<PlanVenta, "id" | "vendedorNombre" | "unidadesVendidas">
 ): Promise<PlanVenta> => {
-  const apiClient = new ApiClient(import.meta.env.VITE_SALESFORCE_API_URL);
+  const apiClient = new ApiClient(getApiBaseUrl());
 
   const response = await apiClient.post<BackendPlanVenta>("/planes-venta/", {
     identificador: planVenta.identificador,

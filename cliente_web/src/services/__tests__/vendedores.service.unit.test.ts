@@ -34,7 +34,7 @@ describe("vendedores.service - unit", () => {
     deleteMock.mockReset();
     vi.unstubAllEnvs();
     apiUrl = faker.internet.url();
-    vi.stubEnv("VITE_SALESFORCE_API_URL", apiUrl);
+    vi.stubEnv("VITE_API_URL", apiUrl);
   });
 
   afterEach(() => {

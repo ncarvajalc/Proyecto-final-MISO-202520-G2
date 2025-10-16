@@ -64,7 +64,7 @@ describe("CreateProveedorForm - Functional", () => {
   it("muestra feedback de error cuando la API falla", async () => {
     faker.seed(802);
     const apiUrl = "http://localhost:4012";
-    vi.stubEnv("VITE_PROVEEDORES_API_URL", apiUrl);
+    vi.stubEnv("VITE_API_URL", apiUrl);
 
     server.use(
       http.post(`${apiUrl}/proveedores`, () =>

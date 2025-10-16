@@ -3,7 +3,7 @@ import { test, expect, type Page, type Route } from "@playwright/test";
 import {
   ADMIN_EMAIL,
   ADMIN_PASSWORD,
-  SECURITY_API_URL,
+  API_GATEWAY_URL,
   waitForCreateVendorRequest,
   waitForCreateVendorResponse,
   waitForToastWithText,
@@ -170,13 +170,13 @@ const performLogin = async (page: Page) => {
 
   const loginRequestPromise = page.waitForRequest(
     (request) =>
-      request.url().startsWith(`${SECURITY_API_URL}/auth/login`) &&
+      request.url().startsWith(`${API_GATEWAY_URL}/auth/login`) &&
       request.method() === "POST"
   );
 
   const loginResponsePromise = page.waitForResponse(
     (response) =>
-      response.url().startsWith(`${SECURITY_API_URL}/auth/login`) &&
+      response.url().startsWith(`${API_GATEWAY_URL}/auth/login`) &&
       response.request().method() === "POST"
   );
 

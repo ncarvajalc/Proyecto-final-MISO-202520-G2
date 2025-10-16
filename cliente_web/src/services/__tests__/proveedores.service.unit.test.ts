@@ -29,7 +29,7 @@ describe("createProveedor service", () => {
     getMock.mockReset();
     vi.unstubAllEnvs();
     apiUrl = faker.internet.url();
-    vi.stubEnv("VITE_PROVEEDORES_API_URL", apiUrl);
+    vi.stubEnv("VITE_API_URL", apiUrl);
   });
 
   afterEach(() => {
@@ -70,7 +70,7 @@ describe("getProveedores service", () => {
     getMock.mockReset();
     vi.unstubAllEnvs();
     apiUrl = faker.internet.url();
-    vi.stubEnv("VITE_PROVEEDORES_API_URL", apiUrl);
+    vi.stubEnv("VITE_API_URL", apiUrl);
   });
 
   afterEach(() => {
@@ -124,7 +124,7 @@ describe("bulkUploadProveedores service", () => {
     postMock.mockReset();
     vi.unstubAllEnvs();
     apiUrl = faker.internet.url();
-    vi.stubEnv("VITE_PROVEEDORES_API_URL", apiUrl);
+    vi.stubEnv("VITE_API_URL", apiUrl);
   });
 
   afterEach(() => {
