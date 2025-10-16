@@ -1,25 +1,9 @@
-import os
+"""Functional tests for sales plan routes."""
 
-import pytest
-from backend.test_client import TestClient
 from faker import Faker
 
-os.environ.setdefault("TESTING", "1")
 
-from app.core.database import Base, engine
-from app.main import app
-
-
-@pytest.fixture()
-def client():
-    Base.metadata.drop_all(bind=engine)
-    Base.metadata.create_all(bind=engine)
-    with TestClient(app) as test_client:
-        yield test_client
-    Base.metadata.drop_all(bind=engine)
-
-
-def create_salesperson(client: TestClient, fake: Faker) -> dict:
+def create_salesperson(client, fake: Faker) -> dict:
     payload = {
         "full_name": fake.name(),
         "email": fake.unique.email(),
@@ -90,7 +74,7 @@ def test_list_sales_plan_endpoint_returns_paginated_payload(client, fake: Faker)
     assert payload["total"] == 3
     assert payload["page"] == 1
     assert payload["limit"] == 2
-    assert payload["totalPages"] == 2
+    assert payload["total_pages"] == 2
     assert len(payload["data"]) == 2
     assert all(item["vendedorNombre"] == salesperson["full_name"] for item in payload["data"])
 

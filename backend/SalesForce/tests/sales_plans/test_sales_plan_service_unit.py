@@ -1,4 +1,3 @@
-import os
 from datetime import datetime
 from types import SimpleNamespace
 import math
@@ -6,8 +5,6 @@ import math
 import pytest
 from fastapi import HTTPException
 from faker import Faker
-
-os.environ.setdefault("TESTING", "1")
 
 from app.modules.sales.schemas import SalesPlanCreate
 from app.modules.sales.services import sales_plan_service as service
@@ -188,7 +185,7 @@ def test_list_sales_plans_maps_orm_objects(monkeypatch, fake: Faker):
     assert result.total_pages == expected_total_pages
 
     payload = result.model_dump(by_alias=True)
-    assert payload["totalPages"] == expected_total_pages
+    assert payload["total_pages"] == expected_total_pages
     assert len(payload["data"]) == 2
     assert payload["data"][0]["unidadesVendidas"] == first_units
     assert payload["data"][1]["vendedorNombre"] is None

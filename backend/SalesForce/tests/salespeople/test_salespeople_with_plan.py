@@ -1,22 +1,4 @@
-import os
-
-import pytest
-from backend.test_client import TestClient
 from faker import Faker
-
-os.environ.setdefault("TESTING", "1")
-
-from app.core.database import Base, engine
-from app.main import app
-
-
-@pytest.fixture()
-def client():
-    Base.metadata.drop_all(bind=engine)
-    Base.metadata.create_all(bind=engine)
-    with TestClient(app) as test_client:
-        yield test_client
-    Base.metadata.drop_all(bind=engine)
 
 
 def test_salesperson_detail_includes_sales_plan(client, fake: Faker):
@@ -67,9 +49,3 @@ def test_salesperson_detail_includes_sales_plan(client, fake: Faker):
     # The field uses camelCase in the response due to alias
     assert plan_data["unidadesVendidas"] == 0  # Default value for new plans
     
-    print("\n✓ Salesperson detail endpoint successfully returns sales plan data")
-    print(f"✓ Plan identificador: {plan_data['identificador']}")
-    print(f"✓ Plan nombre: {plan_data['nombre']}")
-    print(f"✓ Plan meta: {plan_data['meta']}")
-    print(f"✓ Unidades vendidas: {plan_data['unidadesVendidas']}")
-

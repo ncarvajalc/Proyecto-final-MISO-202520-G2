@@ -1,11 +1,8 @@
-import os
-
 import pytest
 from fastapi import HTTPException
 from faker import Faker
 
-os.environ.setdefault("TESTING", "1")
-
+from app.core.pagination import build_pagination_metadata, get_pagination_offset
 from app.modules.salespeople.schemas.salespeople import SalespeopleCreate, SalespeopleUpdate
 from app.modules.salespeople.services import salespeople_service as service
 
@@ -122,3 +119,19 @@ def test_delete_salespeople_raises_when_not_found(monkeypatch):
 
     with pytest.raises(HTTPException):
         service.delete(db, "123")
+
+
+def test_get_pagination_offset_enforces_positive_values():
+    with pytest.raises(HTTPException):
+        get_pagination_offset(page=0, limit=5)
+
+
+def test_build_pagination_metadata_matches_expected_structure():
+    metadata = build_pagination_metadata(total=21, page=2, limit=10)
+
+    assert metadata == {
+        "total": 21,
+        "page": 2,
+        "limit": 10,
+        "total_pages": 3,
+    }

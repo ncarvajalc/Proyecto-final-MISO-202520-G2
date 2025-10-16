@@ -6,13 +6,12 @@ from faker import Faker
 
 from backend.test_client import TestClient
 
+from .utils import csv_safe
+
 
 def test_bulk_upload_acceptance_flow(client: TestClient) -> None:
     faker = Faker("es_CO")
     faker.seed_instance(202501)
-
-    def csv_safe(value: str) -> str:
-        return value.replace(",", " ").replace("\n", " ")
 
     certificated_supplier = {
         "nombre": csv_safe(faker.company()),

@@ -1,7 +1,9 @@
+"""Service layer for salespeople operations."""
+
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
-import math
 
+from app.core.pagination import build_pagination_metadata, get_pagination_offset
 from ..crud.crud_sales_people import (
     create_salespeople,
     delete_salespeople,
@@ -13,6 +15,7 @@ from ..crud.crud_sales_people import (
 )
 from ..schemas.salespeople import SalespeopleCreate, SalespeopleUpdate
 
+
 def create(db: Session, salespeople: SalespeopleCreate):
     db_salespeople = get_salespeople_by_email(db, email=salespeople.email)
     if db_salespeople:
@@ -21,19 +24,14 @@ def create(db: Session, salespeople: SalespeopleCreate):
 
 
 def read(db: Session, page: int = 1, limit: int = 10):
-    skip = (page - 1) * limit
+    skip = get_pagination_offset(page, limit)
     result = get_salespeople_all(db, skip=skip, limit=limit)
     total = result["total"]
     salespeople = result["salespeople"]
-    total_pages = math.ceil(total / limit)
-    
-    return {
-        "data": salespeople,
-        "total": total,
-        "page": page,
-        "limit": limit,
-        "total_pages": total_pages,
-    }
+    metadata = build_pagination_metadata(total=total, page=page, limit=limit)
+
+    return {"data": salespeople, **metadata}
+
 
 def read_one(db: Session, salespeople_id: str):
     """Obtiene un vendedor con sus planes de venta cargados"""
@@ -42,6 +40,7 @@ def read_one(db: Session, salespeople_id: str):
         raise HTTPException(status_code=404, detail="Salespeople not found")
     return db_salespeople
 
+
 def update(db: Session, salespeople_id: str, salespeople: SalespeopleUpdate):
     db_salespeople = update_salespeople(
         db, salespeople_id=salespeople_id, salespeople=salespeople
@@ -49,6 +48,7 @@ def update(db: Session, salespeople_id: str, salespeople: SalespeopleUpdate):
     if db_salespeople is None:
         raise HTTPException(status_code=404, detail="Salespeople not found")
     return db_salespeople
+
 
 def delete(db: Session, salespeople_id: str):
     db_salespeople = delete_salespeople(db, salespeople_id=salespeople_id)

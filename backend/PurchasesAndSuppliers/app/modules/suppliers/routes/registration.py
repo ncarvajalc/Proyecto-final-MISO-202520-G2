@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -10,9 +10,7 @@ from app.core.database import get_db
 from ..models.orm import Supplier
 from ..models.supplier import SupplierCreate
 from ..services.serializers import supplier_to_dict
-
-
-router = APIRouter(prefix="/proveedores", tags=["proveedores"])
+from .shared import router
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)

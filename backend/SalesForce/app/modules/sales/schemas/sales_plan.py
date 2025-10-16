@@ -32,4 +32,4 @@ class SalesPlanPaginated(BaseModel):
     total: int
     page: int
     limit: int
-    total_pages: int = Field(alias="totalPages")
+    total_pages: int

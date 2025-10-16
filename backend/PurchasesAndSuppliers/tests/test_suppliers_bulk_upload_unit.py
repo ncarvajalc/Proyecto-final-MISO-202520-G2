@@ -7,13 +7,12 @@ from faker import Faker
 
 from app.modules.suppliers.services.bulk_upload import build_summary, parse_csv_bytes
 
+from .utils import csv_safe
+
 
 def test_parse_csv_bytes_returns_rows() -> None:
     faker = Faker("es_CO")
     faker.seed_instance(202505)
-
-    def csv_safe(value: str) -> str:
-        return value.replace(",", " ").replace("\n", " ")
 
     certificated_supplier = {
         "nombre": csv_safe(faker.company()),

@@ -1,26 +1,7 @@
-import os
-
-import pytest
-from backend.test_client import TestClient
 from faker import Faker
 
-os.environ.setdefault("TESTING", "1")
-
-from app.core.database import Base, SessionLocal, engine
 from app.modules.salespeople.models.salespeople_model import SalesPlan
-from app.main import app
-
-
-@pytest.fixture()
-def client():
-    Base.metadata.drop_all(bind=engine)
-    Base.metadata.create_all(bind=engine)
-    with TestClient(app) as test_client:
-        yield test_client
-    Base.metadata.drop_all(bind=engine)
-
-
-def test_sales_plan_creation_end_to_end(client, fake: Faker):
+def test_sales_plan_creation_end_to_end(client, db_session, fake: Faker):
     vendor_payload = {
         "full_name": fake.name(),
         "email": fake.unique.email(),
@@ -56,11 +37,10 @@ def test_sales_plan_creation_end_to_end(client, fake: Faker):
     assert "createdAt" in created_plan and created_plan["createdAt"]
     assert "updatedAt" in created_plan and created_plan["updatedAt"]
 
-    with SessionLocal() as session:
-        stored_plan = session.query(SalesPlan).filter_by(id=plan_id).first()
-        assert stored_plan is not None
-        assert stored_plan.identificador == plan_payload["identificador"]
-        assert stored_plan.vendedor_id == vendor_id
+    stored_plan = db_session.query(SalesPlan).filter_by(id=plan_id).first()
+    assert stored_plan is not None
+    assert stored_plan.identificador == plan_payload["identificador"]
+    assert stored_plan.vendedor_id == vendor_id
 
     duplicate_response = client.post("/planes-venta/", json=plan_payload)
     assert duplicate_response.status_code == 400
@@ -71,7 +51,7 @@ def test_sales_plan_creation_end_to_end(client, fake: Faker):
 
     paginated = list_response.json()
     assert paginated["total"] == 1
-    assert paginated["totalPages"] == 1
+    assert paginated["total_pages"] == 1
     assert paginated["page"] == 1
     assert paginated["limit"] == 10
     assert len(paginated["data"]) == 1
