@@ -40,7 +40,12 @@ def test_salesperson_registration_end_to_end_flow(client, fake: Faker):
 
     detail_response = client.get(f"/vendedores/{salesperson_id}")
     assert detail_response.status_code == 200
-    assert detail_response.json()["email"] == payload["email"]
+    detail_data = detail_response.json()
+    assert detail_data["email"] == payload["email"]
+    # El endpoint de detalle debe incluir el campo sales_plans
+    assert "sales_plans" in detail_data
+    # Un vendedor sin planes de venta debe tener una lista vacía
+    assert detail_data["sales_plans"] == []
 
     updated_name = fake.name()
     updated_status = fake.random_element(("active", "inactive"))

@@ -93,7 +93,7 @@ def test_read_salespeople_returns_paginated_structure(monkeypatch):
 def test_read_one_salespeople_raises_when_not_found(monkeypatch):
     db = object()
 
-    monkeypatch.setattr(service, "get_salespeople", lambda *args, **kwargs: None)
+    monkeypatch.setattr(service, "get_salespeople_with_plans", lambda *args, **kwargs: None)
 
     with pytest.raises(HTTPException) as exc_info:
         service.read_one(db, salespeople_id="missing")

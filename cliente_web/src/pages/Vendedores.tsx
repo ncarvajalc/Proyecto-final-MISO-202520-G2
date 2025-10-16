@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { Typography1 } from "@/components/ui/typography1";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,8 +12,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Pagination } from "@/components/ui/pagination";
-import { getVendedores } from "@/services/vendedores.service";
-import { Plus, FileText } from "lucide-react";
+import { getVendedores, getVendedor } from "@/services/vendedores.service";
+import { Plus, FileText, Loader2 } from "lucide-react";
 import { CreateVendedorForm } from "@/components/vendedor/CreateVendedorForm";
 import { AsignacionesModal } from "@/components/vendedor/AsignacionesModal";
 import type { Vendedor } from "@/types/vendedor";
@@ -24,6 +25,9 @@ export default function Vendedores() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isAsignacionesModalOpen, setIsAsignacionesModalOpen] = useState(false);
   const [selectedVendedor, setSelectedVendedor] = useState<Vendedor | null>(
+    null
+  );
+  const [loadingVendedorId, setLoadingVendedorId] = useState<string | null>(
     null
   );
 
@@ -40,9 +44,19 @@ export default function Vendedores() {
     setIsCreateDialogOpen(true);
   };
 
-  const handleOpenAsignaciones = (vendedor: Vendedor) => {
-    setSelectedVendedor(vendedor);
-    setIsAsignacionesModalOpen(true);
+  const handleOpenAsignaciones = async (vendedor: Vendedor) => {
+    try {
+      setLoadingVendedorId(vendedor.id);
+      // Fetch the detailed vendedor information with sales plan
+      const detailedVendedor = await getVendedor(vendedor.id);
+      setSelectedVendedor(detailedVendedor);
+      setIsAsignacionesModalOpen(true);
+    } catch (error) {
+      console.error("Error fetching vendedor details:", error);
+      toast.error("No se pudo cargar la información del vendedor");
+    } finally {
+      setLoadingVendedorId(null);
+    }
   };
 
   if (isLoading) {
@@ -108,8 +122,13 @@ export default function Vendedores() {
                     size="sm"
                     onClick={() => handleOpenAsignaciones(vendedor)}
                     className="h-8 w-8 p-0"
+                    disabled={loadingVendedorId === vendedor.id}
                   >
-                    <FileText className="h-4 w-4" />
+                    {loadingVendedorId === vendedor.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <FileText className="h-4 w-4" />
+                    )}
                     <span className="sr-only">Ver asignaciones</span>
                   </Button>
                 </TableCell>

@@ -19,6 +19,15 @@ import type {
  * Backend API response types
  * The backend uses different field names than the frontend
  */
+interface BackendSalesPlan {
+  identificador: string;
+  nombre: string;
+  descripcion: string;
+  periodo: string;
+  meta: number;
+  unidades_vendidas: number;
+}
+
 interface BackendSalesperson {
   id: string;
   full_name: string;
@@ -27,6 +36,7 @@ interface BackendSalesperson {
   status: string;
   created_at: string;
   updated_at: string;
+  sales_plans?: BackendSalesPlan[];
 }
 
 interface BackendSalespersonPaginated {
@@ -45,7 +55,16 @@ const mapBackendToFrontend = (backend: BackendSalesperson): Vendedor => ({
   nombre: backend.full_name,
   correo: backend.email,
   fechaContratacion: backend.hire_date,
-  planDeVenta: null, // TODO: Integrate with sales plans API when available
+  planDeVenta: backend.sales_plans && backend.sales_plans.length > 0 
+    ? {
+        identificador: backend.sales_plans[0].identificador,
+        nombre: backend.sales_plans[0].nombre,
+        descripcion: backend.sales_plans[0].descripcion,
+        periodo: backend.sales_plans[0].periodo,
+        meta: backend.sales_plans[0].meta,
+        unidadesVendidas: backend.sales_plans[0].unidades_vendidas,
+      }
+    : null,
 });
 
 /**
@@ -170,7 +189,7 @@ export const createVendedor = async (
 
   const backendData = mapFrontendToBackendCreate(vendedor);
   const response = await apiClient.post<BackendSalesperson>(
-    "/vendedores",
+    "/vendedores/",
     backendData
   );
 
@@ -219,6 +238,45 @@ export const updateVendedor = async (
     `/vendedores/${id}`,
     backendData
   );
+
+  return mapBackendToFrontend(response);
+};
+
+/**
+ * Get a single vendedor with their sales plan
+ *
+ * @param id - Vendedor ID
+ * @returns Vendedor with plan de venta if available
+ *
+ * Backend Contract:
+ *
+ * GET /vendedores/:id
+ *
+ * Response:
+ * {
+ *   "id": "123",
+ *   "full_name": "Carlos Mendoza",
+ *   "email": "carlos.mendoza@medisupply.com",
+ *   "hire_date": "2023-01-15",
+ *   "status": "active",
+ *   "created_at": "2023-01-15T00:00:00Z",
+ *   "updated_at": "2024-10-09T15:30:00Z",
+ *   "sales_plans": [
+ *     {
+ *       "identificador": "PV-2024-Q1",
+ *       "nombre": "Plan Q1 2024",
+ *       "descripcion": "Plan de ventas primer trimestre",
+ *       "periodo": "2024-Q1",
+ *       "meta": 50000.00,
+ *       "unidades_vendidas": 25000.00
+ *     }
+ *   ]
+ * }
+ */
+export const getVendedor = async (id: string): Promise<Vendedor> => {
+  const apiClient = new ApiClient(getApiBaseUrl());
+
+  const response = await apiClient.get<BackendSalesperson>(`/vendedores/${id}`);
 
   return mapBackendToFrontend(response);
 };

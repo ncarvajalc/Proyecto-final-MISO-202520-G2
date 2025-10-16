@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from ..models.salespeople_model import Salespeople
 from ..schemas.salespeople import SalespeopleCreate, SalespeopleUpdate
@@ -6,6 +6,12 @@ from ..schemas.salespeople import SalespeopleCreate, SalespeopleUpdate
 
 def get_salespeople(db: Session, salespeople_id: str):
     return db.query(Salespeople).filter(Salespeople.id == salespeople_id).first()
+
+def get_salespeople_with_plans(db: Session, salespeople_id: str):
+    """Obtiene un vendedor con sus planes de venta cargados"""
+    return db.query(Salespeople).options(
+        joinedload(Salespeople.sales_plans)
+    ).filter(Salespeople.id == salespeople_id).first()
 
 def get_salespeople_by_email(db: Session, email: str):
     return db.query(Salespeople).filter(Salespeople.email == email).first()

@@ -6,6 +6,7 @@ from ..schemas.salespeople import (
     SalespeopleCreate,
     SalespeopleUpdate,
     SalespersonPaginated,
+    SalespeopleWithPlan,
 )
 from ..services.salespeople_service import create, delete, read, read_one, update
 
@@ -13,20 +14,25 @@ router = APIRouter(prefix="/vendedores", tags=["vendedores"])
 
 @router.post("/", response_model=Salespeople)
 def create_salespeople(salespeople: SalespeopleCreate, db: Session = Depends(get_db)):
+    """Crea un nuevo vendedor"""
     return create(db, salespeople)
 
 @router.get("/", response_model=SalespersonPaginated)
 def read_salespeople(page: int = 1, limit: int = 10, db: Session = Depends(get_db)):
+    """Lista todos los vendedores con paginación"""
     return read(db, page=page, limit=limit)
 
-@router.get("/{salespeople_id}", response_model=Salespeople)
+@router.get("/{salespeople_id}", response_model=SalespeopleWithPlan)
 def read_salesperson(salespeople_id: str, db: Session = Depends(get_db)):
+    """Obtiene un vendedor específico con su plan de venta"""
     return read_one(db, salespeople_id=salespeople_id)
 
 @router.put("/{salespeople_id}", response_model=Salespeople)
 def update_salespeople(salespeople_id: str, salespeople: SalespeopleUpdate, db: Session = Depends(get_db)):
+    """Actualiza un vendedor"""
     return update(db, salespeople_id=salespeople_id, salespeople=salespeople)
 
 @router.delete("/{salespeople_id}", response_model=Salespeople)
 def delete_salespeople(salespeople_id: str, db: Session = Depends(get_db)):
+    """Elimina un vendedor"""
     return delete(db, salespeople_id=salespeople_id)
