@@ -1,67 +1,79 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { faker } from "@faker-js/faker";
 
 import { AsignacionesModal } from "@/components/vendedor/AsignacionesModal";
-import type { Vendedor, PlanDeVenta } from "@/types/vendedor";
+import type { PlanDeVenta, Vendedor } from "@/types/vendedor";
 
 describe("AsignacionesModal - Unit", () => {
   beforeEach(() => {
-    faker.seed(100);
+    faker.seed(2025);
   });
 
-  const mockVendedorWithoutPlan: Vendedor = {
+  const buildPlan = (overrides: Partial<PlanDeVenta> = {}): PlanDeVenta => ({
+    identificador: faker.string.alphanumeric(8).toUpperCase(),
+    nombre: faker.commerce.productName(),
+    descripcion: faker.commerce.productDescription(),
+    periodo: `${faker.date.future().getFullYear()}-Q1`,
+    meta: 50000,
+    unidadesVendidas: 27500,
+    ...overrides,
+  });
+
+  const buildVendedor = (overrides: Partial<Vendedor> = {}): Vendedor => ({
     id: faker.string.uuid(),
     nombre: faker.person.fullName(),
     correo: faker.internet.email(),
-    fechaContratacion: faker.date.past().toISOString().split("T")[0],
-    planDeVenta: null,
-  };
+    fechaContratacion: faker.date
+      .past({ years: 3 })
+      .toISOString()
+      .split("T")[0],
+    planDeVenta: buildPlan(),
+    ...overrides,
+  });
 
-  const mockPlanDeVenta: PlanDeVenta = {
-    identificador: "PV-2024-Q1",
-    nombre: "Plan Primer Trimestre 2024",
-    descripcion: "Plan de ventas del primer trimestre",
-    periodo: "2024-Q1",
-    meta: 50000,
-    unidadesVendidas: 35000,
-  };
-
-  const mockVendedorWithPlan: Vendedor = {
-    ...mockVendedorWithoutPlan,
-    planDeVenta: mockPlanDeVenta,
-  };
-
-  it("no renderiza nada cuando vendedor es null", () => {
+  it("no renderiza el diálogo cuando no hay vendedor seleccionado", () => {
     const { container } = render(
-      <AsignacionesModal open={true} onOpenChange={vi.fn()} vendedor={null} />
+      <AsignacionesModal open={true} onOpenChange={() => {}} vendedor={null} />
     );
 
     expect(container.firstChild).toBeNull();
   });
 
-  it("muestra la información básica del vendedor", () => {
+  it("muestra la información del vendedor y su plan", () => {
+    const vendedor = buildVendedor();
+
     render(
       <AsignacionesModal
         open={true}
-        onOpenChange={vi.fn()}
-        vendedor={mockVendedorWithPlan}
+        onOpenChange={() => {}}
+        vendedor={vendedor}
       />
     );
 
     expect(screen.getByText("Reporte Vendedor")).toBeInTheDocument();
-    expect(screen.getByText(mockVendedorWithPlan.id)).toBeInTheDocument();
-    expect(screen.getByText(mockVendedorWithPlan.nombre)).toBeInTheDocument();
-    expect(screen.getByText(mockVendedorWithPlan.correo)).toBeInTheDocument();
+    expect(screen.getByText(vendedor.id)).toBeInTheDocument();
+    expect(screen.getByText(vendedor.nombre)).toBeInTheDocument();
+    expect(screen.getByText(vendedor.correo)).toBeInTheDocument();
+
+    const plan = vendedor.planDeVenta!;
+    expect(screen.getByText(plan.identificador)).toBeInTheDocument();
+    expect(screen.getByText(plan.meta)).toBeInTheDocument();
+    expect(screen.getByText(plan.unidadesVendidas ?? 0)).toBeInTheDocument();
+
+    const cumplimiento = ((plan.unidadesVendidas ?? 0) / plan.meta) * 100;
+    expect(screen.getByText(`${cumplimiento.toFixed(2)}%`)).toBeInTheDocument();
   });
 
-  it("muestra mensaje cuando el vendedor no tiene plan de venta", () => {
+  it("indica cuando el vendedor no tiene plan de venta asignado", () => {
+    const vendedorSinPlan = buildVendedor({ planDeVenta: null });
+
     render(
       <AsignacionesModal
         open={true}
-        onOpenChange={vi.fn()}
-        vendedor={mockVendedorWithoutPlan}
+        onOpenChange={() => {}}
+        vendedor={vendedorSinPlan}
       />
     );
 
@@ -70,79 +82,44 @@ describe("AsignacionesModal - Unit", () => {
     ).toBeInTheDocument();
   });
 
-  it("muestra los indicadores clave cuando hay plan de venta", () => {
-    render(
-      <AsignacionesModal
-        open={true}
-        onOpenChange={vi.fn()}
-        vendedor={mockVendedorWithPlan}
-      />
-    );
-
-    expect(screen.getByText("Indicadores Clave")).toBeInTheDocument();
-    expect(screen.getByText(mockPlanDeVenta.identificador)).toBeInTheDocument();
-    expect(
-      screen.getByText(mockPlanDeVenta.unidadesVendidas)
-    ).toBeInTheDocument();
-    expect(screen.getByText(mockPlanDeVenta.meta)).toBeInTheDocument();
-  });
-
-  it("calcula correctamente el porcentaje de cumplimiento", () => {
-    render(
-      <AsignacionesModal
-        open={true}
-        onOpenChange={vi.fn()}
-        vendedor={mockVendedorWithPlan}
-      />
-    );
-
-    // (35000 / 50000) * 100 = 70.00%
-    const expectedPercentage = (
-      (mockPlanDeVenta.unidadesVendidas / mockPlanDeVenta.meta) *
-      100
-    ).toFixed(2);
-
-    expect(screen.getByText(`${expectedPercentage}%`)).toBeInTheDocument();
-  });
-
-  it("muestra 0.00% cuando no hay datos de ventas", () => {
-    const vendedorSinVentas: Vendedor = {
-      ...mockVendedorWithPlan,
-      planDeVenta: {
-        ...mockPlanDeVenta,
-        unidadesVendidas: 0,
-      },
-    };
+  it("muestra ceros cuando las unidades vendidas no están definidas", () => {
+    const vendedorConDatosIncompletos = buildVendedor({
+      planDeVenta: buildPlan({ unidadesVendidas: undefined as unknown as number }),
+    });
 
     render(
       <AsignacionesModal
         open={true}
-        onOpenChange={vi.fn()}
-        vendedor={vendedorSinVentas}
-      />
-    );
-
-    expect(screen.getByText("0.00%")).toBeInTheDocument();
-  });
-
-  it("maneja correctamente valores nulos en unidadesVendidas", () => {
-    const vendedorConNulos: Vendedor = {
-      ...mockVendedorWithPlan,
-      planDeVenta: {
-        ...mockPlanDeVenta,
-        unidadesVendidas: undefined as any,
-      },
-    };
-
-    render(
-      <AsignacionesModal
-        open={true}
-        onOpenChange={vi.fn()}
-        vendedor={vendedorConNulos}
+        onOpenChange={() => {}}
+        vendedor={vendedorConDatosIncompletos}
       />
     );
 
     expect(screen.getByText("0")).toBeInTheDocument();
-    expect(screen.getByText("0.00%")).toBeInTheDocument();
+    expect(screen.getByText("0.00%"))
+      .withContext("El porcentaje debe manejar valores falsy como 0.00%")
+      .toBeInTheDocument();
+  });
+
+  it("evita divisiones inválidas cuando la meta es cero", () => {
+    const vendedorConMetaCero = buildVendedor({
+      planDeVenta: buildPlan({ meta: 0, unidadesVendidas: 3500 }),
+    });
+
+    render(
+      <AsignacionesModal
+        open={true}
+        onOpenChange={() => {}}
+        vendedor={vendedorConMetaCero}
+      />
+    );
+
+    expect(screen.getByText("3500")).toBeInTheDocument();
+    expect(screen.getByText("0"))
+      .withContext("La meta igual a 0 debe mostrarse en el reporte")
+      .toBeInTheDocument();
+    expect(screen.getByText("0.00%"))
+      .withContext("El porcentaje debe ser 0.00% para evitar divisiones por cero")
+      .toBeInTheDocument();
   });
 });
