@@ -1,22 +1,4 @@
-import os
-
-import pytest
-from backend.test_client import TestClient
 from faker import Faker
-
-os.environ.setdefault("TESTING", "1")
-
-from app.core.database import Base, engine
-from app.main import app
-
-
-@pytest.fixture()
-def client():
-    Base.metadata.drop_all(bind=engine)
-    Base.metadata.create_all(bind=engine)
-    with TestClient(app) as test_client:
-        yield test_client
-    Base.metadata.drop_all(bind=engine)
 
 
 def test_salesperson_registration_end_to_end_flow(client, fake: Faker):
@@ -37,6 +19,7 @@ def test_salesperson_registration_end_to_end_flow(client, fake: Faker):
     body = list_response.json()
     assert body["total"] == 1
     assert any(item["id"] == salesperson_id for item in body["data"])
+    assert body["total_pages"] == 1
 
     detail_response = client.get(f"/vendedores/{salesperson_id}")
     assert detail_response.status_code == 200

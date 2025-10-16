@@ -1,32 +1,10 @@
-import os
-
 import pytest
 from fastapi import HTTPException
 from faker import Faker
 
-os.environ.setdefault("TESTING", "1")
-
-from app.core.database import Base, SessionLocal, engine
 from app.modules.sales.schemas import SalesPlanCreate
 from app.modules.sales.services import sales_plan_service as service
 from app.modules.salespeople.models.salespeople_model import Salespeople
-
-
-@pytest.fixture(autouse=True)
-def prepare_database():
-    Base.metadata.drop_all(bind=engine)
-    Base.metadata.create_all(bind=engine)
-    yield
-    Base.metadata.drop_all(bind=engine)
-
-
-@pytest.fixture()
-def db_session():
-    session = SessionLocal()
-    try:
-        yield session
-    finally:
-        session.close()
 
 
 def test_create_sales_plan_persists_and_maps_response(db_session, fake: Faker):

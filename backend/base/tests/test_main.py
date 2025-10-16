@@ -1,29 +1,18 @@
-import importlib
-import sys
-
 from sqlalchemy.exc import OperationalError
 
-from backend.test_client import TestClient
-
-
-def reload_main():
-    module = sys.modules.get("app.main")
-    if module is None:
-        module = importlib.import_module("app.main")
-    else:
-        module = importlib.reload(module)
-    return module
-import app.main as main_module  # noqa: E402
+from backend.tests.shared_main import (
+    assert_health,
+    assert_root_message,
+    create_test_client,
+    reload_main,
+)
 
 
 def test_healthcheck_returns_ok():
     module = reload_main()
-    client = TestClient(module.app)
+    client = create_test_client(module)
 
-    response = client.get("/health")
-
-    assert response.status_code == 200
-    assert response.json() == {"status": "ok", "db": True}
+    assert_health(client)
 
 
 def test_healthcheck_handles_database_errors(monkeypatch):
@@ -33,19 +22,13 @@ def test_healthcheck_handles_database_errors(monkeypatch):
         raise OperationalError("SELECT 1", {}, Exception("boom"))
 
     monkeypatch.setattr(module, "SessionLocal", failing_session)
-    client = TestClient(module.app)
+    client = create_test_client(module)
 
-    response = client.get("/health")
-
-    assert response.status_code == 200
-    assert response.json() == {"status": "error", "db": False}
+    assert_health(client, healthy=False)
 
 
 def test_read_root_returns_welcome_message():
     module = reload_main()
-    client = TestClient(module.app)
+    client = create_test_client(module)
 
-    response = client.get("/")
-
-    assert response.status_code == 200
-    assert response.json()["message"].startswith("Hello from FastAPI")
+    assert_root_message(client)

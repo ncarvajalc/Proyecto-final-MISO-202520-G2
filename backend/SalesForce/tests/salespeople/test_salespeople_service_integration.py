@@ -4,28 +4,8 @@ import pytest
 from fastapi import HTTPException
 from faker import Faker
 
-os.environ.setdefault("TESTING", "1")
-
-from app.core.database import Base, SessionLocal, engine
 from app.modules.salespeople.schemas.salespeople import SalespeopleCreate, SalespeopleUpdate
 from app.modules.salespeople.services import salespeople_service as service
-
-
-@pytest.fixture(autouse=True)
-def prepare_database():
-    Base.metadata.drop_all(bind=engine)
-    Base.metadata.create_all(bind=engine)
-    yield
-    Base.metadata.drop_all(bind=engine)
-
-
-@pytest.fixture()
-def db_session():
-    session = SessionLocal()
-    try:
-        yield session
-    finally:
-        session.close()
 
 
 def test_service_crud_flow_with_real_database(db_session, fake: Faker):
@@ -42,6 +22,7 @@ def test_service_crud_flow_with_real_database(db_session, fake: Faker):
 
     paginated = service.read(db_session, page=1, limit=5)
     assert paginated["total"] == 1
+    assert paginated["total_pages"] == 1
     assert paginated["data"][0].email == create_payload.email
 
     fetched = service.read_one(db_session, created.id)

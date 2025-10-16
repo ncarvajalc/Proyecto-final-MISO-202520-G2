@@ -1,6 +1,9 @@
 """Suppliers routes package."""
 
-from .bulk_upload import router as bulk_upload_router
-from .registration import router as registration_router
+from .shared import router
 
-__all__ = ["bulk_upload_router", "registration_router"]
+# Import submodules so they register their endpoints on the shared router.
+from . import bulk_upload as _bulk_upload  # noqa: F401
+from . import registration as _registration  # noqa: F401
+
+__all__ = ["router"]

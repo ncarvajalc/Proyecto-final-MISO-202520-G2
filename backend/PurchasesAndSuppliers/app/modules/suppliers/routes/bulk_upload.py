@@ -6,7 +6,6 @@ import math
 from typing import Any, Dict
 
 from fastapi import (
-    APIRouter,
     Depends,
     File,
     HTTPException,
@@ -21,8 +20,7 @@ from app.core.database import get_db
 from ..models.orm import Supplier
 from ..services.bulk_upload import process_bulk_upload
 from ..services.serializers import supplier_to_dict
-
-router = APIRouter(prefix="/proveedores", tags=["proveedores"])
+from .shared import router
 
 
 @router.post("/bulk-upload", status_code=status.HTTP_201_CREATED)

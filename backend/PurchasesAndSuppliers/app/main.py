@@ -5,7 +5,7 @@ from sqlalchemy.exc import OperationalError
 
 from app.core.database import Base, SessionLocal, engine
 from app.modules.products.routes import bulk
-from app.modules.suppliers.routes import bulk_upload_router, registration_router
+from app.modules.suppliers.routes import router as suppliers_router
 
 app = FastAPI()
 
@@ -20,8 +20,7 @@ app.add_middleware(
 Base.metadata.create_all(bind=engine)
 
 app.include_router(bulk.router)
-app.include_router(registration_router)
-app.include_router(bulk_upload_router)
+app.include_router(suppliers_router)
 
 
 @app.get("/health", tags=["health"])

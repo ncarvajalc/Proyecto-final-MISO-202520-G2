@@ -1,23 +1,4 @@
-import os
-
-import pytest
-from backend.test_client import TestClient
 from faker import Faker
-
-os.environ.setdefault("TESTING", "1")
-
-from app.core.database import Base, engine
-from app.main import app
-
-
-@pytest.fixture()
-def client():
-    Base.metadata.drop_all(bind=engine)
-    Base.metadata.create_all(bind=engine)
-    with TestClient(app) as test_client:
-        yield test_client
-    Base.metadata.drop_all(bind=engine)
-
 
 def test_create_salesperson_endpoint_success(client, fake: Faker):
     payload = {
