@@ -1,11 +1,25 @@
-from pydantic_settings import BaseSettings
+from __future__ import annotations
 
-import os
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
 
 class Settings(BaseSettings):
-    DATABASE_URL: str = os.getenv("TESTING", "0") == "1" and "sqlite:///./test.db" or os.getenv("DATABASE_URL","postgresql://user:password@localhost:5432/user")
+    """Warehouse service configuration."""
 
-    class Config:
-        env_file = ".env"
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+    testing: bool = Field(False, alias="TESTING")
+    database_url: str = Field(
+        "postgresql://user:password@localhost:5432/user", alias="DATABASE_URL"
+    )
+    test_database_url: str = Field(
+        "sqlite:///./test.db", alias="TEST_DATABASE_URL"
+    )
+
+    @property
+    def DATABASE_URL(self) -> str:  # noqa: N802 - maintain uppercase attribute access
+        return self.test_database_url if self.testing else self.database_url
+
 
 settings = Settings()

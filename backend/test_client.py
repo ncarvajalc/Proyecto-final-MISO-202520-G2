@@ -38,6 +38,8 @@ class Response:
 
 
 class TestClient:
+    __test__ = False  # Prevent pytest from collecting this helper as a test case
+
     def __init__(
         self,
         app: Any,

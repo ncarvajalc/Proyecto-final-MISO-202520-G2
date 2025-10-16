@@ -27,8 +27,7 @@ class Salespeople(SalespeopleBase):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class SalespersonPaginated(BaseModel):
@@ -58,9 +57,8 @@ class SalespeopleWithPlan(SalespeopleBase):
     created_at: datetime
     updated_at: datetime
     sales_plans: List[PlanDeVentaInfo] = []
-    
-    class Config:
-        from_attributes = True
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 # Mantener los esquemas anteriores por compatibilidad
@@ -71,9 +69,8 @@ class SalesPlanInfo(BaseModel):
     description: Optional[str] = None
     start_period: date
     end_period: date
-    
-    class Config:
-        from_attributes = True
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class SalespeopleGoalInfo(BaseModel):
@@ -83,9 +80,8 @@ class SalespeopleGoalInfo(BaseModel):
     goal_value: Decimal
     created_at: datetime
     sales_plan: SalesPlanInfo
-    
-    class Config:
-        from_attributes = True
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class SalespeopleWithGoals(SalespeopleBase):
@@ -94,6 +90,5 @@ class SalespeopleWithGoals(SalespeopleBase):
     created_at: datetime
     updated_at: datetime
     goals: List[SalespeopleGoalInfo] = []
-    
-    class Config:
-        from_attributes = True
+
+    model_config = ConfigDict(from_attributes=True)

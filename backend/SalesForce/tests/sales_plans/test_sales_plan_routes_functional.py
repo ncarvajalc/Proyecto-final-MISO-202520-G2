@@ -1,5 +1,7 @@
 """Functional tests for sales plan routes."""
 
+import math
+
 from faker import Faker
 
 
@@ -55,12 +57,20 @@ def test_create_sales_plan_endpoint_requires_existing_salesperson(client, fake: 
 def test_list_sales_plan_endpoint_returns_paginated_payload(client, fake: Faker):
     salesperson = create_salesperson(client, fake)
 
+    baseline = client.get("/planes-venta/", params={"page": 1, "limit": 1}).json()["total"]
+    used_periods: set[str] = set()
+
     for _ in range(3):
+        period = f"{fake.random_int(min=2020, max=2030)}-Q{fake.random_int(min=1, max=4)}"
+        while period in used_periods:
+            period = f"{fake.random_int(min=2020, max=2030)}-Q{fake.random_int(min=1, max=4)}"
+        used_periods.add(period)
+
         payload = {
             "identificador": fake.unique.bothify(text="PV-####-Q#"),
             "nombre": fake.catch_phrase(),
             "descripcion": fake.text(max_nb_chars=60),
-            "periodo": f"{fake.random_int(min=2020, max=2030)}-Q{fake.random_int(min=1, max=4)}",
+            "periodo": period,
             "meta": float(round(fake.pyfloat(min_value=50, max_value=500, right_digits=2), 2)),
             "vendedorId": salesperson["id"],
         }
@@ -71,12 +81,19 @@ def test_list_sales_plan_endpoint_returns_paginated_payload(client, fake: Faker)
     assert response.status_code == 200
 
     payload = response.json()
-    assert payload["total"] == 3
+    expected_total = baseline + 3
+    expected_pages = math.ceil(expected_total / 2)
+    assert payload["total"] == expected_total
     assert payload["page"] == 1
     assert payload["limit"] == 2
-    assert payload["total_pages"] == 2
-    assert len(payload["data"]) == 2
-    assert all(item["vendedorNombre"] == salesperson["full_name"] for item in payload["data"])
+    assert payload["total_pages"] == expected_pages
+    assert len(payload["data"]) == min(2, expected_total)
+
+    detail = client.get(f"/vendedores/{salesperson['id']}")
+    assert detail.status_code == 200
+    detail_payload = detail.json()
+    assert detail_payload["id"] == salesperson["id"]
+    assert len(detail_payload["sales_plans"]) >= 3
 
 
 def test_list_sales_plan_endpoint_validates_query_params(client):

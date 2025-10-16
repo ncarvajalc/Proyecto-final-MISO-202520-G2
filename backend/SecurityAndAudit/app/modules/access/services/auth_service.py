@@ -3,12 +3,16 @@ Authentication service
 Business logic for authentication and authorization
 """
 
-from sqlalchemy.orm import Session
-from typing import Optional, List
-from passlib.context import CryptContext
-from jose import JWTError, jwt
-from datetime import datetime, timedelta
+import os
+from datetime import UTC, datetime, timedelta
+from typing import List, Optional
+
 from fastapi import HTTPException, status
+from jose import JWTError, jwt
+from passlib.context import CryptContext
+from sqlalchemy.orm import Session
+
+os.environ.setdefault("PASSLIB_DISABLE_CRYPT", "1")
 
 from app.modules.access.schemas.auth import (
     LoginCredentials,
@@ -92,7 +96,7 @@ class AuthService:
         token = self._generate_jwt_token(user)
 
         # Step 7: Update last_login_at
-        user.last_login_at = datetime.utcnow()
+        user.last_login_at = datetime.now(UTC)
         self.db.commit()
 
         # Step 8: Build and return AuthResponse
@@ -255,14 +259,15 @@ class AuthService:
         # Step 1: Create payload with user data
         # Step 2: Set expiration time
         expires_delta = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-        expire = datetime.utcnow() + expires_delta
+        now = datetime.now(UTC)
+        expire = now + expires_delta
 
         payload = {
             "sub": user.id,  # Subject - user ID
             "email": user.email,
             "profile_id": user.profile_id,
             "exp": expire,  # Expiration time
-            "iat": datetime.utcnow(),  # Issued at
+            "iat": now,  # Issued at
         }
 
         # Step 3: Encode with secret key

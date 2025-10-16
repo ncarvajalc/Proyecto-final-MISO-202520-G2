@@ -46,8 +46,10 @@ from app.main import app  # noqa: E402
 
 @pytest.fixture()
 def fake() -> Faker:
+    """Return a ``Faker`` instance with a clean ``unique`` cache."""
+
     faker = Faker()
-    faker.seed_instance(42)
+    faker.unique.clear()
     return faker
 
 
@@ -63,12 +65,15 @@ def configure_database() -> None:
         TEST_DB_PATH.unlink()
 
 
-@pytest.fixture()
+@pytest.fixture(autouse=True)
 def reset_database():
     from app.core.database import Base
 
     Base.metadata.drop_all(bind=db_module.engine)
     Base.metadata.create_all(bind=db_module.engine)
+    with db_module.engine.begin() as connection:
+        for table in reversed(Base.metadata.sorted_tables):
+            connection.execute(table.delete())
     yield
     Base.metadata.drop_all(bind=db_module.engine)
 

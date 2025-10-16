@@ -3,12 +3,17 @@ Database seeding script
 Populates the database with initial data for testing and development
 """
 
+import os
 from datetime import date
 from decimal import Decimal
+
 from passlib.context import CryptContext
+
 from app.core.database import SessionLocal
-from app.modules.access.models import User, Profile, Permission, ProfilePermission
+from app.modules.access.models import Permission, Profile, ProfilePermission, User
 from app.modules.audit.models import Customer, Order
+
+os.environ.setdefault("PASSLIB_DISABLE_CRYPT", "1")
 
 # Password hashing context
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
