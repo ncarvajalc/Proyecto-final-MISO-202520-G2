@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from typing import Optional, List
 from datetime import date, datetime
 from decimal import Decimal
@@ -40,6 +40,30 @@ class SalespersonPaginated(BaseModel):
 
 
 # Esquemas para incluir información de planes de ventas
+class PlanDeVentaInfo(BaseModel):
+    """Información del plan de venta con los nombres de campos que espera el frontend"""
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+    
+    identificador: str
+    nombre: str
+    descripcion: str
+    periodo: str
+    meta: float
+    unidades_vendidas: float = Field(alias="unidadesVendidas")
+
+
+class SalespeopleWithPlan(SalespeopleBase):
+    """Vendedor con su plan de venta (si tiene uno)"""
+    id: str
+    created_at: datetime
+    updated_at: datetime
+    sales_plans: List[PlanDeVentaInfo] = []
+    
+    class Config:
+        from_attributes = True
+
+
+# Mantener los esquemas anteriores por compatibilidad
 class SalesPlanInfo(BaseModel):
     """Información básica del plan de ventas"""
     id: str

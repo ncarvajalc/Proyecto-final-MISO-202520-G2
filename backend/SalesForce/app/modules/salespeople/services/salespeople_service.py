@@ -9,6 +9,7 @@ from ..crud.crud_sales_people import (
     get_salespeople_all,
     get_salespeople_by_email,
     update_salespeople,
+    get_salespeople_with_plans,
 )
 from ..schemas.salespeople import SalespeopleCreate, SalespeopleUpdate
 
@@ -35,7 +36,8 @@ def read(db: Session, page: int = 1, limit: int = 10):
     }
 
 def read_one(db: Session, salespeople_id: str):
-    db_salespeople = get_salespeople(db, salespeople_id=salespeople_id)
+    """Obtiene un vendedor con sus planes de venta cargados"""
+    db_salespeople = get_salespeople_with_plans(db, salespeople_id=salespeople_id)
     if db_salespeople is None:
         raise HTTPException(status_code=404, detail="Salespeople not found")
     return db_salespeople

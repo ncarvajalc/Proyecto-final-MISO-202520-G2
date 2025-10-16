@@ -80,7 +80,7 @@ export function AsignacionesModal({
                   Unidades Vendidas
                 </label>
                 <p className="text-sm text-muted-foreground">
-                  {planDeVenta.unidadesVendidas}
+                  {planDeVenta.unidadesVendidas ?? 0}
                 </p>
               </div>
 
@@ -98,10 +98,12 @@ export function AsignacionesModal({
                   Cumplimiento de plan
                 </label>
                 <p className="text-sm text-muted-foreground">
-                  {(
-                    (planDeVenta.unidadesVendidas / planDeVenta.meta) *
-                    100
-                  ).toFixed(2)}
+                  {planDeVenta.unidadesVendidas && planDeVenta.meta
+                    ? (
+                        (planDeVenta.unidadesVendidas / planDeVenta.meta) *
+                        100
+                      ).toFixed(2)
+                    : "0.00"}
                   %
                 </p>
               </div>
