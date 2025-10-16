@@ -4,6 +4,7 @@ import { faker } from "@faker-js/faker";
 import {
   createVendedor,
   deleteVendedor,
+  getVendedor,
   getVendedores,
   updateVendedor,
 } from "@/services/vendedores.service";
@@ -134,6 +135,72 @@ describe("vendedores.service - unit", () => {
       limit,
       totalPages: 1,
     });
+  });
+
+  it("transforma la respuesta detallada en getVendedor incluyendo plan", async () => {
+    const vendedorId = faker.string.uuid();
+    const fullName = faker.person.fullName();
+    const email = faker.internet.email();
+    const hireDate = faker.date.past({ years: 2 }).toISOString().split("T")[0];
+    const plan = {
+      identificador: "PV-2025-Q1",
+      nombre: "Plan Comercial Q1",
+      descripcion: "Objetivo estratégico",
+      periodo: "2025-Q1",
+      meta: 50000,
+      unidades_vendidas: 12500,
+    };
+
+    getMock.mockResolvedValue({
+      id: vendedorId,
+      full_name: fullName,
+      email,
+      hire_date: hireDate,
+      status: "active",
+      created_at: `${hireDate}T00:00:00Z`,
+      updated_at: `${hireDate}T00:00:00Z`,
+      sales_plans: [plan],
+    });
+
+    const result = await getVendedor(vendedorId);
+
+    expect(getMock).toHaveBeenCalledWith(`/vendedores/${vendedorId}`);
+    expect(result).toEqual({
+      id: vendedorId,
+      nombre: fullName,
+      correo: email,
+      fechaContratacion: hireDate,
+      planDeVenta: {
+        identificador: plan.identificador,
+        nombre: plan.nombre,
+        descripcion: plan.descripcion,
+        periodo: plan.periodo,
+        meta: plan.meta,
+        unidadesVendidas: plan.unidades_vendidas,
+      },
+    });
+  });
+
+  it("maneja vendedores sin plan en getVendedor", async () => {
+    const vendedorId = faker.string.uuid();
+    const fullName = faker.person.fullName();
+    const email = faker.internet.email();
+    const hireDate = faker.date.past({ years: 1 }).toISOString().split("T")[0];
+
+    getMock.mockResolvedValue({
+      id: vendedorId,
+      full_name: fullName,
+      email,
+      hire_date: hireDate,
+      status: "inactive",
+      created_at: `${hireDate}T00:00:00Z`,
+      updated_at: `${hireDate}T00:00:00Z`,
+      sales_plans: [],
+    });
+
+    const result = await getVendedor(vendedorId);
+
+    expect(result.planDeVenta).toBeNull();
   });
 
   it("envía solo los campos provistos en updateVendedor", async () => {

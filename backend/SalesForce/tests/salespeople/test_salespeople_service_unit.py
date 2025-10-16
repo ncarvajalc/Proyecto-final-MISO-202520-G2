@@ -3,6 +3,8 @@ from fastapi import HTTPException
 from faker import Faker
 
 from app.core.pagination import build_pagination_metadata, get_pagination_offset
+from types import SimpleNamespace
+
 from app.modules.salespeople.schemas.salespeople import SalespeopleCreate, SalespeopleUpdate
 from app.modules.salespeople.services import salespeople_service as service
 
@@ -97,6 +99,39 @@ def test_read_one_salespeople_raises_when_not_found(monkeypatch):
 
     assert exc_info.value.status_code == 404
     assert exc_info.value.detail == "Salespeople not found"
+
+
+def test_read_one_salespeople_returns_vendor_with_plans(monkeypatch):
+    db = object()
+    fake_sales_plan = SimpleNamespace(
+        identificador="PV-2025-Q1",
+        nombre="Plan Q1",
+        descripcion="Plan de ventas para Q1",
+        periodo="2025-Q1",
+        meta=100000.0,
+        unidades_vendidas=25000.0,
+    )
+    fake_salesperson = SimpleNamespace(id="vendor-123", sales_plans=[fake_sales_plan])
+
+    captured_arguments = {}
+
+    def fake_get_with_plans(db_session, salespeople_id):
+        captured_arguments["db_session"] = db_session
+        captured_arguments["salespeople_id"] = salespeople_id
+        return fake_salesperson
+
+    monkeypatch.setattr(
+        service,
+        "get_salespeople_with_plans",
+        fake_get_with_plans,
+    )
+
+    result = service.read_one(db, salespeople_id="vendor-123")
+
+    assert result is fake_salesperson
+    assert captured_arguments == {"db_session": db, "salespeople_id": "vendor-123"}
+    assert len(result.sales_plans) == 1
+    assert result.sales_plans[0].identificador == "PV-2025-Q1"
 
 
 def test_update_salespeople_raises_when_not_found(monkeypatch, fake: Faker):
