@@ -71,7 +71,7 @@ describe("vendedores.service - unit", () => {
 
     const { ApiClient } = await import("@/lib/api-client");
     expect(ApiClient).toHaveBeenCalledWith(apiUrl);
-    expect(postMock).toHaveBeenCalledWith("/vendedores", {
+    expect(postMock).toHaveBeenCalledWith("/vendedores/", {
       full_name: fullName,
       email,
       hire_date: hireDate,
