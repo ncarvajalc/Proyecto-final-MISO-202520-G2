@@ -1,5 +1,5 @@
 # Dockerfile para aplicación React (modo desarrollo)
-FROM node:20-alpine
+FROM node:current-alpine3.21
 WORKDIR /app
 COPY . .
 ENV CI=true

@@ -17,6 +17,8 @@ import {
   expectPlanRowVisible,
   trackPlanesRequests,
   waitForToastWithText,
+  interceptLogin,
+  interceptAuthBootstrap,
 } from "./utils/planesVenta";
 import type {
   PlanVentaPayload,
@@ -66,6 +68,7 @@ const openCreateDialog = async (page: Page) => {
 test.describe.serial("HUP-003 Gestión de Planes de venta", () => {
   let adminToken: string;
   let storagePayload: { user: unknown; permissions: string[] };
+  const authMocks: { dispose: () => Promise<void> }[] = [];
 
   test.beforeAll(async () => {
     const auth = await loginAsAdmin();
@@ -74,10 +77,22 @@ test.describe.serial("HUP-003 Gestión de Planes de venta", () => {
   });
 
   test.beforeEach(async ({ page }, testInfo) => {
-    if (
-      testInfo.title.includes("Autenticación") ||
-      testInfo.title.includes("redirige")
-    ) {
+    const shouldMockAuth = !testInfo.title.includes("redirige");
+
+    if (shouldMockAuth) {
+      const authMock = await interceptAuthBootstrap(page, {
+        token: adminToken,
+        permissions: storagePayload.permissions ?? [],
+        profile: {
+          id: "admin-id",
+          username: "Administrador",
+          email: ADMIN_EMAIL,
+        },
+      });
+      authMocks.push(authMock);
+    }
+
+    if (testInfo.title.includes("Autenticación") || testInfo.title.includes("redirige")) {
       return;
     }
 
@@ -88,6 +103,15 @@ test.describe.serial("HUP-003 Gestión de Planes de venta", () => {
       },
       [adminToken, storagePayload]
     );
+  });
+
+  test.afterEach(async () => {
+    while (authMocks.length > 0) {
+      const mock = authMocks.pop();
+      if (mock) {
+        await mock.dispose();
+      }
+    }
   });
 
   test("Autenticación y navegación hacia Planes de venta", async ({ page }) => {
@@ -108,6 +132,12 @@ test.describe.serial("HUP-003 Gestión de Planes de venta", () => {
     ]);
 
     const tracker = trackPlanesRequests(page);
+
+    const loginIntercept = await interceptLogin(page, {
+      token: adminToken,
+      user: storagePayload.user ?? { email: ADMIN_EMAIL },
+      permissions: storagePayload.permissions,
+    });
 
     await page.goto("./login");
     await page.getByLabel("Correo").fill(ADMIN_EMAIL);
@@ -152,6 +182,7 @@ test.describe.serial("HUP-003 Gestión de Planes de venta", () => {
 
     tracker.assertAllAuthorized();
     tracker.stop();
+    await loginIntercept.dispose();
   });
 
   test("Ruta protegida sin token redirige a login", async ({ page }) => {
@@ -176,7 +207,7 @@ test.describe.serial("HUP-003 Gestión de Planes de venta", () => {
     await interceptVendedoresList(page, vendedores);
     await interceptPlanesList(page, [
       {
-        delayMs: 200,
+        delayMs: 2000,
         once: true,
         body: {
           data: [],
@@ -192,9 +223,20 @@ test.describe.serial("HUP-003 Gestión de Planes de venta", () => {
       },
     ]);
 
-    await gotoPlanesVenta(page, { token: adminToken, storagePayload });
-    await expect(page.getByText("Cargando planes de venta...")).toBeVisible();
-    await expect(page.getByText("No hay planes de venta disponibles")).toBeVisible();
+    await gotoPlanesVenta(page, {
+      token: adminToken,
+      storagePayload,
+      forceReload: true,
+    });
+    await expect.poll(async () => {
+      return page.evaluate(() =>
+        document.body.innerText.includes("Cargando planes de venta...")
+      );
+    }).toBeTruthy();
+
+    await expect(
+      page.getByText("No hay planes de venta disponibles")
+    ).toBeVisible();
 
     const errorResponsePromise = waitForPlanesListResponse(
       page,

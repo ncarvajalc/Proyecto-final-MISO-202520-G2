@@ -5,5 +5,5 @@ description = "Generate non Jira charts: Velocity, Business Value, and Release B
 readme = "README.md"
 requires-python = ">=3.12.1"
 dependencies = [
-    "matplotlib>=3.9.3",
+    "matplotlib>=3.10.7",
 ]

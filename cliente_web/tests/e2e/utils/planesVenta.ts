@@ -370,6 +370,87 @@ export const interceptCreatePlanVenta = async (
   };
 };
 
+export const interceptLogin = async (
+  page: Page,
+  result: { token: string; user: unknown; permissions: string[] }
+) => {
+  const handler = async (route: Route) => {
+    if (route.request().method() !== "POST") {
+      await route.fallback();
+      return;
+    }
+
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        token: result.token,
+        user: result.user,
+        permissions: result.permissions,
+      }),
+    });
+  };
+
+  await page.route("**/auth/login", handler);
+
+  return {
+    dispose: async () => {
+      await page.unroute("**/auth/login", handler);
+    },
+  };
+};
+
+export const interceptAuthBootstrap = async (
+  page: Page,
+  result: { token: string; permissions: string[]; profile?: { id: string; username: string; email: string } }
+) => {
+  const validateHandler = async (route: Route) => {
+    if (route.request().method() !== "POST") {
+      await route.fallback();
+      return;
+    }
+
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ valid: true }),
+    });
+  };
+
+  const profileHandler = async (route: Route) => {
+    if (route.request().method() !== "GET") {
+      await route.fallback();
+      return;
+    }
+
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        id: result.profile?.id ?? "admin-id",
+        username: result.profile?.username ?? "Administrador",
+        email: result.profile?.email ?? "admin@example.com",
+        profile_id: "admin-profile",
+        profile_name: "Administrador",
+        is_active: true,
+        permissions: result.permissions,
+        last_login_at: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+      }),
+    });
+  };
+
+  await page.route("**/auth/validate", validateHandler);
+  await page.route("**/auth/me", profileHandler);
+
+  return {
+    dispose: async () => {
+      await page.unroute("**/auth/validate", validateHandler);
+      await page.unroute("**/auth/me", profileHandler);
+    },
+  };
+};
+
 export const waitForPlanesListRequest = (
   page: Page,
   predicate?: (request: Request) => boolean

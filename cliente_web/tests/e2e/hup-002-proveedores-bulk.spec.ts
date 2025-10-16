@@ -187,28 +187,29 @@ type ParsedMultipartCsv = {
 
 const parseMultipartCsv = (request: Request): ParsedMultipartCsv => {
   const headers = request.headers();
-  const contentType = headers["content-type"] ?? "";
+  const contentType = headers['content-type'] ?? "";
   expect(contentType).toContain("multipart/form-data");
   const boundaryMatch = contentType.match(/boundary="?([^";]+)"?/);
   expect(boundaryMatch).toBeTruthy();
   const boundary = boundaryMatch![1];
   const buffer = request.postDataBuffer();
   expect(buffer).toBeTruthy();
-  const raw = buffer!.toString("utf-8");
+  const raw = buffer!.toString('utf-8');
   const delimiter = `--${boundary}`;
+  const escapedDelimiter = delimiter.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const parts = raw.split(delimiter);
   for (const part of parts) {
-    if (!part.includes("name=\"file\"")) continue;
-    const trimmedPart = part.replace(/^\r?\n/, "").replace(/\r?\n--\s*$/, "");
+    if (!part.includes('name="file"')) continue;
+    const trimmedPart = part.replace(/^\r?\n/, '').replace(/\r?\n--\s*$/, '');
     const [headersPart, ...bodyParts] = trimmedPart.split(/\r?\n\r?\n/);
     if (!headersPart || bodyParts.length === 0) continue;
-    const bodyPart = bodyParts.join("\r\n\r\n");
-    const filenameMatch = headersPart.match(/filename=\"([^\"]*)\"/);
+    const bodyPart = bodyParts.join('\r\n\r\n');
+    const filenameMatch = headersPart.match(/filename="([^"]*)"/);
     const fileContentTypeMatch = headersPart.match(/Content-Type:\s*([^\r\n]+)/i);
-    const filename = (filenameMatch?.[1] ?? "uploaded.csv").trim() || "uploaded.csv";
-    const fileContentType = (fileContentTypeMatch?.[1] ?? "text/csv").trim();
+    const filename = (filenameMatch?.[1] ?? 'uploaded.csv').trim() || 'uploaded.csv';
+    const fileContentType = (fileContentTypeMatch?.[1] ?? 'text/csv').trim();
     const cleaned = bodyPart
-      .replace(new RegExp(`\r?\n${delimiter}--?\s*$`), "")
+      .replace(new RegExp(String.raw`\r?\n${escapedDelimiter}--?\s*$`), '')
       .replace(/\r?\n--$/, "")
       .replace(/\r?\n$/, "");
     const normalized = cleaned.replace(/\r\n/g, "\n");
@@ -237,7 +238,7 @@ const attachCsvFile = async (
   await input.setInputFiles({
     name: filename,
     mimeType,
-    buffer: Buffer.from(csv, "utf-8"),
+    buffer: Buffer.from(csv, 'utf-8'),
   });
   return { csv, filename, mimeType };
 };
@@ -382,7 +383,7 @@ test.describe.serial("HUP-002 Registro masivo de proveedores", () => {
   });
 
   test("Abre el modal de carga masiva con focus inicial y estado de controles", async ({ page }) => {
-    let currentData: SupplierResponse[] = [];
+    const currentData: SupplierResponse[] = [];
     listStub = await setupSupplierListStub(page, () => currentData);
 
     const tracker = trackProveedoresRequests(page);
@@ -406,9 +407,9 @@ test.describe.serial("HUP-002 Registro masivo de proveedores", () => {
     await expect(dialog.getByRole("heading", { name: "1. Descargar plantilla" })).toBeVisible();
     await expect(dialog.getByRole("heading", { name: "2. Subir plantilla" })).toBeVisible();
 
-    const fileInput = dialog.locator('input[type="file"][accept=".csv"]');
+    const fileInput = dialog.locator("input[type='file'][accept='.csv']");
     await expect(fileInput).toHaveAttribute("accept", ".csv");
-    const submitButton = dialog.locator('button[type="submit"]');
+    const submitButton = dialog.locator("button[type='submit']");
     await expect(submitButton).toBeDisabled();
     await expect(dialog.getByText("Archivo seleccionado", { exact: false })).toHaveCount(0);
 
@@ -417,7 +418,7 @@ test.describe.serial("HUP-002 Registro masivo de proveedores", () => {
   });
 
   test("Descarga la plantilla CSV y notifica al usuario", async ({ page }) => {
-    let currentData: SupplierResponse[] = [];
+    const currentData: SupplierResponse[] = [];
     listStub = await setupSupplierListStub(page, () => currentData);
 
     await gotoProveedores(page);
@@ -446,7 +447,7 @@ test.describe.serial("HUP-002 Registro masivo de proveedores", () => {
   });
 
   test("Rechaza archivos que no sean CSV sin emitir solicitudes", async ({ page }) => {
-    let currentData: SupplierResponse[] = [];
+    const currentData: SupplierResponse[] = [];
     listStub = await setupSupplierListStub(page, () => currentData);
 
     const tracker = trackProveedoresRequests(page);
@@ -457,7 +458,7 @@ test.describe.serial("HUP-002 Registro masivo de proveedores", () => {
     const dialog = page.getByRole("dialog", { name: "Carga masiva proveedores" });
 
     await attachCsvFile(
-      dialog.locator('input[type="file"][accept=".csv"]'),
+      dialog.locator("input[type='file'][accept='.csv']"),
       [buildSupplierPayload("Archivo Invalido")],
       { filename: "malicioso.txt", mimeType: "text/plain" }
     );
@@ -470,7 +471,7 @@ test.describe.serial("HUP-002 Registro masivo de proveedores", () => {
     await expect(errorToast).toContainText("Solo se permiten archivos CSV");
 
     await expect(dialog.getByText("Archivo seleccionado", { exact: false })).toHaveCount(0);
-    await expect(dialog.locator('button[type="submit"]')).toBeDisabled();
+    await expect(dialog.locator("button[type='submit']")).toBeDisabled();
 
     expect(
       tracker.getCount("POST", ({ request }) =>
@@ -482,7 +483,7 @@ test.describe.serial("HUP-002 Registro masivo de proveedores", () => {
   });
 
   test("Impide enviar sin archivo seleccionado", async ({ page }) => {
-    let currentData: SupplierResponse[] = [];
+    const currentData: SupplierResponse[] = [];
     listStub = await setupSupplierListStub(page, () => currentData);
 
     const tracker = trackProveedoresRequests(page);
@@ -492,7 +493,7 @@ test.describe.serial("HUP-002 Registro masivo de proveedores", () => {
     await page.getByRole("button", { name: "Carga masiva" }).click();
     const dialog = page.getByRole("dialog", { name: "Carga masiva proveedores" });
 
-    const submitButton = dialog.locator('button[type="submit"]');
+    const submitButton = dialog.locator("button[type='submit']");
     await expect(submitButton).toBeDisabled();
 
     expect(
@@ -576,7 +577,7 @@ test.describe.serial("HUP-002 Registro masivo de proveedores", () => {
 
     await page.getByRole("button", { name: "Carga masiva" }).click();
     const dialog = page.getByRole("dialog", { name: "Carga masiva proveedores" });
-    const fileInput = dialog.locator('input[type="file"][accept=".csv"]');
+    const fileInput = dialog.locator("input[type='file'][accept='.csv']");
     const { filename: attachedFilename } = await attachCsvFile(fileInput, newSuppliers, {
       filename: "bulk-success.csv",
     });
@@ -586,7 +587,7 @@ test.describe.serial("HUP-002 Registro masivo de proveedores", () => {
     );
 
     const cancelButton = dialog.getByRole("button", { name: "Cancelar" });
-    const submitButton = dialog.locator('button[type="submit"]');
+    const submitButton = dialog.locator("button[type='submit']");
     const initialListCalls = listStub?.getCalls().length ?? 0;
 
     await submitButton.click();
@@ -706,10 +707,10 @@ test.describe.serial("HUP-002 Registro masivo de proveedores", () => {
 
     await page.getByRole("button", { name: "Carga masiva" }).click();
     const dialog = page.getByRole("dialog", { name: "Carga masiva proveedores" });
-    const fileInput = dialog.locator('input[type="file"][accept=".csv"]');
+    const fileInput = dialog.locator("input[type='file'][accept='.csv']");
     await attachCsvFile(fileInput, csvPayloads, { filename: "bulk-partial.csv" });
 
-    const submitButton = dialog.locator('button[type="submit"]');
+    const submitButton = dialog.locator("button[type='submit']");
     const initialListCalls = listStub?.getCalls().length ?? 0;
     await submitButton.click();
 
@@ -776,7 +777,7 @@ test.describe.serial("HUP-002 Registro masivo de proveedores", () => {
 
     await page.getByRole("button", { name: "Carga masiva" }).click();
     const dialog = page.getByRole("dialog", { name: "Carga masiva proveedores" });
-    const fileInput = dialog.locator('input[type="file"][accept=".csv"]');
+    const fileInput = dialog.locator("input[type='file'][accept='.csv']");
     const { filename: attachedFilename } = await attachCsvFile(fileInput, csvPayloads, {
       filename: "bulk-error.csv",
     });
@@ -814,7 +815,7 @@ test.describe.serial("HUP-002 Registro masivo de proveedores", () => {
 
 
   test("Cancelar restablece el estado y no emite solicitudes", async ({ page }) => {
-    let currentData: SupplierResponse[] = [];
+    const currentData: SupplierResponse[] = [];
     listStub = await setupSupplierListStub(page, () => currentData);
 
     const tracker = trackProveedoresRequests(page);
@@ -824,7 +825,7 @@ test.describe.serial("HUP-002 Registro masivo de proveedores", () => {
     await page.getByRole("button", { name: "Carga masiva" }).click();
     const dialog = page.getByRole("dialog", { name: "Carga masiva proveedores" });
 
-    const fileInput = dialog.locator('input[type="file"][accept=".csv"]');
+    const fileInput = dialog.locator("input[type='file'][accept='.csv']");
     await attachCsvFile(fileInput, [buildSupplierPayload("CSV Cancel")], {
       filename: "bulk-cancel.csv",
     });
@@ -835,7 +836,7 @@ test.describe.serial("HUP-002 Registro masivo de proveedores", () => {
     await page.getByRole("button", { name: "Carga masiva" }).click();
     const reopened = page.getByRole("dialog", { name: "Carga masiva proveedores" });
     await expect(reopened.getByText("Archivo seleccionado", { exact: false })).toHaveCount(0);
-    await expect(reopened.locator('button[type="submit"]')).toBeDisabled();
+    await expect(reopened.locator("button[type='submit']")).toBeDisabled();
 
     expect(
       tracker.getCount("POST", ({ request }) =>
@@ -912,12 +913,12 @@ test.describe.serial("HUP-002 Registro masivo de proveedores", () => {
 
     await page.getByRole("button", { name: "Carga masiva" }).click();
     const dialog = page.getByRole("dialog", { name: "Carga masiva proveedores" });
-    const fileInput = dialog.locator('input[type="file"][accept=".csv"]');
+    const fileInput = dialog.locator("input[type='file'][accept='.csv']");
     const { filename: attachedFilename } = await attachCsvFile(fileInput, [csvPayload], {
       filename: "bulk-alias.csv",
     });
 
-    const submitButton = dialog.locator('button[type="submit"]');
+    const submitButton = dialog.locator("button[type='submit']");
     const initialListCalls = listStub?.getCalls().length ?? 0;
     await submitButton.click();
 
@@ -1004,12 +1005,12 @@ runSmokeSuite(() => {
 
     await page.getByRole("button", { name: "Carga masiva" }).click();
     const dialog = page.getByRole("dialog", { name: "Carga masiva proveedores" });
-    const fileInput = dialog.locator('input[type="file"][accept=".csv"]');
+    const fileInput = dialog.locator("input[type='file'][accept='.csv']");
     await attachCsvFile(fileInput, [payload], { filename: "bulk-real.csv" });
 
     const listRefetchPromise = waitForListResponse(page, 1);
 
-    const submitButton = dialog.locator('button[type="submit"]');
+    const submitButton = dialog.locator("button[type='submit']");
     await submitButton.click();
 
     const refetch = await listRefetchPromise;

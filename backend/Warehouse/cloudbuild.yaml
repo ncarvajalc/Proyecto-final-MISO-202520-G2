@@ -1,6 +1,6 @@
 steps:
 # Paso 1: Instalar dependencias y correr pruebas
-- name: 'python:3.11-slim'
+- name: 'python:3.12-slim'
   entrypoint: bash
   args:
     - -c
