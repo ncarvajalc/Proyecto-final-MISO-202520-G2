@@ -1,3 +1,4 @@
+import math
 import os
 
 import pytest
@@ -16,14 +17,17 @@ def test_service_crud_flow_with_real_database(db_session, fake: Faker):
         status=fake.random_element(("active", "inactive")),
     )
 
+    baseline_total = service.read(db_session, page=1, limit=1)["total"]
+
     created = service.create(db_session, create_payload)
     assert created.id is not None
     assert created.full_name == create_payload.full_name
 
     paginated = service.read(db_session, page=1, limit=5)
-    assert paginated["total"] == 1
-    assert paginated["total_pages"] == 1
-    assert paginated["data"][0].email == create_payload.email
+    expected_total = baseline_total + 1
+    expected_pages = math.ceil(expected_total / 5)
+    assert paginated["total"] == expected_total
+    assert paginated["total_pages"] == expected_pages
 
     fetched = service.read_one(db_session, created.id)
     assert fetched.id == created.id

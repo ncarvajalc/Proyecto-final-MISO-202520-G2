@@ -3,7 +3,7 @@ import os
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, status
-from pydantic import BaseModel, HttpUrl, ValidationError, conint, constr, validator
+from pydantic import BaseModel, HttpUrl, ValidationError, conint, constr, field_validator
 from sqlalchemy import Boolean, Column, Integer, String, Text
 from sqlalchemy.orm import Session
 
@@ -39,7 +39,7 @@ class ProductTechnicalSheet(BaseModel):
     urlHojaInstalacion: Optional[HttpUrl] = None
     certificaciones: Optional[List[constr(min_length=1)]] = None  # type: ignore[valid-type]
 
-    @validator("certificaciones", pre=True, always=True)
+    @field_validator("certificaciones", mode="before")
     def _normalize_certificaciones(cls, value: Optional[List[str]]) -> Optional[List[str]]:
         if value in (None, [], ""):
             return None
@@ -74,7 +74,7 @@ class ProductCreate(BaseModel):
     especificaciones: Optional[List[ProductSpecification]] = None
     hojaTecnica: Optional[ProductTechnicalSheet] = None
 
-    @validator("hojaTecnica", pre=True, always=True)
+    @field_validator("hojaTecnica", mode="before")
     def _normalize_hoja_tecnica(
         cls, value: Optional[dict]
     ) -> Optional[ProductTechnicalSheet]:
@@ -88,7 +88,7 @@ class ProductCreate(BaseModel):
             raise exc
 
     def to_orm_kwargs(self) -> dict:
-        especificaciones = [spec.dict() for spec in self.especificaciones or []]
+        especificaciones = [spec.model_dump() for spec in self.especificaciones or []]
         hoja_tecnica = self.hojaTecnica
         hoja_tecnica_dict = hoja_tecnica.to_response() if hoja_tecnica else None
 

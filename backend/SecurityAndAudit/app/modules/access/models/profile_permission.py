@@ -1,6 +1,6 @@
 from sqlmodel import SQLModel, Field, Relationship
 from typing import Optional, TYPE_CHECKING
-from datetime import datetime
+from datetime import UTC, datetime
 
 if TYPE_CHECKING:
     from .profile import Profile
@@ -28,12 +28,12 @@ class ProfilePermission(SQLModel, table=True):
     )
     
     created_at: datetime = Field(
-        default_factory=datetime.utcnow,
+        default_factory=lambda: datetime.now(UTC),
         description="Timestamp when the association was created"
     )
     
     updated_at: datetime = Field(
-        default_factory=datetime.utcnow,
+        default_factory=lambda: datetime.now(UTC),
         description="Timestamp when the association was last updated"
     )
     

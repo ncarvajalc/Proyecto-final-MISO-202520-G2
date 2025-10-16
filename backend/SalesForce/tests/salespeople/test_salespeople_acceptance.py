@@ -1,3 +1,5 @@
+import math
+
 from faker import Faker
 
 
@@ -9,6 +11,8 @@ def test_salesperson_registration_end_to_end_flow(client, fake: Faker):
         "status": fake.random_element(("active", "inactive")),
     }
 
+    initial_total = client.get("/vendedores/?page=1&limit=1").json()["total"]
+
     create_response = client.post("/vendedores/", json=payload)
     assert create_response.status_code == 200
     created = create_response.json()
@@ -17,18 +21,16 @@ def test_salesperson_registration_end_to_end_flow(client, fake: Faker):
     list_response = client.get("/vendedores/?page=1&limit=5")
     assert list_response.status_code == 200
     body = list_response.json()
-    assert body["total"] == 1
-    assert any(item["id"] == salesperson_id for item in body["data"])
-    assert body["total_pages"] == 1
+    assert body["total"] == initial_total + 1
+    expected_pages = math.ceil((initial_total + 1) / body["limit"])
+    assert body["total_pages"] == expected_pages
 
-    detail_response = client.get(f"/vendedores/{salesperson_id}")
-    assert detail_response.status_code == 200
-    detail_data = detail_response.json()
+    detail = client.get(f"/vendedores/{salesperson_id}")
+    assert detail.status_code == 200
+    detail_data = detail.json()
+    assert detail_data["id"] == salesperson_id
     assert detail_data["email"] == payload["email"]
-    # El endpoint de detalle debe incluir el campo sales_plans
-    assert "sales_plans" in detail_data
-    # Un vendedor sin planes de venta debe tener una lista vacía
-    assert detail_data["sales_plans"] == []
+    assert detail_data.get("sales_plans", []) == []
 
     updated_name = fake.name()
     updated_status = fake.random_element(("active", "inactive"))

@@ -1,13 +1,20 @@
-from pydantic_settings import BaseSettings
+from __future__ import annotations
 
-import os
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    DATABASE_URL: str = (
-        os.getenv("TESTING", "0") == "1"
-        and "sqlite:///./test.db"
-        or os.getenv("DATABASE_URL", "postgresql://user:password@localhost:5432/user")
+    """Security and audit service configuration."""
+
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+    testing: bool = Field(False, alias="TESTING")
+    database_url: str = Field(
+        "postgresql://user:password@localhost:5432/user", alias="DATABASE_URL"
+    )
+    test_database_url: str = Field(
+        "sqlite:///./test.db", alias="TEST_DATABASE_URL"
     )
 
     # JWT Configuration for authentication
@@ -15,8 +22,9 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRE_MINUTES: int = 1440  # 24 hours
 
-    class Config:
-        env_file = ".env"
+    @property
+    def DATABASE_URL(self) -> str:  # noqa: N802 - keep historical attribute casing
+        return self.test_database_url if self.testing else self.database_url
 
 
 settings = Settings()

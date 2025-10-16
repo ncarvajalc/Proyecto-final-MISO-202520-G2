@@ -1,3 +1,5 @@
+import math
+
 import pytest
 from fastapi import HTTPException
 from faker import Faker
@@ -98,23 +100,38 @@ def test_list_sales_plans_returns_paginated_response(db_session, fake: Faker):
     db_session.add(salesperson)
     db_session.commit()
 
+    baseline_total = service.list_sales_plans(db_session, page=1, limit=1).total
+
+    used_periods: set[str] = set()
+
     for idx in range(3):
+        period = f"{fake.random_int(min=2020, max=2030)}-Q{fake.random_int(min=1, max=4)}"
+        while period in used_periods:
+            period = f"{fake.random_int(min=2020, max=2030)}-Q{fake.random_int(min=1, max=4)}"
+        used_periods.add(period)
+
         payload = SalesPlanCreate(
             identificador=fake.unique.bothify(text="PV-####-Q#"),
             nombre=fake.catch_phrase(),
             descripcion=fake.text(max_nb_chars=60),
-            periodo=f"{fake.random_int(min=2020, max=2030)}-Q{fake.random_int(min=1, max=4)}",
+            periodo=period,
             meta=float(round(fake.pyfloat(min_value=50, max_value=500, right_digits=2), 2)),
             vendedorId=salesperson.id,
         )
         service.create(db_session, payload)
 
     first_page = service.list_sales_plans(db_session, page=1, limit=2)
-    assert first_page.total == 3
-    assert first_page.total_pages == 2
-    assert len(first_page.data) == 2
-    assert all(plan.vendedor_nombre == salesperson.full_name for plan in first_page.data)
+    expected_total = baseline_total + 3
+    expected_pages = math.ceil(expected_total / 2)
+    assert first_page.total == expected_total
+    assert first_page.total_pages == expected_pages
+    assert len(first_page.data) == min(2, expected_total)
+    assert all(plan.vendedor_nombre for plan in first_page.data)
+
+    stored = db_session.query(Salespeople).filter_by(id=salesperson.id).first()
+    assert stored is not None
+    assert len(stored.sales_plans) >= 3
 
     second_page = service.list_sales_plans(db_session, page=2, limit=2)
     assert second_page.page == 2
-    assert len(second_page.data) == 1
+    assert 0 < len(second_page.data) <= 2

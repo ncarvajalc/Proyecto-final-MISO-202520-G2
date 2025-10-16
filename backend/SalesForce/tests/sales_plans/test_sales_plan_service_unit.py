@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from types import SimpleNamespace
 import math
 
@@ -93,7 +93,7 @@ def test_create_sales_plan_returns_valid_schema(
         lambda *args, **kwargs: None,
     )
 
-    now = datetime.utcnow()
+    now = datetime.now(UTC)
     plan_identifier = fake.uuid4()
     seller_name = fake.name()
     sold_units = float(round(fake.pyfloat(min_value=0, max_value=200, right_digits=2), 2))
@@ -135,7 +135,7 @@ def test_list_sales_plans_validates_pagination_arguments():
 
 def test_list_sales_plans_maps_orm_objects(monkeypatch, fake: Faker):
     db = object()
-    now = datetime.utcnow()
+    now = datetime.now(UTC)
     first_units = float(round(fake.pyfloat(min_value=0, max_value=300, right_digits=2), 2))
     sample_items = [
         SimpleNamespace(
