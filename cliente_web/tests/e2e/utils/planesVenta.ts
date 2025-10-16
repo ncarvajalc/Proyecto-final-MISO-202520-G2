@@ -208,6 +208,17 @@ export const interceptVendedoresList = async (
       return;
     }
 
+    const url = new URL(requestObj.url());
+    const segments = url.pathname
+      .replace(/^\/+|\/+$/g, "")
+      .split("/")
+      .filter(Boolean);
+
+    if (!(segments.length === 1 && segments[0] === "vendedores")) {
+      await route.fallback();
+      return;
+    }
+
     if (options.once && used > 0) {
       await route.fallback();
       return;
