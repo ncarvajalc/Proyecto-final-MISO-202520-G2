@@ -21,22 +21,28 @@ export default function App() {
   );
 }
 
+const palette = {
+  background: '#f3f4f6',
+  subtitle: '#4b5563',
+  text: '#111827',
+} as const;
+
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: '#f3f4f6',
     alignItems: 'center',
+    backgroundColor: palette.background,
+    flex: 1,
     justifyContent: 'center',
     padding: 24,
   },
+  subtitle: {
+    color: palette.subtitle,
+    fontSize: 16,
+    marginTop: 12,
+  },
   text: {
+    color: palette.text,
     fontSize: 24,
     fontWeight: '700',
-    color: '#111827',
-  },
-  subtitle: {
-    marginTop: 12,
-    fontSize: 16,
-    color: '#4b5563',
   },
 });
