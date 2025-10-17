@@ -11,3 +11,4 @@ psycopg2-binary==2.9.11
 httpx==0.28.1
 pydantic[email]==2.12.2
 Faker==37.11.0
+cryptography==46.0.3

@@ -1,10 +1,13 @@
 from sqlmodel import SQLModel, Field, Relationship
+from sqlalchemy import Column, String
 from typing import Optional, TYPE_CHECKING
 from datetime import UTC, datetime
 import uuid
 
 if TYPE_CHECKING:
     from .profile import Profile
+
+from app.core.encryption import EncryptedString
 
 class User(SQLModel, table=True):
     """
@@ -33,9 +36,14 @@ class User(SQLModel, table=True):
     )
     
     email: str = Field(
+        sa_column=Column(
+            "email",
+            EncryptedString(512),
+            nullable=False,
+            unique=True,
+            index=True,
+        ),
         max_length=255,
-        unique=True,
-        index=True,
         description="User's email address"
     )
     

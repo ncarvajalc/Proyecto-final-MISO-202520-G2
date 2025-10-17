@@ -13,3 +13,4 @@ passlib==1.7.4
 psycopg2-binary==2.9.11
 httpx==0.28.1
 Faker==37.11.0
+cryptography==46.0.3
