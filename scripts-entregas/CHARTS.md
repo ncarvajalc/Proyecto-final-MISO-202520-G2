@@ -1,19 +1,19 @@
 # Gráficas del proyecto no generadas por Jira - Proyecto Final MISO 202520 G2
 
-**Última actualización:** 2025-10-16 03:38:28 UTC
+**Última actualización:** 2025-10-17 01:49:49 UTC
 
 ## Resumen de métricas del proyecto
 
 ### Business value chart
-- **Valor total:** 13.0 / 100 puntos (13%)
-- **Historias completadas:** 5
-- **Valor restante:** 87.0 puntos
+- **Valor total:** 23.0 / 100 puntos (23%)
+- **Historias completadas:** 6
+- **Valor restante:** 77.0 puntos
 
 ### Velocity chart
 - **Semanas registradas:** 7
 - **Total planeado:** 110.0 puntos de historia
-- **Total completado:** 19.0 puntos de historia
-- **Velocidad promedio:** 2.7 puntos/semana
+- **Total completado:** 24.0 puntos de historia
+- **Velocidad promedio:** 3.4 puntos/semana
 
 ### Release burndown chart
 - **Alcance inicial:** 110 puntos de historia
@@ -74,6 +74,7 @@ Puntos de historia restantes al inicio de cada sprint vs burndown ideal.
 ### Semana 2
 
 - **HUP-007** - 2025-10-15
+- **ASR-005** - 2025-10-16
 
 
 ---
