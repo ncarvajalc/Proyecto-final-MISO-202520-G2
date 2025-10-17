@@ -1,1 +1,3 @@
-sku;nombre;descripcion;precio;especificaciones;manual;certificaciones
+sku,nombre,descripcion,precio,especificaciones,urlManual,urlHojaInstalacion,certificaciones
+MED-001,Paracetamol 500mg,Analgésico y antipirético,5000,"[{""nombre"":""Presentación"",""valor"":""Caja x 20""}]",https://ejemplo.com/manual.pdf,https://ejemplo.com/instalacion.pdf,"INVIMA,FDA"
+MED-002,Ibuprofeno 400mg,Antiinflamatorio,8500,"[{""nombre"":""Presentación"",""valor"":""Caja x 30""}]",,,INVIMA

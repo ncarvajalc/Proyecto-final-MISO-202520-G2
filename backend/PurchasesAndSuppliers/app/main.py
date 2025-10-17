@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
@@ -31,7 +31,7 @@ def healthcheck():
         db.close()
         return {"status": "ok", "db": True}
     except OperationalError:
-        return {"status": "error", "db": False}
+        return {"status": "error", "db": False}, status.HTTP_503_SERVICE_UNAVAILABLE
 
 @app.get("/")
 def read_root():
