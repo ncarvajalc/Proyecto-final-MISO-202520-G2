@@ -16,6 +16,7 @@ logger = logging.getLogger("uvicorn")
 
 
 @router.get("/")
+@router.get("")
 def archivo():
     current_working_directory = Path(os.getcwd())
     absolute_file_path = current_working_directory / FILE
@@ -32,5 +33,6 @@ def archivo():
     )
 
 @router.post("/", response_model=schemas.UploadSummaryResponse)
+@router.post("", response_model=schemas.UploadSummaryResponse)
 async def upload_file(file: UploadFile = File(...), db: Session = Depends(get_db)):
     return await upload_csv(db, file)
