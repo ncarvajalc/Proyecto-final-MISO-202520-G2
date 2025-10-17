@@ -16,6 +16,10 @@ class Settings(BaseSettings):
     test_database_url: str = Field(
         "sqlite:///./test.db", alias="TEST_DATABASE_URL"
     )
+    field_encryption_key: str = Field(
+        "AAgM6AyfPJuvK2pFJu8KLd43NcSixmzKBf2eMS8kynk=",
+        alias="FIELD_ENCRYPTION_KEY",
+    )
 
     @property
     def DATABASE_URL(self) -> str:  # noqa: N802 - keep compatibility with existing code
