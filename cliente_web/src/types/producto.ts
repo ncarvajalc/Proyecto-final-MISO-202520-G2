@@ -40,3 +40,20 @@ export interface ProductosResponse {
   totalPages: number;
 }
 
+export interface BulkProductError {
+  id: string;
+  row_number: string;
+  row_status: string;
+  error_message: string;
+}
+
+
+export interface BulkUploadProductsResponse {
+  success: boolean;
+  message: string;
+  totalRows: number;
+  succeededRows: number;
+  failedRows: number;
+  errors: BulkProductError[];
+}
+
