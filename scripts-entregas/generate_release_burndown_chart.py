@@ -54,22 +54,24 @@ def generate_release_burndown_chart(csv_path: str, output_path: str):
     # Set up the plot
     fig, ax = plt.subplots(figsize=(12, 6))
 
-    # Create ideal burndown line
+    # Create line connecting actual remaining points
     ax.plot(
         sprint_names,
-        ideal_burndown,
-        color="#CCCCCC",
+        remaining_points,
+        color="#808080",
         linewidth=2,
         linestyle="-",
         alpha=0.7,
-        zorder=1,
+        zorder=2,
     )
 
     # Create scatter plot for actual remaining points
     colors = []
     for i, points in enumerate(remaining_points):
-        # Color green if on track or ahead, red if behind
-        if points <= ideal_burndown[i]:
+        # Latest point is always red, others are green if on track or ahead, red if behind
+        if i == len(remaining_points) - 1:
+            colors.append("#C00000")  # Red for latest point
+        elif points <= ideal_burndown[i]:
             colors.append("#70AD47")  # Green
         else:
             colors.append("#C00000")  # Red
