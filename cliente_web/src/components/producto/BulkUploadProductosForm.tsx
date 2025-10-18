@@ -32,9 +32,40 @@ export function BulkUploadProductosForm({
   const uploadMutation = useMutation({
     mutationFn: bulkUploadProductos,
     onSuccess: (data) => {
-      toast.success("Carga masiva exitosa", {
-        description: data.message,
-      });
+      const status = data.status;
+      const total_rows = data.total_rows;
+      const successful_rows = data.successful_rows;
+      const failed_rows = data.failed_rows;
+      const errors = data.errors;
+
+      // 1. Construye el resumen inicial del proceso
+      const resumenGeneral = `Proceso: ${status}. Se intentaron procesar ${total_rows} filas.
+      Resultados: ${successful_rows} exitosas y ${failed_rows} con errores.`;
+
+      // 2. Construye el detalle de los errores iterando el array
+      let detalleErrores = '';
+      if (failed_rows > 0 && Array.isArray(errors)) {
+        detalleErrores = errors.map(error => 
+          `Fila ${error.row_number}: ${error.error_message}`
+        ).join('\n'); // Usa '\n' para saltos de línea legibles
+
+        detalleErrores = `\n--- DETALLE DE ERRORES ---\n${detalleErrores}`;
+
+        const mensajeCompleto = resumenGeneral + detalleErrores;
+        console.log(mensajeCompleto);
+
+        toast.error("Carga Masiva Procesada con novedades", { 
+          description: mensajeCompleto,
+          duration: 20000
+        });
+        
+      } else {
+        toast.success("Carga masiva exitosa", {
+          description: resumenGeneral,
+          duration: 5000
+        });
+      }
+
       queryClient.invalidateQueries({ queryKey: ["productos"] });
       setSelectedFile(null);
       onOpenChange(false);

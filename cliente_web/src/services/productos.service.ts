@@ -8,7 +8,10 @@
  */
 
 // import { apiClient } from "@/lib/api-client";
-import type { Producto, ProductosResponse, PaginationParams } from "@/types/producto";
+import type { Producto, ProductosResponse, PaginationParams, BulkUploadProductsResponse } from "@/types/producto";
+import { ApiClient } from "@/lib/api-client";
+import { getApiBaseUrl } from "@/config/api";
+
 
 /**
  * Mock data for testing
@@ -344,25 +347,21 @@ export const deleteProducto = async (id: string): Promise<void> => {
  * };
  * ```
  */
-export const bulkUploadProductos = async (
+export const bulkUploadProductos =  async (
   file: File
-): Promise<{ success: boolean; created: number; message: string }> => {
-  // Simulate API delay
-  await new Promise((resolve) => setTimeout(resolve, 1500));
+): Promise<BulkUploadProductsResponse> => {
+  const apiClient = new ApiClient(getApiBaseUrl());
+  const formData = new FormData();
+  formData.append("file", file);
 
-  // Mock validation - check if file is CSV
-  if (!file.name.endsWith(".csv")) {
-    throw new Error("Solo se permiten archivos CSV");
-  }
-
-  // Mock parsing CSV and creating productos
-  // In real implementation, backend would parse and create
-  const mockCreatedCount = Math.floor(Math.random() * 10) + 5; // Random 5-15
-
-  return {
-    success: true,
-    created: mockCreatedCount,
-    message: `${mockCreatedCount} productos creados exitosamente`,
-  };
+  return apiClient.post<BulkUploadProductsResponse>(
+    "/productos/bulk-upload",
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    }
+  );
 };
 
