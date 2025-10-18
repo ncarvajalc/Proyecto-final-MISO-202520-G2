@@ -32,10 +32,10 @@ export function BulkUploadProductosForm({
   const uploadMutation = useMutation({
     mutationFn: bulkUploadProductos,
     onSuccess: (data) => {
-      const status = data.status;
-      const total_rows = data.total_rows;
-      const successful_rows = data.successful_rows;
-      const failed_rows = data.failed_rows;
+      const status = data.success ? 'exitoso' : 'fallido';
+      const total_rows = data.totalRows;
+      const successful_rows = data.succeededRows;
+      const failed_rows = data.failedRows;
       const errors = data.errors;
 
       // 1. Construye el resumen inicial del proceso

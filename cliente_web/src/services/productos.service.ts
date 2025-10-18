@@ -90,8 +90,8 @@ export const createProducto = async (
  * ```
  */
 export const updateProducto = async (
-  id: string,
-  producto: Partial<Producto>
+  _id: string,
+  _producto: Partial<Producto>
 ): Promise<Producto> => {
   throw new Error("updateProducto not implemented - backend endpoint pending");
 };
@@ -107,7 +107,7 @@ export const updateProducto = async (
  * };
  * ```
  */
-export const deleteProducto = async (id: string): Promise<void> => {
+export const deleteProducto = async (_id: string): Promise<void> => {
   throw new Error("deleteProducto not implemented - backend endpoint pending");
 };
 
