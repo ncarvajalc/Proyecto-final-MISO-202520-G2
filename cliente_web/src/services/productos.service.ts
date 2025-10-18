@@ -40,8 +40,11 @@ export const getProductos = async (params: PaginationParams): Promise<ProductosR
   }));
 
   return {
-    ...responseData,
-    data
+    data,
+    total: responseData.total,
+    page: responseData.page,
+    limit: responseData.limit,
+    totalPages: responseData.total_pages,
   };
 };
 
