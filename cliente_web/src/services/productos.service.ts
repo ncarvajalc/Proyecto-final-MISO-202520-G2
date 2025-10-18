@@ -2,185 +2,46 @@
  * Productos Service
  *
  * Handles all API calls related to Productos (Products).
- * Currently using mock data - replace with real API calls when backend is ready.
+ * Connected to real backend API.
  *
  * The apiClient automatically includes JWT token in all requests.
  */
 
-// import { apiClient } from "@/lib/api-client";
 import type { Producto, ProductosResponse, PaginationParams, BulkUploadProductsResponse } from "@/types/producto";
 import { ApiClient } from "@/lib/api-client";
 import { getApiBaseUrl } from "@/config/api";
-
-
-/**
- * Mock data for testing
- * TODO: Remove when backend is ready
- */
-const MOCK_PRODUCTOS: Producto[] = [
-  {
-    id: "1",
-    sku: "MED-001",
-    nombre: "Paracetamol 500mg",
-    descripcion: "Analgésico y antipirético en tabletas",
-    precio: 5000,
-    activo: true,
-    especificaciones: [
-      { nombre: "Presentación", valor: "Caja x 20 tabletas" },
-      { nombre: "Principio Activo", valor: "Paracetamol" },
-      { nombre: "Concentración", valor: "500mg" },
-    ],
-    hojaTecnica: {
-      urlManual: "https://ejemplo.com/manuales/paracetamol.pdf",
-      urlHojaInstalacion: "https://ejemplo.com/instalacion/paracetamol.pdf",
-      certificaciones: ["INVIMA", "FDA"],
-    },
-  },
-  {
-    id: "2",
-    sku: "MED-002",
-    nombre: "Ibuprofeno 400mg",
-    descripcion: "Antiinflamatorio no esteroideo",
-    precio: 8500,
-    activo: true,
-    especificaciones: [
-      { nombre: "Presentación", valor: "Caja x 30 tabletas" },
-      { nombre: "Principio Activo", valor: "Ibuprofeno" },
-      { nombre: "Concentración", valor: "400mg" },
-    ],
-  },
-  {
-    id: "3",
-    sku: "MED-003",
-    nombre: "Amoxicilina 500mg",
-    descripcion: "Antibiótico de amplio espectro",
-    precio: 15000,
-    activo: true,
-    especificaciones: [
-      { nombre: "Presentación", valor: "Caja x 21 cápsulas" },
-      { nombre: "Principio Activo", valor: "Amoxicilina" },
-      { nombre: "Concentración", valor: "500mg" },
-      { nombre: "Vía de administración", valor: "Oral" },
-    ],
-    hojaTecnica: {
-      urlManual: "https://ejemplo.com/manuales/amoxicilina.pdf",
-      certificaciones: ["INVIMA"],
-    },
-  },
-  {
-    id: "4",
-    sku: "MED-004",
-    nombre: "Omeprazol 20mg",
-    descripcion: "Inhibidor de la bomba de protones",
-    precio: 12000,
-    activo: false,
-  },
-  {
-    id: "5",
-    sku: "MED-005",
-    nombre: "Loratadina 10mg",
-    descripcion: "Antihistamínico para alergias",
-    precio: 6500,
-    activo: true,
-    especificaciones: [
-      { nombre: "Presentación", valor: "Caja x 10 tabletas" },
-      { nombre: "Principio Activo", valor: "Loratadina" },
-    ],
-  },
-  {
-    id: "6",
-    sku: "MED-006",
-    nombre: "Acetaminofén Jarabe",
-    descripcion: "Analgésico y antipirético para niños",
-    precio: 9800,
-    activo: true,
-    especificaciones: [
-      { nombre: "Presentación", valor: "Frasco x 120ml" },
-      { nombre: "Concentración", valor: "100mg/ml" },
-      { nombre: "Sabor", valor: "Fresa" },
-    ],
-    hojaTecnica: {
-      urlManual: "https://ejemplo.com/manuales/acetaminofen-jarabe.pdf",
-      urlHojaInstalacion: "https://ejemplo.com/instalacion/acetaminofen.pdf",
-      certificaciones: ["INVIMA", "OMS"],
-    },
-  },
-  {
-    id: "7",
-    sku: "MED-007",
-    nombre: "Diclofenaco Gel",
-    descripcion: "Antiinflamatorio tópico",
-    precio: 18500,
-    activo: false,
-    especificaciones: [
-      { nombre: "Presentación", valor: "Tubo x 60g" },
-      { nombre: "Concentración", valor: "1%" },
-      { nombre: "Vía de administración", valor: "Tópica" },
-    ],
-  },
-];
 
 /**
  * Fetch productos with pagination
  *
  * @param params - Pagination parameters (page and limit)
  * @returns Paginated list of productos
- *
- * Backend Contract Example:
- *
- * GET /api/productos?page=1&limit=5
- *
- * Response:
- * {
- *   "data": [
- *     {
- *       "id": "1",
- *       "sku": "MED-001",
- *       "nombre": "Paracetamol 500mg",
- *       "descripcion": "Analgésico y antipirético",
- *       "precio": 5000,
- *       "activo": true,
- *       "especificaciones": [...],
- *       "hojaTecnica": {...}
- *     },
- *     // ... more items
- *   ],
- *   "total": 100,        // Total number of records in database
- *   "page": 1,           // Current page
- *   "limit": 5,          // Items per page
- *   "totalPages": 20     // Total pages (calculated as Math.ceil(total / limit))
- * }
- *
- * TODO: Replace with real API call when backend is ready
- * Example implementation:
- * ```typescript
- * export const getProductos = async (params: PaginationParams): Promise<ProductosResponse> => {
- *   return apiClient.get<ProductosResponse>('/productos', {
- *     params: {
- *       page: params.page,
- *       limit: params.limit
- *     }
- *   });
- * };
- * ```
  */
 export const getProductos = async (params: PaginationParams): Promise<ProductosResponse> => {
-  // Simulate API delay
-  await new Promise((resolve) => setTimeout(resolve, 500));
+  const baseUrl = getApiBaseUrl();
+  const url = `${baseUrl}/productos/?page=${params.page}&limit=${params.limit}`;
 
-  // Simulate server-side pagination
-  const startIndex = (params.page - 1) * params.limit;
-  const endIndex = startIndex + params.limit;
-  const paginatedData = MOCK_PRODUCTOS.slice(startIndex, endIndex);
-  const totalPages = Math.ceil(MOCK_PRODUCTOS.length / params.limit);
+  const response = await fetch(url, {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
 
-  // Mock response matching backend contract
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  const responseData = await response.json();
+
+  // Convert id to string for frontend compatibility
+  const data = responseData.data.map((producto: any) => ({
+    ...producto,
+    id: String(producto.id)
+  }));
+
   return {
-    data: paginatedData,
-    total: MOCK_PRODUCTOS.length,
-    page: params.page,
-    limit: params.limit,
-    totalPages: totalPages,
+    ...responseData,
+    data
   };
 };
 
@@ -189,69 +50,32 @@ export const getProductos = async (params: PaginationParams): Promise<ProductosR
  *
  * @param producto - Producto data without id
  * @returns Created producto with id
- *
- * Backend Contract Example:
- *
- * POST /api/productos
- * Content-Type: application/json
- *
- * Request Body:
- * {
- *   "sku": "MED-001",
- *   "nombre": "Paracetamol 500mg",
- *   "descripcion": "Analgésico y antipirético",
- *   "precio": 5000,
- *   "activo": true,
- *   "especificaciones": [
- *     { "nombre": "Presentación", "valor": "Caja x 20" },
- *     { "nombre": "Concentración", "valor": "500mg" }
- *   ],
- *   "hojaTecnica": {
- *     "urlManual": "https://ejemplo.com/manual.pdf",
- *     "urlHojaInstalacion": "https://ejemplo.com/instalacion.pdf",
- *     "certificaciones": ["INVIMA", "FDA", "ISO 9001"]
- *   }
- * }
- *
- * Response:
- * {
- *   "id": "123",
- *   "sku": "MED-001",
- *   "nombre": "Paracetamol 500mg",
- *   "descripcion": "Analgésico y antipirético",
- *   "precio": 5000,
- *   "activo": true,
- *   "especificaciones": [...],
- *   "hojaTecnica": {
- *     "urlManual": "https://ejemplo.com/manual.pdf",
- *     "urlHojaInstalacion": "https://ejemplo.com/instalacion.pdf",
- *     "certificaciones": ["INVIMA", "FDA", "ISO 9001"]
- *   }
- * }
- *
- * TODO: Replace with real API call when backend is ready
- * Example:
- * ```
- * export const createProducto = async (producto: Omit<Producto, 'id'>): Promise<Producto> => {
- *   return apiClient.post<Producto>('/productos', producto);
- * };
- * ```
  */
 export const createProducto = async (
   producto: Omit<Producto, "id">
 ): Promise<Producto> => {
-  await new Promise((resolve) => setTimeout(resolve, 500));
+  const baseUrl = getApiBaseUrl();
+  const url = `${baseUrl}/productos/`;
 
-  // Mock response - Add to mock data for immediate visibility
-  const newProducto = {
-    id: String(Date.now()),
-    ...producto,
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(producto),
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  const responseData = await response.json();
+
+  // Convert id to string for frontend compatibility
+  return {
+    ...responseData,
+    id: String(responseData.id)
   };
-
-  // Add to mock data array (in real app, backend handles this)
-  MOCK_PRODUCTOS.push(newProducto);
-
-  return newProducto;
 };
 
 /**
@@ -269,17 +93,7 @@ export const updateProducto = async (
   id: string,
   producto: Partial<Producto>
 ): Promise<Producto> => {
-  await new Promise((resolve) => setTimeout(resolve, 500));
-
-  const existing = MOCK_PRODUCTOS.find((p) => p.id === id);
-  if (!existing) {
-    throw new Error("Producto not found");
-  }
-
-  return {
-    ...existing,
-    ...producto,
-  };
+  throw new Error("updateProducto not implemented - backend endpoint pending");
 };
 
 /**
@@ -294,15 +108,7 @@ export const updateProducto = async (
  * ```
  */
 export const deleteProducto = async (id: string): Promise<void> => {
-  await new Promise((resolve) => setTimeout(resolve, 500));
-
-  const index = MOCK_PRODUCTOS.findIndex((p) => p.id === id);
-  if (index === -1) {
-    throw new Error("Producto not found");
-  }
-
-  // In mock, we don't actually delete
-  console.log(`Producto ${id} would be deleted`);
+  throw new Error("deleteProducto not implemented - backend endpoint pending");
 };
 
 /**
