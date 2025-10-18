@@ -13,6 +13,7 @@ import {
 import { Pagination } from "@/components/ui/pagination";
 import { getInformesComerciales } from "@/services/informesComerciales.service";
 import { Plus } from "lucide-react";
+import { CreateInformeComercialForm } from "@/components/informeComercial/CreateInformeComercialForm";
 
 const ITEMS_PER_PAGE = 5;
 
@@ -120,13 +121,11 @@ export default function InformesComerciales() {
         </div>
       )}
 
-      {/* Create Informe Comercial Dialog - TODO: Implement form */}
-      {isCreateDialogOpen && (
-        <div>
-          {/* TODO: Add CreateInformeComercialForm component */}
-          <p>Create dialog placeholder - Form will be implemented next</p>
-        </div>
-      )}
+      {/* Create Informe Comercial Dialog */}
+      <CreateInformeComercialForm
+        open={isCreateDialogOpen}
+        onOpenChange={setIsCreateDialogOpen}
+      />
     </div>
   );
 }
