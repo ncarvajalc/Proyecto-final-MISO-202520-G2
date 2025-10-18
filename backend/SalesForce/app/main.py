@@ -6,6 +6,7 @@ from app.core.database import SessionLocal, engine, Base
 
 from app.modules.salespeople.routes import salespeople
 from app.modules.sales.routes import sales_plans_router
+from app.modules.reports.routes import router as informes_comerciales_router
 
 app = FastAPI()
 
@@ -38,3 +39,4 @@ def read_root():
 
 app.include_router(salespeople.router)
 app.include_router(sales_plans_router)
+app.include_router(informes_comerciales_router)
