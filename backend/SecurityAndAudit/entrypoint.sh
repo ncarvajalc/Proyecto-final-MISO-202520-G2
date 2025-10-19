@@ -1,20 +1,14 @@
 #!/bin/bash
-
-# Entrypoint script for SecurityAndAudit service
-# This script initializes the database and seeds it before starting the server
-
 set -e
 
 echo "=================================="
 echo "SecurityAndAudit Service Starting"
 echo "=================================="
-echo ""
 
-# Wait for database to be ready
+# Wait for database
 echo "Waiting for database to be ready..."
 python << END
-import sys
-import time
+import sys, time
 from sqlalchemy import create_engine, text
 from app.core.config import settings
 
@@ -49,8 +43,7 @@ echo ""
 echo "=================================="
 echo "Starting FastAPI server..."
 echo "=================================="
-echo ""
+echo "Using PORT=${PORT:-8080}"
 
-# Execute the main command (uvicorn server)
-exec "$@"
-
+# Reemplaza el CMD pasado por Cloud Run con el puerto dinámico
+exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080}
