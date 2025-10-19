@@ -1,59 +1,225 @@
-version: '3.9'
+version: "3.9"
+
+x-postgres-base: &postgres-base
+  image: postgres:18-alpine
+  restart: always
+  healthcheck:
+    test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+    interval: 5s
+    timeout: 5s
+    retries: 10
+
+x-http-health: &http-health
+  healthcheck:
+    test: ["CMD", "python", "-c", "import os,urllib.request; urllib.request.urlopen('http://localhost:'+os.getenv('PORT','8000')+'/health')"]
+    interval: 5s
+    timeout: 5s
+    retries: 5
+
+x-fastapi-base: &fastapi-base
+  <<: *http-health
+  command: sh -c "uvicorn app.main:app --host 0.0.0.0 --port $${PORT} --reload"
+
+x-backend-deps: &backend-deps
+  security_audit:
+    condition: service_healthy
+  purchases_suppliers:
+    condition: service_healthy
+  tracking:
+    condition: service_healthy
+  warehouse:
+    condition: service_healthy
+  salesforce:
+    condition: service_healthy
+
 services:
-  access-control-db:
-    image: postgres:latest
-    restart: always
+  security-audit-db:
+    <<: *postgres-base
     environment:
-      POSTGRES_USER: access_control_user
-      POSTGRES_PASSWORD: access_control_password
-      POSTGRES_DB: access_control_schema
+      POSTGRES_USER: security_audit_user
+      POSTGRES_PASSWORD: security_audit_password
+      POSTGRES_DB: security_audit_schema
     ports:
       - "5432:5432"
     volumes:
-      - access_control_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U access_control_user -d access_control_schema"]
-      interval: 4s
-      timeout: 2s
-      retries: 2
-    profiles:
-      - access
-      - todo
-      - backend
-  access_control:
-    build: ./backend/access_control
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+      - security_audit_data:/var/lib/postgresql/data
+    profiles: [access, todo, backend]
+    networks: [security_net]
+
+  security_audit:
+    <<: *fastapi-base
+    build:
+      context: ./backend/SecurityAndAudit
     volumes:
-      - app_user:/app/app
+      - ./backend/SecurityAndAudit/app:/app/app
     environment:
-      - DATABASE_URL=postgresql://access_control_user:access_control_password@access-control-db:5432/access_control_schema
-    ports:
-      - "8000:8000"
+      PORT: "8000"
+      DATABASE_URL: postgresql://security_audit_user:security_audit_password@security-audit-db:5432/security_audit_schema
     depends_on:
-      access-control-db:
+      security-audit-db:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    profiles:
-      - access
-      - todo
-      - backend
+    profiles: [access, todo, backend]
+    networks: [security_net]
+
+  purchases_suppliers-db:
+    <<: *postgres-base
+    environment:
+      POSTGRES_USER: purchases_suppliers_user
+      POSTGRES_PASSWORD: purchases_suppliers_password
+      POSTGRES_DB: purchases_suppliers_schema
+    ports:
+      - "5433:5432"
+    volumes:
+      - purchases_suppliers_data:/var/lib/postgresql/data
+    profiles: [todo, backend, purchases_suppliers]
+    networks: [purchases_net]
+
+  purchases_suppliers:
+    <<: *fastapi-base
+    build:
+      context: ./backend/PurchasesAndSuppliers
+    volumes:
+      - ./backend/PurchasesAndSuppliers/app:/app/app
+    environment:
+      PORT: "8001"
+      DATABASE_URL: postgresql://purchases_suppliers_user:purchases_suppliers_password@purchases_suppliers-db:5432/purchases_suppliers_schema
+    depends_on:
+      purchases_suppliers-db:
+        condition: service_healthy
+    profiles: [todo, backend, purchases_suppliers]
+    networks: [purchases_net]
+
+  tracking-db:
+    <<: *postgres-base
+    environment:
+      POSTGRES_USER: tracking_user
+      POSTGRES_PASSWORD: tracking_password
+      POSTGRES_DB: tracking_schema
+    ports:
+      - "5434:5432"
+    volumes:
+      - tracking_data:/var/lib/postgresql/data
+    profiles: [todo, backend, tracking]
+    networks: [tracking_net]
+
+  tracking:
+    <<: *fastapi-base
+    build:
+      context: ./backend/Tracking
+    volumes:
+      - ./backend/Tracking/app:/app/app
+    environment:
+      PORT: "8002"
+      DATABASE_URL: postgresql://tracking_user:tracking_password@tracking-db:5432/tracking_schema
+    depends_on:
+      tracking-db:
+        condition: service_healthy
+    profiles: [todo, backend, tracking]
+    networks: [tracking_net]
+
+  warehouse-db:
+    <<: *postgres-base
+    environment:
+      POSTGRES_USER: warehouse_user
+      POSTGRES_PASSWORD: warehouse_password
+      POSTGRES_DB: warehouse_schema
+    ports:
+      - "5435:5432"
+    volumes:
+      - warehouse_data:/var/lib/postgresql/data
+    profiles: [todo, backend, warehouse]
+    networks: [warehouse_net]
+
+  warehouse:
+    <<: *fastapi-base
+    build:
+      context: ./backend/Warehouse
+    volumes:
+      - ./backend/Warehouse/app:/app/app
+    environment:
+      PORT: "8003"
+      DATABASE_URL: postgresql://warehouse_user:warehouse_password@warehouse-db:5432/warehouse_schema
+    depends_on:
+      warehouse-db:
+        condition: service_healthy
+    profiles: [todo, backend, warehouse]
+    networks: [warehouse_net]
+
+  salesforce-db:
+    <<: *postgres-base
+    environment:
+      POSTGRES_USER: salesforce_user
+      POSTGRES_PASSWORD: salesforce_password
+      POSTGRES_DB: salesforce_schema
+    ports:
+      - "5436:5432"
+    volumes:
+      - salesforce_data:/var/lib/postgresql/data
+    profiles: [todo, backend, salesforce]
+    networks: [salesforce_net]
+
+  salesforce:
+    <<: *fastapi-base
+    build:
+      context: ./backend/SalesForce
+    volumes:
+      - ./backend/SalesForce/app:/app/app
+    environment:
+      PORT: "8004"
+      DATABASE_URL: postgresql://salesforce_user:salesforce_password@salesforce-db:5432/salesforce_schema
+    depends_on:
+      salesforce-db:
+        condition: service_healthy
+    profiles: [todo, backend, salesforce]
+    networks: [salesforce_net]
+
+  api_gateway:
+    <<: *http-health
+    build: ./api_gateway
+    ports:
+      - "8080:8080"
+    depends_on: *backend-deps
+    environment:
+      PORT: "8080"
+    profiles: [todo, backend, web]
+    networks:
+      - frontend_net
+      - security_net
+      - purchases_net
+      - tracking_net
+      - warehouse_net
+      - salesforce_net
+
   cliente_web:
     build: ./cliente_web
     command: pnpm run dev --host 0.0.0.0 --port 3000
+    volumes:
+      - ./cliente_web:/app
+      - /app/node_modules
     ports:
       - "3000:3000"
     environment:
-      - NODE_ENV=development
+      NODE_ENV: development
+      VITE_API_URL: http://api_gateway:8080
+      VITE_BASE: /
     depends_on:
-      - access_control
+      api_gateway:
+        condition: service_healthy
     restart: on-failure
-    profiles:
-      - todo
-      - web
+    profiles: [todo, web]
+    networks: [frontend_net]
+
 volumes:
-  access_control_data:
-  app_user:
+  security_audit_data:
+  purchases_suppliers_data:
+  tracking_data:
+  warehouse_data:
+  salesforce_data:
+
+networks:
+  frontend_net:
+  security_net:
+  purchases_net:
+  tracking_net:
+  warehouse_net:
+  salesforce_net:
