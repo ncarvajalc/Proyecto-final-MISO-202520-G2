@@ -16,6 +16,12 @@ export default defineConfig(({ mode }) => {
     },
   },
   base: env.VITE_BASE || "/Proyecto-final-MISO-202520-G2/",
+  server: {
+    allowedHosts: [
+      "cliente-web-212820187078.us-central1.run.app",
+      // puedes agregar otras URLs si fuera necesario
+    ],
+  },
   test: {
     globals: true,
     environment: "jsdom",
