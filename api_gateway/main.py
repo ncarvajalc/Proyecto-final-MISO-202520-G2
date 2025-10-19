@@ -8,17 +8,17 @@ from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 
 PREFIX_ROUTES: Dict[str, str] = {
-    "/auth": "http://security_audit:8000",
-    "/proveedores": "http://purchases_suppliers:8001",
-    "/productos": "http://purchases_suppliers:8001",
-    "/planes-venta": "http://salesforce:8004",
-    "/vendedores": "http://salesforce:8004",
+    "/auth": "https://security-audit-212820187078.us-central1.run.app",
+    "/proveedores": "https://purchases-suppliers-212820187078.us-central1.run.app",
+    "/productos": "https://purchases-suppliers-212820187078.us-central1.run.app",
+    "/planes-venta": "https://salesforce-212820187078.us-central1.run.app",
+    "/vendedores": "https://salesforce-212820187078.us-central1.run.app",
 }
 
 HEALTH_ENDPOINTS: Dict[str, str] = {
-    "security_audit": "http://security_audit:8000/health",
-    "purchases_suppliers": "http://purchases_suppliers:8001/health",
-    "salesforce": "http://salesforce:8004/health",
+    "security_audit": "https://security-audit-212820187078.us-central1.run.app/health",
+    "purchases_suppliers": "https://purchases-suppliers-212820187078.us-central1.run.app/health",
+    "salesforce": "https://salesforce-212820187078.us-central1.run.app/health",
 }
 
 SUPPORTED_METHODS = [
