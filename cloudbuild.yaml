@@ -11,7 +11,7 @@ substitutions:
   _VPC_CONNECTOR: "connector-1"
   _DB_NAME: "monorepo"
   _DB_USER: "postgres"
-  _DB_PASSWORD_SECRET: "postgres_password"  # Secret Manager name
+  _DB_PASSWORD_SECRET: "db-password"  # Secret Manager name
 
 images:
   - 'us-central1-docker.pkg.dev/${_PROJECT_ID}/${_ARTIFACT_REPO}/security-audit'
