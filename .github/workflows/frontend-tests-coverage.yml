@@ -1,0 +1,157 @@
+name: Frontend Tests with Coverage
+
+on:
+  push:
+    paths:
+      - "cliente_web/**"
+      - ".github/workflows/frontend-tests-coverage.yml"
+  pull_request:
+    paths:
+      - "cliente_web/**"
+      - ".github/workflows/frontend-tests-coverage.yml"
+
+jobs:
+  test-coverage:
+    name: Frontend Coverage (${{ matrix.test-type }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        test-type:
+          - unit
+          - functional
+          - integration
+          - acceptance
+    defaults:
+      run:
+        working-directory: cliente_web
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Prepare pnpm with Corepack
+        run: |
+          corepack enable
+          corepack prepare pnpm@9 --activate
+
+      - name: Setup Node.js with pnpm cache
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+          cache-dependency-path: cliente_web/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run ${{ matrix.test-type }} tests with coverage
+        continue-on-error: true
+        run: |
+          pnpm run test:${{ matrix.test-type }} --coverage || echo "Tests failed or not found"
+
+      - name: Generate coverage summary
+        if: always()
+        run: |
+          if [ -f coverage/coverage-summary.json ]; then
+            node -e "
+            const fs = require('fs');
+            const summary = JSON.parse(fs.readFileSync('coverage/coverage-summary.json', 'utf8'));
+            const total = summary.total;
+            const coveragePct = total.lines.pct || 0;
+            fs.writeFileSync('coverage-summary-${{ matrix.test-type }}.txt', coveragePct.toFixed(2));
+            console.log(\`Coverage: \${coveragePct.toFixed(2)}%\`);
+            "
+          else
+            echo "0.00" > coverage-summary-${{ matrix.test-type }}.txt
+            echo "No coverage data generated"
+          fi
+
+      - name: Rename coverage folder
+        if: always()
+        run: |
+          if [ -d coverage ]; then
+            mv coverage coverage-${{ matrix.test-type }}
+          fi
+
+      - name: Upload coverage artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-frontend-${{ matrix.test-type }}
+          path: |
+            cliente_web/coverage-${{ matrix.test-type }}
+            cliente_web/coverage-summary-${{ matrix.test-type }}.txt
+          if-no-files-found: ignore
+
+  test-e2e:
+    name: Frontend E2E Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      API_GATEWAY_URL: http://127.0.0.1:8080
+      WEB_BASE_URL: http://127.0.0.1:5173
+      VITE_API_URL: http://127.0.0.1:8080
+      VITE_BASE: /
+      E2E_ADMIN_EMAIL: admin@example.com
+      E2E_ADMIN_PASSWORD: admin123
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+          cache-dependency-path: cliente_web/pnpm-lock.yaml
+
+      - name: Install dependencies and build frontend
+        working-directory: cliente_web
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm exec playwright install --with-deps
+          pnpm run build
+
+      - name: Start backend services
+        run: docker compose --profile backend up -d --wait api_gateway
+
+      - name: Run E2E tests
+        working-directory: cliente_web
+        continue-on-error: true
+        env:
+          API_GATEWAY_URL: ${{ env.API_GATEWAY_URL }}
+          WEB_BASE_URL: ${{ env.WEB_BASE_URL }}
+        run: |
+          pnpm run preview --host 0.0.0.0 --port 5173 --strictPort &
+          FRONT_PID=$!
+          trap 'kill "$FRONT_PID" || true' EXIT
+          pnpm dlx wait-on \
+            http-get://127.0.0.1:5173 \
+            http-get://127.0.0.1:8080/health
+          pnpm run test:e2e || echo "E2E tests failed"
+
+      - name: Generate E2E summary
+        if: always()
+        working-directory: cliente_web
+        run: |
+          echo "N/A" > coverage-summary-e2e.txt
+
+      - name: Upload E2E artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-frontend-e2e
+          path: |
+            cliente_web/playwright-report
+            cliente_web/coverage-summary-e2e.txt
+          if-no-files-found: ignore
+
+      - name: Tear down services
+        if: always()
+        run: docker compose down --volumes

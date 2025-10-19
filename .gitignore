@@ -9,3 +9,18 @@ venv/
 
 # Test coverage
 cliente_web/coverage/
+# Coverage reports and artifacts
+coverage/
+.coverage
+htmlcov/
+*.coverage
+coverage-artifacts/
+*.log
+test-results/
+playwright-report/
+.nyc_output/
+
+# Keep generated coverage reports in repo
+!coverage_reports/
+!coverage_reports/*.md
+!coverage_reports/*.json
