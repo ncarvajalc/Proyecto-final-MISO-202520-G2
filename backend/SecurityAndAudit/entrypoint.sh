@@ -4,20 +4,29 @@ set -e
 echo "=================================="
 echo "SecurityAndAudit Service Starting"
 echo "=================================="
+echo ""
 
-# Wait for database
+# Revisar que DATABASE_URL esté configurada
+if [ -z "$DATABASE_URL" ]; then
+    echo "ERROR: La variable DATABASE_URL no está configurada"
+    exit 1
+fi
+
+# Esperar a que la base de datos esté lista
 echo "Waiting for database to be ready..."
 python << END
-import sys, time
+import sys
+import time
 from sqlalchemy import create_engine, text
-from app.core.config import settings
+import os
 
+DATABASE_URL = os.getenv("DATABASE_URL")
 max_retries = 30
 retry_interval = 2
 
 for i in range(max_retries):
     try:
-        engine = create_engine(settings.DATABASE_URL)
+        engine = create_engine(DATABASE_URL)
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
         print("Database is ready!")
@@ -43,7 +52,7 @@ echo ""
 echo "=================================="
 echo "Starting FastAPI server..."
 echo "=================================="
-echo "Using PORT=${PORT:-8080}"
+echo ""
 
-# Reemplaza el CMD pasado por Cloud Run con el puerto dinámico
-exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080}
+# Ejecutar el comando principal (uvicorn)
+exec "$@"
