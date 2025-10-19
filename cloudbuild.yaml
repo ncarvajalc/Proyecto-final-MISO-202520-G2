@@ -10,6 +10,8 @@ substitutions:
   _CLOUDSQL_INSTANCE: "the-respect-435301-u2:us-central1:monorepo-db"
   _VPC_CONNECTOR: "connector-1"
   _DB_NAME: "monorepo"
+  _DB_USER: "postgres"
+  _DB_PASSWORD_SECRET: "postgres_password"  # Secret Manager name
 
 images:
   - 'us-central1-docker.pkg.dev/${_PROJECT_ID}/${_ARTIFACT_REPO}/security-audit'
@@ -24,53 +26,51 @@ steps:
 # ================================================
 # Construcción y push de cada microservicio
 # ================================================
-
-# --- SECURITY AUDIT ---
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '-t', 'us-central1-docker.pkg.dev/${_PROJECT_ID}/${_ARTIFACT_REPO}/security-audit:$SHORT_SHA', './backend/SecurityAndAudit']
 - name: 'gcr.io/cloud-builders/docker'
   args: ['push', 'us-central1-docker.pkg.dev/${_PROJECT_ID}/${_ARTIFACT_REPO}/security-audit:$SHORT_SHA']
 
-# --- PURCHASES SUPPLIERS ---
+# --- Repetir build/push para los demás servicios ---
+# Purchases-suppliers
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '-t', 'us-central1-docker.pkg.dev/${_PROJECT_ID}/${_ARTIFACT_REPO}/purchases-suppliers:$SHORT_SHA', './backend/PurchasesAndSuppliers']
 - name: 'gcr.io/cloud-builders/docker'
   args: ['push', 'us-central1-docker.pkg.dev/${_PROJECT_ID}/${_ARTIFACT_REPO}/purchases-suppliers:$SHORT_SHA']
 
-# --- TRACKING ---
+# Tracking
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '-t', 'us-central1-docker.pkg.dev/${_PROJECT_ID}/${_ARTIFACT_REPO}/tracking:$SHORT_SHA', './backend/Tracking']
 - name: 'gcr.io/cloud-builders/docker'
   args: ['push', 'us-central1-docker.pkg.dev/${_PROJECT_ID}/${_ARTIFACT_REPO}/tracking:$SHORT_SHA']
 
-# --- WAREHOUSE ---
+# Warehouse
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '-t', 'us-central1-docker.pkg.dev/${_PROJECT_ID}/${_ARTIFACT_REPO}/warehouse:$SHORT_SHA', './backend/Warehouse']
 - name: 'gcr.io/cloud-builders/docker'
   args: ['push', 'us-central1-docker.pkg.dev/${_PROJECT_ID}/${_ARTIFACT_REPO}/warehouse:$SHORT_SHA']
 
-# --- SALESFORCE ---
+# Salesforce
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '-t', 'us-central1-docker.pkg.dev/${_PROJECT_ID}/${_ARTIFACT_REPO}/salesforce:$SHORT_SHA', './backend/SalesForce']
 - name: 'gcr.io/cloud-builders/docker'
   args: ['push', 'us-central1-docker.pkg.dev/${_PROJECT_ID}/${_ARTIFACT_REPO}/salesforce:$SHORT_SHA']
 
-# --- API GATEWAY ---
+# API Gateway
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '-t', 'us-central1-docker.pkg.dev/${_PROJECT_ID}/${_ARTIFACT_REPO}/api-gateway:$SHORT_SHA', './api_gateway']
 - name: 'gcr.io/cloud-builders/docker'
   args: ['push', 'us-central1-docker.pkg.dev/${_PROJECT_ID}/${_ARTIFACT_REPO}/api-gateway:$SHORT_SHA']
 
-# --- CLIENTE WEB ---
+# Cliente Web
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '-t', 'us-central1-docker.pkg.dev/${_PROJECT_ID}/${_ARTIFACT_REPO}/cliente-web:$SHORT_SHA', './cliente_web']
 - name: 'gcr.io/cloud-builders/docker'
   args: ['push', 'us-central1-docker.pkg.dev/${_PROJECT_ID}/${_ARTIFACT_REPO}/cliente-web:$SHORT_SHA']
 
 # ================================================
-# Deploy en Cloud Run
+# Deploy en Cloud Run con DATABASE_URL y secret
 # ================================================
-
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
   entrypoint: bash
   args:
@@ -85,7 +85,7 @@ steps:
           --allow-unauthenticated \
           --add-cloudsql-instances ${_CLOUDSQL_INSTANCE} \
           --vpc-connector ${_VPC_CONNECTOR} \
-          --set-env-vars DB_NAME=${_DB_NAME} \
-          --set-secrets DB_PASSWORD=db-password:latest \
+          --set-secrets DB_PASSWORD=${_DB_PASSWORD_SECRET}:latest \
+          --set-env-vars DB_USER=${_DB_USER},DB_NAME=${_DB_NAME},DATABASE_URL="postgresql+psycopg2://${_DB_USER}:$(gcloud secrets versions access latest --secret=${_DB_PASSWORD_SECRET})@/monorepo?host=/cloudsql/${_CLOUDSQL_INSTANCE}" \
           --memory=512Mi --cpu=1 --min-instances=0 --max-instances=3
       done
