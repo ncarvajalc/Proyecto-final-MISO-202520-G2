@@ -3,3 +3,11 @@
 venv/
 *.pyc
 *.db
+
+# Coverage reports
+htmlcov/
+.coverage
+coverage.lcov
+coverage_*.lcov
+*.coverage
+.pytest_cache/

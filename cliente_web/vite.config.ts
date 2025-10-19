@@ -1,44 +1,52 @@
-import path from "path"
-import tailwindcss from "@tailwindcss/vite"
-import react from "@vitejs/plugin-react"
-import { defineConfig, loadEnv } from "vite"
-
+import path from "path";
+import tailwindcss from "@tailwindcss/vite";
+import react from "@vitejs/plugin-react";
+import { defineConfig, loadEnv } from "vite";
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd())
+  const env = loadEnv(mode, process.cwd());
 
   return {
-  plugins: [react(), tailwindcss()],
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
+    plugins: [react(), tailwindcss()],
+    resolve: {
+      alias: {
+        "@": path.resolve(__dirname, "./src"),
+      },
     },
-  },
-  base: env.VITE_BASE || "/Proyecto-final-MISO-202520-G2/",
-  test: {
-    globals: true,
-    environment: "jsdom",
-    setupFiles: "./src/tests/setupTests.ts",
-    coverage: {
-      provider: "v8",
-      reporter: ["text", "lcov"],
-      lines: 85,
-      branches: 85,
-      functions: 85,
-      statements: 85,
+    base: env.VITE_BASE || "/Proyecto-final-MISO-202520-G2/",
+    test: {
+      globals: true,
+      environment: "jsdom",
+      setupFiles: "./src/tests/setupTests.ts",
+      coverage: {
+        provider: "v8",
+        reporter: ["text", "lcov", "html"],
+        lines: 85,
+        branches: 85,
+        functions: 85,
+        statements: 85,
+        include: [
+          // Services
+          "src/services/productos.service.ts",
+          "src/services/vendedores.service.ts",
+          "src/services/proveedores.service.ts",
+          "src/services/planesVenta.service.ts",
+          // Components
+          "src/components/vendedor/AsignacionesModal.tsx",
+          "src/components/vendedor/CreateVendedorForm.tsx",
+          "src/components/proveedor/CreateProveedorForm.tsx",
+          "src/components/proveedor/BulkUploadProveedoresForm.tsx",
+          "src/components/producto/CreateProductoForm.tsx",
+          "src/components/planVenta/CreatePlanVentaForm.tsx",
+        ],
+      },
       include: [
-        "src/components/proveedor/CreateProveedorForm.tsx",
-        "src/services/proveedores.service.ts",
-        "src/services/planesVenta.service.ts",
+        "src/**/*.unit.test.{ts,tsx}",
+        "src/**/*.functional.test.{ts,tsx}",
+        "src/**/*.integration.test.{ts,tsx}",
+        "src/**/*.acceptance.test.{ts,tsx}",
       ],
     },
-    include: [
-      "src/**/*.unit.test.{ts,tsx}",
-      "src/**/*.functional.test.{ts,tsx}",
-      "src/**/*.integration.test.{ts,tsx}",
-      "src/**/*.acceptance.test.{ts,tsx}",
-    ],
-  },
-  }
-})
+  };
+});

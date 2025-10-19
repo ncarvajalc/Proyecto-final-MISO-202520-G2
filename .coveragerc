@@ -1,0 +1,66 @@
+[run]
+source = backend
+omit =
+    */tests/*
+    */test_*.py
+    */__pycache__/*
+    */venv/*
+    */tmp/*
+    */migrations/*
+    */__init__.py
+    */conftest.py
+    */main.py
+    */core/config.py
+    */core/database.py
+    */core/encryption.py
+    */core/pagination.py
+    */core/init_db.py
+    */core/seed_db.py
+    */routes/routes_example.py
+    backend/test_client.py
+    backend/tests/*
+
+[report]
+precision = 2
+skip_empty = True
+show_missing = True
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise AssertionError
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    if TYPE_CHECKING:
+    @abstractmethod
+
+# Include only tested modules
+include =
+    # PurchasesAndSuppliers - Products
+    backend/PurchasesAndSuppliers/app/modules/products/crud/*
+    backend/PurchasesAndSuppliers/app/modules/products/models/*
+    backend/PurchasesAndSuppliers/app/modules/products/routes/*
+    backend/PurchasesAndSuppliers/app/modules/products/schemas/*
+    backend/PurchasesAndSuppliers/app/modules/products/services/*
+    # PurchasesAndSuppliers - Suppliers
+    backend/PurchasesAndSuppliers/app/modules/suppliers/models/*
+    backend/PurchasesAndSuppliers/app/modules/suppliers/routes/bulk_upload.py
+    backend/PurchasesAndSuppliers/app/modules/suppliers/routes/registration.py
+    backend/PurchasesAndSuppliers/app/modules/suppliers/services/*
+    # SalesForce - Sales Plans
+    backend/SalesForce/app/modules/sales/crud/sales_plan.py
+    backend/SalesForce/app/modules/sales/routes/sales_plans.py
+    backend/SalesForce/app/modules/sales/schemas/sales_plan.py
+    backend/SalesForce/app/modules/sales/services/sales_plan_service.py
+    # SalesForce - Salespeople
+    backend/SalesForce/app/modules/salespeople/crud/*
+    backend/SalesForce/app/modules/salespeople/models/*
+    backend/SalesForce/app/modules/salespeople/routes/*
+    backend/SalesForce/app/modules/salespeople/schemas/*
+    backend/SalesForce/app/modules/salespeople/services/*
+
+[html]
+directory = htmlcov
+
+[lcov]
+output = coverage.lcov
+
