@@ -1,6 +1,6 @@
 # Gráficas del proyecto no generadas por Jira - Proyecto Final MISO 202520 G2
 
-**Última actualización:** 2025-10-21 02:13:10 UTC
+**Última actualización:** 2025-10-21 02:15:19 UTC
 
 ## Resumen de métricas del proyecto
 
@@ -77,6 +77,9 @@ Puntos de historia restantes al inicio de cada sprint vs burndown ideal.
 - **ASR-005** - 2025-10-16
 - **HUP-003** - 2025-10-18
 - **HUP-004** - 2025-10-18
+
+### Semana 3
+
 - **HUP-008** - 2025-10-20
 
 
