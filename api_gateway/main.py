@@ -1,4 +1,5 @@
 """Simple FastAPI-based API gateway for routing frontend traffic."""
+
 from __future__ import annotations
 
 from typing import Dict, Optional, Tuple
@@ -8,11 +9,12 @@ from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 
 PREFIX_ROUTES: Dict[str, str] = {
-    "/auth": "https://security-audit-212820187078.us-central1.run.app",
-    "/proveedores": "https://purchases-suppliers-212820187078.us-central1.run.app",
-    "/productos": "https://purchases-suppliers-212820187078.us-central1.run.app",
-    "/planes-venta": "https://salesforce-212820187078.us-central1.run.app",
-    "/vendedores": "https://salesforce-212820187078.us-central1.run.app",
+    "/auth": "http://security_audit:8000",
+    "/proveedores": "http://purchases_suppliers:8001",
+    "/productos": "http://purchases_suppliers:8001",
+    "/planes-venta": "http://salesforce:8004",
+    "/vendedores": "http://salesforce:8004",
+    "/informes-comerciales": "http://salesforce:8004",
 }
 
 HEALTH_ENDPOINTS: Dict[str, str] = {
@@ -107,11 +109,17 @@ async def proxy(full_path: str, request: Request) -> Response:
     """Proxy any request matching the configured prefixes to the upstream service."""
     resolved = _resolve_upstream(f"/{full_path}")
     if resolved is None:
-        raise HTTPException(status_code=404, detail="No upstream service configured for path")
+        raise HTTPException(
+            status_code=404, detail="No upstream service configured for path"
+        )
 
     prefix, upstream = resolved
     prefix_without_leading = prefix[1:] if prefix.startswith("/") else prefix
-    suffix = full_path[len(prefix_without_leading) :] if prefix_without_leading else full_path
+    suffix = (
+        full_path[len(prefix_without_leading) :]
+        if prefix_without_leading
+        else full_path
+    )
     suffix = suffix or ""
     if suffix and not suffix.startswith("/"):
         suffix = f"/{suffix}"
@@ -138,7 +146,9 @@ async def proxy(full_path: str, request: Request) -> Response:
             headers=headers,
         )
     except httpx.RequestError as exc:  # pragma: no cover - network failure path
-        raise HTTPException(status_code=502, detail=f"Upstream request failed: {exc}") from exc
+        raise HTTPException(
+            status_code=502, detail=f"Upstream request failed: {exc}"
+        ) from exc
 
     excluded_headers = {
         "content-length",
