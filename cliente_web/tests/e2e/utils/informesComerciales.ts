@@ -1,9 +1,12 @@
 import type { Page, Response } from "@playwright/test";
 import { faker } from "@faker-js/faker";
 
-export const ADMIN_EMAIL = "admin@example.com";
-export const ADMIN_PASSWORD = "admin123";
-export const API_GATEWAY_URL = "http://localhost:8080";
+export const ADMIN_EMAIL =
+  process.env.E2E_ADMIN_EMAIL ?? "admin@example.com";
+export const ADMIN_PASSWORD =
+  process.env.E2E_ADMIN_PASSWORD ?? "admin123";
+export const API_GATEWAY_URL =
+  process.env.API_GATEWAY_URL ?? "http://localhost:8080";
 
 export interface InformeComercialPayload {
   nombre: string;

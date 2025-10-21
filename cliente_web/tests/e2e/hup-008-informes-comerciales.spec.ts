@@ -45,7 +45,6 @@ const openCreateDialog = async (page: Page) => {
 test.describe.serial("HUP-008 Generación de informes comerciales", () => {
   let adminToken: string;
   let storagePayload: { user: unknown; permissions: string[] };
-  const authMocks: { dispose: () => Promise<void> }[] = [];
 
   test.beforeAll(async () => {
     const auth = await loginAsAdmin();
@@ -57,7 +56,7 @@ test.describe.serial("HUP-008 Generación de informes comerciales", () => {
     const shouldMockAuth = !testInfo.title.includes("redirige");
 
     if (shouldMockAuth) {
-      const authMock = await interceptAuthBootstrap(page, {
+      await interceptAuthBootstrap(page, {
         token: adminToken,
         permissions: storagePayload.permissions ?? [],
         profile: {
@@ -66,7 +65,6 @@ test.describe.serial("HUP-008 Generación de informes comerciales", () => {
           email: ADMIN_EMAIL,
         },
       });
-      authMocks.push(authMock);
     }
 
     if (
@@ -83,15 +81,6 @@ test.describe.serial("HUP-008 Generación de informes comerciales", () => {
       },
       [adminToken, storagePayload]
     );
-  });
-
-  test.afterEach(async () => {
-    while (authMocks.length > 0) {
-      const mock = authMocks.pop();
-      if (mock) {
-        await mock.dispose();
-      }
-    }
   });
 
   test("Autenticación y navegación hacia Informes comerciales", async ({
