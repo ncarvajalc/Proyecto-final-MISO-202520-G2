@@ -11,7 +11,8 @@
     "test": "jest",
     "test:unit": "jest --selectProjects unit",
     "test:integration": "jest --selectProjects integration",
-    "test:functional": "jest --selectProjects functional"
+    "test:functional": "jest --selectProjects functional",
+    "test:e2e": "jest --selectProjects e2e"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",

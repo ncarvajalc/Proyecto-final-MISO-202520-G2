@@ -19,7 +19,6 @@ export const institutionalClientService = {
       url += `&search=${encodeURIComponent(search)}`;
     }
 
-    console.log("Fetching institutional clients from:", url);
     const response = await fetch(url);
 
     if (!response.ok) {
@@ -32,7 +31,6 @@ export const institutionalClientService = {
   async getInstitutionalClient(id: string): Promise<InstitutionalClient> {
     const apiBaseUrl = getApiBaseUrl();
     const url = `${apiBaseUrl}/institutional-clients/${id}`;
-    console.log("Fetching institutional client from:", url);
     const response = await fetch(url);
 
     if (!response.ok) {
@@ -47,7 +45,6 @@ export const institutionalClientService = {
   ): Promise<InstitutionalClient> {
     const apiBaseUrl = getApiBaseUrl();
     const url = `${apiBaseUrl}/institutional-clients/`;
-    console.log("Creating institutional client at:", url);
     const response = await fetch(url, {
       method: "POST",
       headers: {
@@ -70,7 +67,6 @@ export const institutionalClientService = {
   ): Promise<InstitutionalClient> {
     const apiBaseUrl = getApiBaseUrl();
     const url = `${apiBaseUrl}/institutional-clients/${id}`;
-    console.log("Updating institutional client at:", url);
     const response = await fetch(url, {
       method: "PUT",
       headers: {
@@ -90,7 +86,6 @@ export const institutionalClientService = {
   async deleteInstitutionalClient(id: string): Promise<void> {
     const apiBaseUrl = getApiBaseUrl();
     const url = `${apiBaseUrl}/institutional-clients/${id}`;
-    console.log("Deleting institutional client at:", url);
     const response = await fetch(url, {
       method: "DELETE",
     });
