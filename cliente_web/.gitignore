@@ -26,3 +26,5 @@ tests/e2e/.playwright/
 *.njsproj
 *.sln
 *.sw?
+
+**/coverage/
