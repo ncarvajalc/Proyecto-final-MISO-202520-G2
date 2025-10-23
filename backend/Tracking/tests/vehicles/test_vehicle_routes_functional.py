@@ -15,7 +15,7 @@ def test_create_vehicle_endpoint_success(client, fake: Faker):
         "numero_entregas": fake.random_int(min=0, max=20),
     }
 
-    response = client.post("/vehiculos/", json=payload)
+    response = client.post("/vehiculos", json=payload)
 
     assert response.status_code == 201
     data = response.json()
@@ -38,11 +38,11 @@ def test_create_vehicle_endpoint_rejects_duplicate_placa(client, fake: Faker):
     }
 
     # Create first vehicle
-    response = client.post("/vehiculos/", json=payload)
+    response = client.post("/vehiculos", json=payload)
     assert response.status_code == 201
 
     # Try to create duplicate
-    response = client.post("/vehiculos/", json=payload)
+    response = client.post("/vehiculos", json=payload)
     assert response.status_code == 409
     assert f"Vehicle with placa '{placa}' already exists" in response.json()["detail"]
 
@@ -54,7 +54,7 @@ def test_create_vehicle_endpoint_validates_required_fields(client):
         "conductor": "Test Driver",
         "numero_entregas": 0,
     }
-    response = client.post("/vehiculos/", json=payload)
+    response = client.post("/vehiculos", json=payload)
     assert response.status_code == 422  # Unprocessable Entity
 
     # Missing conductor
@@ -62,7 +62,7 @@ def test_create_vehicle_endpoint_validates_required_fields(client):
         "placa": "ABC-123",
         "numero_entregas": 0,
     }
-    response = client.post("/vehiculos/", json=payload)
+    response = client.post("/vehiculos", json=payload)
     assert response.status_code == 422
 
 
@@ -74,14 +74,14 @@ def test_create_vehicle_endpoint_validates_numero_entregas(client, fake: Faker):
         "numero_entregas": -1,  # Invalid: negative
     }
 
-    response = client.post("/vehiculos/", json=payload)
+    response = client.post("/vehiculos", json=payload)
     assert response.status_code == 422
 
 
 def test_list_vehicles_endpoint_returns_paginated_payload(client, fake: Faker):
     """Test GET /vehiculos returns paginated list."""
     # Get baseline
-    baseline = client.get("/vehiculos/", params={"page": 1, "limit": 1}).json()["total"]
+    baseline = client.get("/vehiculos", params={"page": 1, "limit": 1}).json()["total"]
 
     # Create 3 vehicles
     for _ in range(3):
@@ -90,11 +90,11 @@ def test_list_vehicles_endpoint_returns_paginated_payload(client, fake: Faker):
             "conductor": fake.name(),
             "numero_entregas": fake.random_int(min=0, max=20),
         }
-        create_response = client.post("/vehiculos/", json=payload)
+        create_response = client.post("/vehiculos", json=payload)
         assert create_response.status_code == 201
 
     # Test pagination
-    response = client.get("/vehiculos/", params={"page": 1, "limit": 2})
+    response = client.get("/vehiculos", params={"page": 1, "limit": 2})
     assert response.status_code == 200
 
     payload = response.json()
@@ -120,22 +120,22 @@ def test_list_vehicles_endpoint_returns_paginated_payload(client, fake: Faker):
 def test_list_vehicles_endpoint_validates_query_params(client):
     """Test GET /vehiculos validates query parameters."""
     # Invalid page (0)
-    response = client.get("/vehiculos/", params={"page": 0, "limit": 10})
+    response = client.get("/vehiculos", params={"page": 0, "limit": 10})
     assert response.status_code == 400
     assert response.json()["detail"] == "page and limit must be greater than zero"
 
     # Invalid limit (0)
-    response = client.get("/vehiculos/", params={"page": 1, "limit": 0})
+    response = client.get("/vehiculos", params={"page": 1, "limit": 0})
     assert response.status_code == 400
 
     # Negative page
-    response = client.get("/vehiculos/", params={"page": -1, "limit": 10})
+    response = client.get("/vehiculos", params={"page": -1, "limit": 10})
     assert response.status_code == 400
 
 
 def test_list_vehicles_endpoint_uses_default_pagination(client):
     """Test GET /vehiculos uses default pagination when params not provided."""
-    response = client.get("/vehiculos/")
+    response = client.get("/vehiculos")
     assert response.status_code == 200
 
     payload = response.json()
@@ -148,7 +148,7 @@ def test_list_vehicles_endpoint_uses_default_pagination(client):
 
 def test_list_vehicles_endpoint_handles_empty_results(client):
     """Test GET /vehiculos handles empty database correctly."""
-    response = client.get("/vehiculos/", params={"page": 1, "limit": 10})
+    response = client.get("/vehiculos", params={"page": 1, "limit": 10})
     assert response.status_code == 200
 
     payload = response.json()
@@ -167,21 +167,21 @@ def test_list_vehicles_endpoint_returns_correct_page(client, fake: Faker):
             "conductor": fake.name(),
             "numero_entregas": fake.random_int(min=0, max=20),
         }
-        response = client.post("/vehiculos/", json=payload)
+        response = client.post("/vehiculos", json=payload)
         created_vehicles.append(response.json())
 
     # Get first page (2 items)
-    response = client.get("/vehiculos/", params={"page": 1, "limit": 2})
+    response = client.get("/vehiculos", params={"page": 1, "limit": 2})
     first_page = response.json()
     assert len(first_page["data"]) == 2
 
     # Get second page (2 items)
-    response = client.get("/vehiculos/", params={"page": 2, "limit": 2})
+    response = client.get("/vehiculos", params={"page": 2, "limit": 2})
     second_page = response.json()
     assert len(second_page["data"]) == 2
 
     # Get third page (1 item)
-    response = client.get("/vehiculos/", params={"page": 3, "limit": 2})
+    response = client.get("/vehiculos", params={"page": 3, "limit": 2})
     third_page = response.json()
     assert len(third_page["data"]) == 1
 

@@ -25,7 +25,7 @@ def test_vehicle_creation_end_to_end(client, db_session, fake: Faker):
         "numero_entregas": fake.random_int(min=0, max=20),
     }
 
-    create_response = client.post("/vehiculos/", json=vehicle_payload)
+    create_response = client.post("/vehiculos", json=vehicle_payload)
     assert create_response.status_code == 201
     created_vehicle = create_response.json()
     vehicle_id = created_vehicle["id"]
@@ -46,7 +46,7 @@ def test_vehicle_creation_end_to_end(client, db_session, fake: Faker):
     assert stored_vehicle.numero_entregas == vehicle_payload["numero_entregas"]
 
     # Step 4: Verify vehicle appears in list
-    list_response = client.get("/vehiculos/", params={"page": 1, "limit": 10})
+    list_response = client.get("/vehiculos", params={"page": 1, "limit": 10})
     assert list_response.status_code == 200
 
     paginated = list_response.json()
@@ -68,7 +68,7 @@ def test_vehicle_creation_end_to_end(client, db_session, fake: Faker):
     assert vehicle_in_list["numeroEntregas"] == vehicle_payload["numero_entregas"]
 
     # Step 5: Verify duplicate prevention
-    duplicate_response = client.post("/vehiculos/", json=vehicle_payload)
+    duplicate_response = client.post("/vehiculos", json=vehicle_payload)
     assert duplicate_response.status_code == 409
     assert (
         f"Vehicle with placa '{vehicle_payload['placa']}' already exists"
@@ -94,12 +94,12 @@ def test_vehicle_pagination_end_to_end(client, db_session, fake: Faker):
             "conductor": fake.name(),
             "numero_entregas": fake.random_int(min=0, max=20),
         }
-        response = client.post("/vehiculos/", json=payload)
+        response = client.post("/vehiculos", json=payload)
         assert response.status_code == 201
         created_placas.append(payload["placa"])
 
     # Step 2: Retrieve first page (3 items)
-    page1_response = client.get("/vehiculos/", params={"page": 1, "limit": 3})
+    page1_response = client.get("/vehiculos", params={"page": 1, "limit": 3})
     assert page1_response.status_code == 200
     page1 = page1_response.json()
 
@@ -110,7 +110,7 @@ def test_vehicle_pagination_end_to_end(client, db_session, fake: Faker):
     assert len(page1["data"]) == 3
 
     # Step 3: Retrieve second page (3 items)
-    page2_response = client.get("/vehiculos/", params={"page": 2, "limit": 3})
+    page2_response = client.get("/vehiculos", params={"page": 2, "limit": 3})
     assert page2_response.status_code == 200
     page2 = page2_response.json()
 
@@ -119,7 +119,7 @@ def test_vehicle_pagination_end_to_end(client, db_session, fake: Faker):
     assert len(page2["data"]) == 3
 
     # Step 4: Retrieve third page (1 item)
-    page3_response = client.get("/vehiculos/", params={"page": 3, "limit": 3})
+    page3_response = client.get("/vehiculos", params={"page": 3, "limit": 3})
     assert page3_response.status_code == 200
     page3 = page3_response.json()
 
@@ -158,7 +158,7 @@ def test_vehicle_validation_end_to_end(client, fake: Faker):
         "conductor": fake.name(),
         "numero_entregas": 5,
     }
-    response = client.post("/vehiculos/", json=payload)
+    response = client.post("/vehiculos", json=payload)
     assert response.status_code == 422
 
     # Test 2: Missing conductor
@@ -166,7 +166,7 @@ def test_vehicle_validation_end_to_end(client, fake: Faker):
         "placa": fake.unique.bothify(text="???-###"),
         "numero_entregas": 5,
     }
-    response = client.post("/vehiculos/", json=payload)
+    response = client.post("/vehiculos", json=payload)
     assert response.status_code == 422
 
     # Test 3: Negative numero_entregas
@@ -175,7 +175,7 @@ def test_vehicle_validation_end_to_end(client, fake: Faker):
         "conductor": fake.name(),
         "numero_entregas": -1,
     }
-    response = client.post("/vehiculos/", json=payload)
+    response = client.post("/vehiculos", json=payload)
     assert response.status_code == 422
 
     # Test 4: Invalid placa (too long)
@@ -184,7 +184,7 @@ def test_vehicle_validation_end_to_end(client, fake: Faker):
         "conductor": fake.name(),
         "numero_entregas": 5,
     }
-    response = client.post("/vehiculos/", json=payload)
+    response = client.post("/vehiculos", json=payload)
     assert response.status_code == 422
 
     # Test 5: Valid vehicle should succeed
@@ -193,7 +193,7 @@ def test_vehicle_validation_end_to_end(client, fake: Faker):
         "conductor": fake.name(),
         "numero_entregas": 0,
     }
-    response = client.post("/vehiculos/", json=payload)
+    response = client.post("/vehiculos", json=payload)
     assert response.status_code == 201
 
 
