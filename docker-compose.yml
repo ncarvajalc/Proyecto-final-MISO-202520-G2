@@ -139,6 +139,8 @@ services:
     environment:
       PORT: "8003"
       DATABASE_URL: postgresql://warehouse_user:warehouse_password@warehouse-db:5432/warehouse_schema
+    ports:
+      - "8003:8003"  
     depends_on:
       warehouse-db:
         condition: service_healthy
@@ -200,7 +202,7 @@ services:
       - "3000:3000"
     environment:
       NODE_ENV: development
-      VITE_API_URL: http://api_gateway:8080
+      VITE_API_URL: http://localhost:8080
       VITE_BASE: /
     depends_on:
       api_gateway:
