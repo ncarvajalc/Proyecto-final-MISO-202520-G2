@@ -7,6 +7,7 @@ from app.core.database import Base, engine
 
 # Import all models to register them with SQLAlchemy metadata
 from app.modules.vehicles.models import Vehicle  # noqa: F401
+from app.modules.haul_route.models import Route, RouteStop  # noqa: F401
 
 
 def init_db():

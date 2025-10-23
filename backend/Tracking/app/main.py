@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.database import SessionLocal
 from app.modules.vehicles.routes import router as vehicles_router
+from app.modules.haul_route.routes import routes_router, route_stops_router
 
 app = FastAPI(
     title="Tracking Service",
@@ -22,6 +23,8 @@ app.add_middleware(
 
 # Include routers
 app.include_router(vehicles_router)
+app.include_router(routes_router)
+app.include_router(route_stops_router)
 
 
 @app.get("/health", tags=["health"])
