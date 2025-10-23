@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import Dict, Optional, Tuple
 
 import httpx
@@ -38,6 +39,8 @@ SUPPORTED_METHODS = [
     "HEAD",
 ]
 
+HEALTHCHECK_TIMEOUT = httpx.Timeout(timeout=4.0, connect=2.0, read=2.0)
+
 app = FastAPI(title="MISO API Gateway")
 app.add_middleware(
     CORSMiddleware,
@@ -65,35 +68,52 @@ async def root() -> Dict[str, str]:
     return {"message": "API Gateway running"}
 
 
+async def _fetch_health(
+    name: str, url: str, client: httpx.AsyncClient
+) -> Tuple[str, Dict[str, object], bool]:
+    """Retrieve the health information for a remote service."""
+
+    try:
+        response = await client.get(url, timeout=HEALTHCHECK_TIMEOUT)
+        try:
+            payload: object = response.json()
+        except ValueError:
+            payload = response.text
+
+        healthy = response.status_code < 400
+        return (
+            name,
+            {
+                "status": "ok" if healthy else "error",
+                "http_status": response.status_code,
+                "detail": payload,
+            },
+            healthy,
+        )
+    except httpx.RequestError as exc:  # pragma: no cover - network failure path
+        return (
+            name,
+            {
+                "status": "unreachable",
+                "error": str(exc),
+            },
+            False,
+        )
+
+
 @app.get("/health")
 async def healthcheck() -> Dict[str, object]:
     """Aggregate the health of upstream services."""
     client: httpx.AsyncClient = app.state.client
-    services: Dict[str, Dict[str, object]] = {}
-    all_ok = True
 
-    for name, url in HEALTH_ENDPOINTS.items():
-        try:
-            response = await client.get(url)
-            payload: object
-            try:
-                payload = response.json()
-            except ValueError:
-                payload = response.text
+    results = await asyncio.gather(
+        *(_fetch_health(name, url, client) for name, url in HEALTH_ENDPOINTS.items())
+    )
 
-            healthy = response.status_code < 400
-            services[name] = {
-                "status": "ok" if healthy else "error",
-                "http_status": response.status_code,
-                "detail": payload,
-            }
-            all_ok = all_ok and healthy
-        except httpx.RequestError as exc:  # pragma: no cover - network failure path
-            services[name] = {
-                "status": "unreachable",
-                "error": str(exc),
-            }
-            all_ok = False
+    services: Dict[str, Dict[str, object]] = {
+        name: service for name, service, _ in results
+    }
+    all_ok = all(healthy for _, _, healthy in results)
 
     return {"status": "ok" if all_ok else "degraded", "services": services}
 
