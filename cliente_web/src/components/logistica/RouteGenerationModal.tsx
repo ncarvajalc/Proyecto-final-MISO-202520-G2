@@ -28,7 +28,6 @@ export function RouteGenerationModal({
   onOpenChange,
   vehicleId,
   vehiclePlaca,
-  vehicleConductor,
 }: RouteGenerationModalProps) {
   const [optimizedRoute, setOptimizedRoute] = useState<Route | null>(null);
 
@@ -228,11 +227,14 @@ export function RouteGenerationModal({
           )}
 
           {/* No routes */}
-          {!isLoadingRoutes && !routesError && !pendingRoute && !optimizedRoute && (
-            <div className="text-center py-8 text-muted-foreground">
-              No hay rutas pendientes para este vehículo
-            </div>
-          )}
+          {!isLoadingRoutes &&
+            !routesError &&
+            !pendingRoute &&
+            !optimizedRoute && (
+              <div className="text-center py-8 text-muted-foreground">
+                No hay rutas pendientes para este vehículo
+              </div>
+            )}
 
           {/* Generate button */}
           {!optimizedRoute && pendingRoute && (
