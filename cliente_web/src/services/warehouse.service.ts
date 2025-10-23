@@ -15,7 +15,7 @@ import type {
   ProductWarehouseLocation,
 } from "@/types/warehouse";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { getApiBaseUrl } from "@/config/api";
+// import { getApiBaseUrl } from "@/config/api";
 
 /**
  * Get product location in warehouse
