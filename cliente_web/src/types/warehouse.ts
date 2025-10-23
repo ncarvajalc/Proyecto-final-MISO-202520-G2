@@ -18,3 +18,15 @@ export interface ProductLocation {
 export interface ProductLocationRequest {
   sku: string;
 }
+
+export interface ProductWarehouseLocationRequest {
+  sku: string;
+  bodegaId: string;
+}
+
+export interface ProductWarehouseLocation {
+  sku: string;
+  bodega: string;
+  zona: string;
+  encontrado: boolean;
+}

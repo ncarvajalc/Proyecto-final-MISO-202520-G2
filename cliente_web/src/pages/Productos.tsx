@@ -23,6 +23,7 @@ import { Plus, Upload, ShoppingBag } from "lucide-react";
 import { CreateProductoForm } from "@/components/producto/CreateProductoForm";
 import { BulkUploadProductosForm } from "@/components/producto/BulkUploadProductosForm";
 import { ProductLocationForm } from "@/components/warehouse/ProductLocationForm";
+import { ProductWarehouseLocationForm } from "@/components/warehouse/ProductWarehouseLocationForm";
 
 const ITEMS_PER_PAGE = 5;
 
@@ -32,6 +33,8 @@ export default function Productos() {
   const [isBulkUploadDialogOpen, setIsBulkUploadDialogOpen] = useState(false);
   const [isStockDialogOpen, setIsStockDialogOpen] = useState(false);
   const [isProductLocationDialogOpen, setIsProductLocationDialogOpen] =
+    useState(false);
+  const [isWarehouseLocationDialogOpen, setIsWarehouseLocationDialogOpen] =
     useState(false);
 
   // Fetch productos using TanStack Query with server-side pagination
@@ -61,9 +64,8 @@ export default function Productos() {
   };
 
   const handleLocalizacion = () => {
-    console.log("Localización en bodega clicked");
-    // TODO: Implement warehouse location functionality
     setIsStockDialogOpen(false);
+    setIsWarehouseLocationDialogOpen(true);
   };
 
   if (isLoading) {
@@ -252,6 +254,12 @@ export default function Productos() {
       <ProductLocationForm
         open={isProductLocationDialogOpen}
         onOpenChange={setIsProductLocationDialogOpen}
+      />
+
+      {/* Product Warehouse Location Form */}
+      <ProductWarehouseLocationForm
+        open={isWarehouseLocationDialogOpen}
+        onOpenChange={setIsWarehouseLocationDialogOpen}
       />
     </div>
   );
