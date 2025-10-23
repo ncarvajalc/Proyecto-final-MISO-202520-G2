@@ -21,3 +21,26 @@ export interface VehiculosResponse {
   limit: number;
   totalPages: number;
 }
+
+export interface LogisticaProducto {
+  sku: string;
+  nombre: string;
+  descripcion?: string;
+}
+
+export interface Bodega {
+  id: string;
+  nombre: string;
+  codigo?: string;
+}
+
+export interface ProductWarehouseLocation {
+  location: string | null;
+  message?: string;
+}
+
+export interface ProductAvailability {
+  warehouseId: string | null;
+  warehouseName: string | null;
+  message?: string;
+}

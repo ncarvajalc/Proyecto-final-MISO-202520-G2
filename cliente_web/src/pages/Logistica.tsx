@@ -13,6 +13,8 @@ import {
 import { Pagination } from "@/components/ui/pagination";
 import { getVehiculos } from "@/services/logistica.service";
 import { RouteGenerationModal } from "@/components/logistica/RouteGenerationModal";
+import { ProductWarehouseLocator } from "@/components/logistica/ProductWarehouseLocator";
+import { ProductAvailabilityLookup } from "@/components/logistica/ProductAvailabilityLookup";
 import { MapPin } from "lucide-react";
 
 const ITEMS_PER_PAGE = 5;
@@ -67,6 +69,12 @@ export default function Logistica() {
       {/* Header */}
       <div className="flex flex-col gap-4 items-center justify-center">
         <Typography1 className="mb-0">Gestión Logística</Typography1>
+      </div>
+
+      {/* Inventory lookup cards */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <ProductWarehouseLocator />
+        <ProductAvailabilityLookup />
       </div>
 
       {/* Table */}
