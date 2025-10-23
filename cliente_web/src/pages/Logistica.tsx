@@ -12,12 +12,21 @@ import {
 } from "@/components/ui/table";
 import { Pagination } from "@/components/ui/pagination";
 import { getVehiculos } from "@/services/logistica.service";
+import { RouteGenerationModal } from "@/components/logistica/RouteGenerationModal";
 import { MapPin } from "lucide-react";
 
 const ITEMS_PER_PAGE = 5;
 
+interface SelectedVehicle {
+  id: string;
+  placa: string;
+  conductor: string;
+}
+
 export default function Logistica() {
   const [currentPage, setCurrentPage] = useState(1);
+  const [isRouteModalOpen, setIsRouteModalOpen] = useState(false);
+  const [selectedVehicle, setSelectedVehicle] = useState<SelectedVehicle | null>(null);
 
   // Fetch vehículos using TanStack Query with server-side pagination
   const { data, isLoading, isError } = useQuery({
@@ -33,12 +42,8 @@ export default function Logistica() {
     placa: string,
     conductor: string
   ) => {
-    console.log("Ver ruta clicked", {
-      vehiculoId,
-      placa,
-      conductor,
-    });
-    // TODO: Implement route visualization functionality
+    setSelectedVehicle({ id: vehiculoId, placa, conductor });
+    setIsRouteModalOpen(true);
   };
 
   if (isLoading) {
@@ -122,6 +127,17 @@ export default function Logistica() {
             onPageChange={setCurrentPage}
           />
         </div>
+      )}
+
+      {/* Route Generation Modal */}
+      {selectedVehicle && (
+        <RouteGenerationModal
+          open={isRouteModalOpen}
+          onOpenChange={setIsRouteModalOpen}
+          vehicleId={selectedVehicle.id}
+          vehiclePlaca={selectedVehicle.placa}
+          vehicleConductor={selectedVehicle.conductor}
+        />
       )}
     </div>
   );

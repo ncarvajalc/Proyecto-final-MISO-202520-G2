@@ -16,6 +16,8 @@ PREFIX_ROUTES: Dict[str, str] = {
     "/vendedores": "http://salesforce:8004",
     "/informes-comerciales": "http://salesforce:8004",
     "/vehiculos": "http://tracking:8002",
+    "/rutas": "http://tracking:8002",
+    "/paradas": "http://tracking:8002",
 }
 
 HEALTH_ENDPOINTS: Dict[str, str] = {
