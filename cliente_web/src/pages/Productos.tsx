@@ -11,10 +11,18 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Pagination } from "@/components/ui/pagination";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { getProductos } from "@/services/productos.service";
 import { Plus, Upload, ShoppingBag } from "lucide-react";
 import { CreateProductoForm } from "@/components/producto/CreateProductoForm";
 import { BulkUploadProductosForm } from "@/components/producto/BulkUploadProductosForm";
+import { ProductLocationForm } from "@/components/warehouse/ProductLocationForm";
 
 const ITEMS_PER_PAGE = 5;
 
@@ -22,6 +30,9 @@ export default function Productos() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isBulkUploadDialogOpen, setIsBulkUploadDialogOpen] = useState(false);
+  const [isStockDialogOpen, setIsStockDialogOpen] = useState(false);
+  const [isProductLocationDialogOpen, setIsProductLocationDialogOpen] =
+    useState(false);
 
   // Fetch productos using TanStack Query with server-side pagination
   const { data, isLoading, isError } = useQuery({
@@ -41,8 +52,18 @@ export default function Productos() {
   };
 
   const handleStock = () => {
-    console.log("Stock clicked");
-    // TODO: Implement stock management functionality
+    setIsStockDialogOpen(true);
+  };
+
+  const handleDisponibilidad = () => {
+    setIsStockDialogOpen(false);
+    setIsProductLocationDialogOpen(true);
+  };
+
+  const handleLocalizacion = () => {
+    console.log("Localización en bodega clicked");
+    // TODO: Implement warehouse location functionality
+    setIsStockDialogOpen(false);
   };
 
   if (isLoading) {
@@ -193,6 +214,44 @@ export default function Productos() {
       <BulkUploadProductosForm
         open={isBulkUploadDialogOpen}
         onOpenChange={setIsBulkUploadDialogOpen}
+      />
+
+      {/* Stock Queries Dialog */}
+      <Dialog open={isStockDialogOpen} onOpenChange={setIsStockDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center text-2xl">
+              Consultas de Stock
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-3 py-4">
+            <Button onClick={handleDisponibilidad} className="w-full" size="lg">
+              Disponibilidad en bodega
+            </Button>
+            <Button
+              onClick={handleLocalizacion}
+              variant="lighter"
+              className="w-full"
+              size="lg"
+            >
+              Localización en bodega
+            </Button>
+          </div>
+          <DialogFooter className="sm:justify-end">
+            <Button
+              onClick={() => setIsStockDialogOpen(false)}
+              variant="darker"
+            >
+              Volver
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Product Location Form */}
+      <ProductLocationForm
+        open={isProductLocationDialogOpen}
+        onOpenChange={setIsProductLocationDialogOpen}
       />
     </div>
   );
