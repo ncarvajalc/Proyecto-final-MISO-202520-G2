@@ -15,12 +15,15 @@ PREFIX_ROUTES: Dict[str, str] = {
     "/planes-venta": "http://salesforce:8004",
     "/vendedores": "http://salesforce:8004",
     "/informes-comerciales": "http://salesforce:8004",
+    "/vehiculos": "http://tracking:8002",
 }
 
 HEALTH_ENDPOINTS: Dict[str, str] = {
     "security_audit": "https://security-audit-212820187078.us-central1.run.app/health",
     "purchases_suppliers": "https://purchases-suppliers-212820187078.us-central1.run.app/health",
     "salesforce": "https://salesforce-212820187078.us-central1.run.app/health",
+    # TODO: Update with actual Cloud Run URL after deployment
+    "tracking": "https://tracking-212820187078.us-central1.run.app/health",
 }
 
 SUPPORTED_METHODS = [
