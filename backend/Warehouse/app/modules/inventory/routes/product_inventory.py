@@ -1,5 +1,5 @@
 from typing import List
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from ..schemas.product_inventory import (
@@ -143,3 +143,38 @@ def delete_inventory(inventory_id: str, db: Session = Depends(get_db)):
     Elimina un registro de inventario
     """
     return delete(db, inventory_id=inventory_id)
+from app.modules.warehouse.crud.crud_warehouse import get_warehouse
+
+@router.get("/buscar")
+def buscar_producto_en_inventario(
+    sku: str = Query(..., description="SKU del producto a buscar"),
+    db: Session = Depends(get_db)
+):
+    """
+    Busca la ubicación de un producto por su SKU (product_id) en el inventario.
+
+    Retorna la primera coincidencia encontrada con la bodega y la zona.
+    """
+    if not sku.strip():
+        raise HTTPException(status_code=400, detail="El parámetro 'sku' es requerido y no puede estar vacío.")
+
+    inventarios = read_by_product(db, product_id=sku)
+
+    if not inventarios:
+        raise HTTPException(status_code=404, detail=f"Producto con SKU '{sku}' no encontrado en el inventario.")
+
+    inventario = inventarios[0]
+
+    # Obtener la bodega relacionada
+    warehouse = get_warehouse(db, inventario.warehouse_id)
+    if not warehouse:
+        raise HTTPException(status_code=404, detail=f"Bodega '{inventario.warehouse_id}' no encontrada.")
+
+    # Si existe un campo 'zona' o 'location' en el modelo, lo usamos
+    zona = getattr(inventario, "zona", "") or getattr(inventario, "location", "")
+
+    return {
+        "sku": sku,
+        "bodega": warehouse.nombre if hasattr(warehouse, "nombre") else inventario.warehouse_id,
+        "zona": zona
+    }
