@@ -1,4 +1,3 @@
-# Puede estar vacío o con:
-from .warehouses import router
+from .warehouses import router as warehouse_router
 
-__all__ = ["router"]
+__all__ = ["warehouse_router"]
