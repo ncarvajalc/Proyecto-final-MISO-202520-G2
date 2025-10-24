@@ -14,8 +14,7 @@ import type {
   ProductWarehouseLocationRequest,
   ProductWarehouseLocation,
 } from "@/types/warehouse";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-// import { getApiBaseUrl } from "@/config/api";
+import { getApiBaseUrl } from "@/config/api";
 
 /**
  * Get product location in warehouse
@@ -197,17 +196,20 @@ export const getProductLocation = async (
  * ```
  */
 export const getBodegas = async (): Promise<Bodega[]> => {
-  // MOCK DATA - Replace with real API call
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve([
-        { id: "1", nombre: "Bogotá-1", ubicacion: "Bogotá" },
-        { id: "2", nombre: "Medellín-1", ubicacion: "Medellín" },
-        { id: "3", nombre: "Cali-1", ubicacion: "Cali" },
-        { id: "4", nombre: "Barranquilla-1", ubicacion: "Barranquilla" },
-      ]);
-    }, 500);
+  const baseUrl = getApiBaseUrl();
+  const url = `${baseUrl}/bodegas`;
+
+  const response = await fetch(url, {
+    headers: {
+      "Content-Type": "application/json",
+    },
   });
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  return response.json();
 };
 
 /**
