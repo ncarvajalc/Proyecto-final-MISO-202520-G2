@@ -13,7 +13,7 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI(
     title="Warehouse API",
     description="API para gestión de bodegas e inventario",
-    version="1.0.0"
+    version="1.0.0",
 )
 
 # Importar y registrar los routers de cada módulo
@@ -37,8 +37,4 @@ def healthcheck():
 
 @app.get("/")
 def read_root():
-    return {
-        "message": "Warehouse & Inventory API", 
-        "version": "1.0.0",
-        "modules": ["warehouse", "inventory", "logistics"]
-    }
+    return {"message": "Hello from FastAPI on Cloud Run!"}
