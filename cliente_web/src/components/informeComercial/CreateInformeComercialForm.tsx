@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { FormActionButtons } from "@/components/forms/FormActionButtons";
 import {
   Dialog,
   DialogContent,
@@ -128,19 +129,11 @@ export function CreateInformeComercialForm({
                 )}
               />
 
-              <DialogFooter className="gap-2 sm:gap-0">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleClose}
-                  disabled={createMutation.isPending}
-                >
-                  Cancelar
-                </Button>
-                <Button type="submit" disabled={createMutation.isPending}>
-                  {createMutation.isPending ? "Creando..." : "Crear"}
-                </Button>
-              </DialogFooter>
+              <FormActionButtons
+                isSubmitting={createMutation.isPending}
+                onCancel={handleClose}
+                submitFirst={false}
+              />
             </form>
           </Form>
         ) : (

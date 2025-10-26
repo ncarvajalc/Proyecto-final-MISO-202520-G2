@@ -15,6 +15,9 @@ import type {
   ProductWarehouseLocation,
 } from "@/types/warehouse";
 import { getApiBaseUrl } from "@/config/api";
+import { ApiClient } from "@/lib/api-client";
+
+const apiClient = new ApiClient(getApiBaseUrl());
 
 /**
  * Get product location in warehouse
@@ -102,25 +105,21 @@ export const getProductLocation = async (
   request: ProductLocationRequest
 ): Promise<ProductLocation> => {
   const { sku } = request;
-  const baseUrl = getApiBaseUrl();
-  const url = `${baseUrl}/productos/localizacion?sku=${encodeURIComponent(
-    sku
-  )}`;
 
-  const response = await fetch(url, {
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
-
-  if (!response.ok) {
-    if (response.status === 404) {
-      throw new Error("Producto no encontrado");
+  try {
+    return await apiClient.get<ProductLocation>(
+      "/productos/localizacion/",
+      {
+        params: { sku },
+      }
+    );
+  } catch (error) {
+    const typedError = error as Error & { detail?: string };
+    if (typedError.detail) {
+      throw new Error(typedError.detail);
     }
-    throw new Error(`HTTP error! status: ${response.status}`);
+    throw typedError;
   }
-
-  return response.json();
 };
 
 /**
@@ -180,22 +179,8 @@ export const getProductLocation = async (
  * };
  * ```
  */
-export const getBodegas = async (): Promise<Bodega[]> => {
-  const baseUrl = getApiBaseUrl();
-  const url = `${baseUrl}/bodegas/`;
-
-  const response = await fetch(url, {
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
-  }
-
-  return response.json();
-};
+export const getBodegas = async (): Promise<Bodega[]> =>
+  apiClient.get<Bodega[]>("/bodegas/");
 
 /**
  * Get product location in a specific warehouse
@@ -284,23 +269,22 @@ export const getProductLocationInWarehouse = async (
   request: ProductWarehouseLocationRequest
 ): Promise<ProductWarehouseLocation> => {
   const { sku, bodegaId } = request;
-  const baseUrl = getApiBaseUrl();
-  const url = `${baseUrl}/productos/localizacion-bodega?sku=${encodeURIComponent(
-    sku
-  )}&bodegaId=${encodeURIComponent(bodegaId)}`;
 
-  const response = await fetch(url, {
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
-
-  if (!response.ok) {
-    if (response.status === 404) {
-      throw new Error("Bodega no encontrada");
+  try {
+    return await apiClient.get<ProductWarehouseLocation>(
+      "/productos/localizacion-bodega/",
+      {
+        params: {
+          sku,
+          bodegaId,
+        },
+      }
+    );
+  } catch (error) {
+    const typedError = error as Error & { detail?: string };
+    if (typedError.detail) {
+      throw new Error(typedError.detail);
     }
-    throw new Error(`HTTP error! status: ${response.status}`);
+    throw typedError;
   }
-
-  return response.json();
 };

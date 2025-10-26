@@ -4,7 +4,8 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createProveedor } from "@/services/proveedores.service";
-import { Button } from "@/components/ui/button";
+import { FormActionButtons } from "@/components/forms/FormActionButtons";
+import { FormInputField } from "@/components/forms/FormInputField";
 import {
   Form,
   FormControl,
@@ -13,7 +14,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -86,6 +86,56 @@ const defaultValues: FormValues = {
   certificadoFechaVencimiento: "",
   certificadoUrl: "",
 };
+
+type FieldConfig = {
+  name: keyof FormValues;
+  label: string;
+  placeholder?: string;
+  type?: string;
+};
+
+const basicFields: FieldConfig[] = [
+  { name: "nombre", label: "Nombre", placeholder: "Nombre" },
+  { name: "idTax", label: "Id tax", placeholder: "Id tax" },
+  { name: "direccion", label: "Dirección", placeholder: "Dirección" },
+  { name: "telefono", label: "Teléfono", placeholder: "Teléfono" },
+  {
+    name: "correo",
+    label: "Correo",
+    placeholder: "Correo",
+    type: "email",
+  },
+  { name: "contacto", label: "Contacto", placeholder: "Contacto" },
+];
+
+const certificateFields: FieldConfig[] = [
+  {
+    name: "certificadoNombre",
+    label: "Nombre certificado",
+    placeholder: "Nombre certificado",
+  },
+  {
+    name: "certificadoCuerpo",
+    label: "Cuerpo certificador",
+    placeholder: "Cuerpo certificador",
+  },
+  {
+    name: "certificadoFechaCertificacion",
+    label: "Fecha de certificación",
+    type: "date",
+  },
+  {
+    name: "certificadoFechaVencimiento",
+    label: "Fecha de vencimiento",
+    type: "date",
+  },
+  {
+    name: "certificadoUrl",
+    label: "URL del documento",
+    type: "url",
+    placeholder: "https://ejemplo.com/certificado.pdf",
+  },
+];
 
 interface CreateProveedorFormProps {
   open: boolean;
@@ -170,89 +220,17 @@ export function CreateProveedorForm({
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {/* Campos básicos requeridos */}
-            <FormField
-              control={form.control}
-              name="nombre"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nombre</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Nombre" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="idTax"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Id tax</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Id tax" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="direccion"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Dirección</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Dirección" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="telefono"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Teléfono</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Teléfono" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="correo"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Correo</FormLabel>
-                  <FormControl>
-                    <Input type="email" placeholder="Correo" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="contacto"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Contacto</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Contacto" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {basicFields.map(({ name, label, placeholder, type }) => (
+              <FormInputField
+                key={name}
+                control={form.control}
+                name={name}
+                label={label}
+                placeholder={placeholder}
+                type={type}
+                disabled={createMutation.isPending}
+              />
+            ))}
 
             <FormField
               control={form.control}
@@ -281,96 +259,26 @@ export function CreateProveedorForm({
               <h3 className="text-lg font-semibold mb-4">Certificado</h3>
 
               <div className="space-y-6">
-                <FormField
-                  control={form.control}
-                  name="certificadoNombre"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nombre certificado</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Nombre certificado" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="certificadoCuerpo"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Cuerpo certificador</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Cuerpo certificador" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="certificadoFechaCertificacion"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Fecha de certificación</FormLabel>
-                      <FormControl>
-                        <Input type="date" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="certificadoFechaVencimiento"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Fecha de vencimiento</FormLabel>
-                      <FormControl>
-                        <Input type="date" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="certificadoUrl"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>URL del documento</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="url"
-                          placeholder="https://ejemplo.com/certificado.pdf"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                {certificateFields.map(({ name, label, placeholder, type }) => (
+                  <FormInputField
+                    key={name}
+                    control={form.control}
+                    name={name}
+                    label={label}
+                    placeholder={placeholder}
+                    type={type}
+                    disabled={createMutation.isPending}
+                  />
+                ))}
               </div>
             </div>
 
             {/* Buttons */}
-            <div className="flex justify-end gap-3 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={createMutation.isPending}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={createMutation.isPending}>
-                {createMutation.isPending ? "Creando..." : "Crear"}
-              </Button>
-            </div>
+            <FormActionButtons
+              layout="inline"
+              isSubmitting={createMutation.isPending}
+              onCancel={() => onOpenChange(false)}
+            />
           </form>
         </Form>
       </DialogContent>
