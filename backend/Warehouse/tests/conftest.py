@@ -1,11 +1,13 @@
 import os
 import sys
 from pathlib import Path
+from typing import Generator
 
 import pytest
 from faker import Faker
+from backend.test_client import TestClient
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Session, sessionmaker
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1].parents[1]
 if str(PROJECT_ROOT) not in sys.path:
@@ -29,11 +31,12 @@ db_module.engine.dispose()
 db_module.engine = test_engine
 db_module.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
 
+SessionLocal = db_module.SessionLocal
 engine = db_module.engine
 
 
 @pytest.fixture(scope="session", autouse=True)
-def configure_database() -> None:
+def configure_database() -> Generator[None, None, None]:
     Base.metadata.create_all(bind=engine)
     yield
     Base.metadata.drop_all(bind=engine)
@@ -47,3 +50,18 @@ def fake() -> Faker:
     faker = Faker()
     faker.seed_instance(21)
     return faker
+
+
+@pytest.fixture
+def client() -> TestClient:
+    from app.main import app  # noqa: E402
+    return TestClient(app)
+
+
+@pytest.fixture
+def db_session() -> Generator[Session, None, None]:
+    session: Session = SessionLocal()
+    try:
+        yield session
+    finally:
+        session.close()
