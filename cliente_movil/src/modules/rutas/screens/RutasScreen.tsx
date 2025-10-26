@@ -1,33 +1,47 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from "react-native";
-// Si necesitaras navegación, podrías importarla así:
-// import { useNavigation } from "@react-navigation/native";
-// import { StackNavigationProp } from "@react-navigation/stack";
-
-// Definición de la estructura de datos para una Ruta
-interface Ruta {
-  id: string;
-  nombreEntidad: string;
-  minutosLlegada: number;
-  distanciaKm: number;
-  distanciaRealKm: number | null;
-  pais: string;
-  ciudad: string;
-  direccion: string;
-  destinoCoords: string;
-}
-
-// Datos de ejemplo para simular las rutas
-const DATOS_RUTAS: Ruta[] = [];
+import { Ruta } from "../../../types/route";
+import routesService from "../../../services/routesService";
+import { useAuth } from "../../../contexts/auth-hooks";
 
 /**
  * Componente para mostrar la lista de Rutas del día.
  */
 export const RutasScreen: React.FC = () => {
+  const { user } = useAuth();
+
+  const [routes, setRoutes] = useState<Ruta[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSelectRuta = (ruta: Ruta) => {
     console.log("Ruta seleccionada:", ruta.nombreEntidad);
   };
+
+  useEffect(() => {
+    let mounted = true;
+
+    const load = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const salespersonId = user?.id ?? "";
+        const data = await routesService.getRoutesBySalesperson(salespersonId);
+        if (mounted) setRoutes(data);
+      } catch (err) {
+        console.warn("RutasScreen: failed to load routes", err);
+        if (mounted) setError("Error al cargar rutas");
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+
+    load();
+
+    return () => {
+      mounted = false;
+    };
+  }, [user]);
 
   /**
    * Renderiza un elemento de la lista de rutas.
@@ -66,14 +80,23 @@ export const RutasScreen: React.FC = () => {
         <Text style={styles.title}>Rutas del Día</Text>
       </View>
 
-      <FlatList
-        data={DATOS_RUTAS}
-        renderItem={renderRuta}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
-        // si lista vacia
-        ListEmptyComponent={renderEmpty}
-      />
+      {loading ? (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>Cargando rutas...</Text>
+        </View>
+      ) : error ? (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>{error}</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={routes}
+          renderItem={renderRuta}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContent}
+          ListEmptyComponent={renderEmpty}
+        />
+      )}
     </View>
   );
 };
@@ -97,7 +120,6 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: 16,
-    // Estilo para que el ListEmptyComponent se centre correctamente
     flexGrow: 1, 
   },
   rutaCard: {
@@ -150,15 +172,15 @@ const styles = StyleSheet.create({
     marginTop: 2,
     fontStyle: "italic",
   },
-  // ESTILOS PARA EL MENSAJE DE LISTA VACÍA
+
   emptyContainer: {
-    flex: 1, // Opcional, pero ayuda a centrar si listContent tiene flexGrow: 1
+    flex: 1,
     justifyContent: "center",
     alignItems: "center",
     padding: 40,
   },
   emptyText: {
-    fontSize: 18, // Ligeramente más grande para que destaque
+    fontSize: 18,
     color: "#94a3b8",
     textAlign: "center",
     fontWeight: "500",
