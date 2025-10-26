@@ -11,11 +11,13 @@ const postMock = vi.fn();
 const getMock = vi.fn();
 
 vi.mock("@/lib/api-client", () => {
+  const ApiClientMock = vi.fn(function ApiClientMockImpl() {
+    this.post = postMock;
+    this.get = getMock;
+  });
+
   return {
-    ApiClient: vi.fn().mockImplementation(() => ({
-      post: postMock,
-      get: getMock,
-    })),
+    ApiClient: ApiClientMock,
   };
 });
 

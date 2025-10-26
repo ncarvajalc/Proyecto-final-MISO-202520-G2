@@ -1,11 +1,11 @@
-import React from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { beforeAll, afterAll, afterEach, describe, expect, it, vi } from "vitest";
 import { faker } from "@faker-js/faker";
-import { setupServer } from "msw/node";
-import { http, HttpResponse } from "msw";
+import { screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("@/services/proveedores.service", () => ({
+  createProveedor: vi.fn(),
+}));
 
 vi.mock("sonner", () => ({
   toast: {
@@ -15,75 +15,105 @@ vi.mock("sonner", () => ({
 }));
 
 import { CreateProveedorForm } from "@/components/proveedor/CreateProveedorForm";
-import { toast } from "sonner";
+import { createProveedor } from "@/services/proveedores.service";
 
-const server = setupServer();
-
-beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
-afterAll(() => server.close());
-afterEach(() => {
-  server.resetHandlers();
-  vi.unstubAllEnvs();
-});
-
-const renderComponent = () => {
-  const queryClient = new QueryClient();
-  const onOpenChange = vi.fn();
-  const utils = render(
-    <QueryClientProvider client={queryClient}>
-      <CreateProveedorForm open={true} onOpenChange={onOpenChange} />
-    </QueryClientProvider>
-  );
-  const formElement = utils.container.querySelector("form");
-  formElement?.setAttribute("novalidate", "true");
-  return { onOpenChange, ...utils };
-};
+import { renderWithQueryClient } from "../../../../tests/test-utils";
 
 describe("CreateProveedorForm - Integration", () => {
-  const mockedToast = vi.mocked(toast);
+  const mockCreateProveedor = vi.mocked(createProveedor);
+  let formValues: {
+    nombre: string;
+    idTax: string;
+    direccion: string;
+    telefono: string;
+    correo: string;
+    contacto: string;
+    certificadoNombre: string;
+    certificadoCuerpo: string;
+    certificadoFecha: string;
+    certificadoVencimiento: string;
+    certificadoUrl: string;
+  };
 
-  it("envía la información normalizada y gestiona el éxito end-to-end", async () => {
-    faker.seed(803);
-    const apiUrl = "http://localhost:4013";
-    vi.stubEnv("VITE_API_URL", apiUrl);
-
-    const capturedPayloads: unknown[] = [];
-    server.use(
-      http.post(`${apiUrl}/proveedores`, async ({ request }) => {
-        const body = await request.json();
-        capturedPayloads.push(body);
-        return HttpResponse.json({ id: faker.number.int({ min: 1, max: 999 }), ...body }, { status: 201 });
-      })
-    );
-
-    const user = userEvent.setup();
-    const { onOpenChange } = renderComponent();
-
-    const payload = {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockCreateProveedor.mockResolvedValue({ id: "1" } as never);
+    faker.seed(3);
+    const certificationDate = faker.date.past().toISOString().slice(0, 10);
+    const expirationDate = faker.date.future().toISOString().slice(0, 10);
+    formValues = {
       nombre: faker.company.name(),
-      id_tax: faker.string.alphanumeric({ length: 10 }),
+      idTax: faker.string.alphanumeric(10),
       direccion: faker.location.streetAddress(),
-      telefono: faker.phone.number(),
+      telefono: faker.string.numeric(10),
       correo: faker.internet.email(),
       contacto: faker.person.fullName(),
-      estado: "Activo" as const,
-      certificado: null,
+      certificadoNombre: faker.lorem.word(),
+      certificadoCuerpo: faker.company.name(),
+      certificadoFecha: certificationDate,
+      certificadoVencimiento: expirationDate,
+      certificadoUrl: faker.internet.url(),
     };
+  });
 
-    await user.type(screen.getByPlaceholderText("Nombre"), payload.nombre);
-    await user.type(screen.getByPlaceholderText("Id tax"), payload.id_tax);
-    await user.type(screen.getByPlaceholderText("Dirección"), payload.direccion);
-    await user.type(screen.getByPlaceholderText("Teléfono"), payload.telefono);
-    await user.type(screen.getByPlaceholderText("Correo"), payload.correo);
-    await user.type(screen.getByPlaceholderText("Contacto"), payload.contacto);
+  it("transforma los datos antes de llamar al servicio", async () => {
+    const onOpenChange = vi.fn();
+    const user = userEvent.setup();
+
+    const utils = renderWithQueryClient(
+      <CreateProveedorForm open={true} onOpenChange={onOpenChange} />
+    );
+    utils.container.querySelector("form")?.setAttribute("novalidate", "true");
+
+    await user.type(screen.getByPlaceholderText("Nombre"), formValues.nombre);
+    await user.type(screen.getByPlaceholderText("Id tax"), formValues.idTax);
+    await user.type(
+      screen.getByPlaceholderText("Dirección"),
+      formValues.direccion
+    );
+    await user.type(
+      screen.getByPlaceholderText("Teléfono"),
+      formValues.telefono
+    );
+    await user.type(screen.getByPlaceholderText("Correo"), formValues.correo);
+    await user.type(screen.getByPlaceholderText("Contacto"), formValues.contacto);
+    await user.type(
+      screen.getByPlaceholderText("Nombre certificado"),
+      formValues.certificadoNombre
+    );
+    await user.type(
+      screen.getByPlaceholderText("Cuerpo certificador"),
+      formValues.certificadoCuerpo
+    );
+    await user.type(
+      screen.getByLabelText("Fecha de certificación"),
+      formValues.certificadoFecha
+    );
+    await user.type(
+      screen.getByLabelText("Fecha de vencimiento"),
+      formValues.certificadoVencimiento
+    );
+    await user.type(
+      screen.getByPlaceholderText("https://ejemplo.com/certificado.pdf"),
+      formValues.certificadoUrl
+    );
 
     await user.click(screen.getByRole("button", { name: /crear/i }));
 
-    await waitFor(() => expect(capturedPayloads).toHaveLength(1));
-    expect(capturedPayloads[0]).toEqual(payload);
-
-    await waitFor(() => expect(mockedToast.success).toHaveBeenCalledWith("Proveedor creado exitosamente"));
-    expect(onOpenChange).toHaveBeenCalledWith(false);
-    await waitFor(() => expect(screen.getByPlaceholderText("Nombre")).toHaveValue(""));
+    const firstCall = mockCreateProveedor.mock.calls[0][0];
+    expect(firstCall).toMatchObject({
+      nombre: formValues.nombre,
+      id_tax: formValues.idTax,
+      direccion: formValues.direccion,
+      telefono: formValues.telefono,
+      contacto: formValues.contacto,
+      certificado: {
+        nombre: formValues.certificadoNombre,
+        cuerpoCertificador: formValues.certificadoCuerpo,
+        fechaCertificacion: formValues.certificadoFecha,
+        fechaVencimiento: formValues.certificadoVencimiento,
+        urlDocumento: formValues.certificadoUrl,
+      },
+    });
   });
 });

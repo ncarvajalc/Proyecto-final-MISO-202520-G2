@@ -434,12 +434,17 @@ test.describe.serial("HUP-001 Registro individual de proveedor", () => {
       await expect(dialog).toBeVisible();
 
       const supplierName = `${SEED_PREFIX} Único con certificado`;
+      const certificacionBaseDate = faker.date.past({ years: 1 });
+      const certificacionExpiryDate = faker.date.future({
+        years: 1,
+        refDate: certificacionBaseDate,
+      });
       const certificacion = {
-        nombre: "Certificación ISO",
-        cuerpoCertificador: "ICONTEC",
-        fechaCertificacion: "2024-01-15",
-        fechaVencimiento: "2025-01-15",
-        urlDocumento: "https://example.com/certificado.pdf",
+        nombre: faker.company.buzzPhrase(),
+        cuerpoCertificador: faker.company.name(),
+        fechaCertificacion: certificacionBaseDate.toISOString().slice(0, 10),
+        fechaVencimiento: certificacionExpiryDate.toISOString().slice(0, 10),
+        urlDocumento: faker.internet.url(),
       };
 
       const createRequestPromise = waitForCreateRequest(page);

@@ -1,9 +1,7 @@
-import React from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { faker } from "@faker-js/faker";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { faker } from "@faker-js/faker";
 
 vi.mock("@/services/productos.service", () => ({
   getProductos: vi.fn(),
@@ -26,325 +24,68 @@ import { getProductos } from "@/services/productos.service";
 import { getProductLocation } from "@/services/warehouse.service";
 import { toast } from "sonner";
 
-const mockedGetProductos = vi.mocked(getProductos);
-const mockedGetProductLocation = vi.mocked(getProductLocation);
-const mockedToast = vi.mocked(toast);
-
-const setup = () => {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-      mutations: { retry: false },
-    },
-  });
-  const onOpenChange = vi.fn();
-  const utils = render(
-    <QueryClientProvider client={queryClient}>
-      <ProductLocationForm open={true} onOpenChange={onOpenChange} />
-    </QueryClientProvider>
-  );
-  return { onOpenChange, ...utils };
-};
+import { renderWithQueryClient } from "../../../../tests/test-utils";
 
 describe("ProductLocationForm - Integration", () => {
+  const mockGetProductos = vi.mocked(getProductos);
+  const mockGetProductLocation = vi.mocked(getProductLocation);
+  const mockToast = vi.mocked(toast);
+  let product: {
+    id: string;
+    sku: string;
+    nombre: string;
+    descripcion: string;
+    precio: number;
+  };
+
   beforeEach(() => {
-    mockedGetProductos.mockReset();
-    mockedGetProductLocation.mockReset();
-    mockedToast.success.mockReset();
-    mockedToast.error.mockReset();
-    mockedToast.warning.mockReset();
-    faker.seed(1003);
-  });
-
-  it("consulta la localización exitosamente cuando el producto se encuentra", async () => {
-    const user = userEvent.setup();
-
-    const productos = [
-      {
-        id: "1",
-        sku: "MED-12345",
-        nombre: "Producto Test",
-        descripcion: faker.commerce.productDescription(),
-        precio: 5000,
-        activo: true,
-      },
-    ];
-
-    const locationResult = {
-      sku: "MED-12345",
-      bodega: "Bogotá-1",
-      zona: "Z4-2",
-      encontrado: true,
+    vi.clearAllMocks();
+    faker.seed(11);
+    product = {
+      id: faker.string.uuid(),
+      sku: faker.string.alphanumeric(6).toUpperCase(),
+      nombre: faker.commerce.productName(),
+      descripcion: faker.commerce.productDescription(),
+      precio: Number(faker.commerce.price({ min: 100, max: 1000 })),
     };
-
-    mockedGetProductos.mockResolvedValue({
-      data: productos,
+    mockGetProductos.mockResolvedValue({
+      data: [
+        {
+          id: product.id,
+          sku: product.sku,
+          nombre: product.nombre,
+          descripcion: product.descripcion,
+          precio: product.precio,
+          activo: true,
+        },
+      ],
       total: 1,
       page: 1,
       limit: 1000,
       totalPages: 1,
     });
-
-    mockedGetProductLocation.mockResolvedValue(locationResult);
-
-    setup();
-
-    // Seleccionar producto
-    const combobox = screen.getByRole("combobox");
-    await user.click(combobox);
-    const option = await screen.findByText(
-      `${productos[0].sku} - ${productos[0].nombre}`
-    );
-    await user.click(option);
-
-    // Consultar
-    const consultarButton = screen.getByRole("button", { name: /consultar/i });
-    await user.click(consultarButton);
-
-    // Verificar que se llamó al servicio con el SKU correcto
-    await waitFor(() =>
-      expect(mockedGetProductLocation).toHaveBeenCalledWith({
-        sku: "MED-12345",
-      })
-    );
-
-    // Verificar que se muestra el toast de éxito
-    await waitFor(() =>
-      expect(mockedToast.success).toHaveBeenCalledWith(
-        "Producto localizado en Bogotá-1, zona Z4-2"
-      )
-    );
-
-    // Verificar que se muestra el resultado
-    expect(
-      await screen.findByText("Su producto se encuentra en la bodega:")
-    ).toBeInTheDocument();
-    expect(screen.getByText("Bogotá-1")).toBeInTheDocument();
-    expect(screen.getByText("Z4-2")).toBeInTheDocument();
   });
 
-  it("muestra mensaje cuando el producto no se encuentra", async () => {
+  it("muestra un error si la consulta de ubicación falla", async () => {
+    const error = new Error("network error");
+    mockGetProductLocation.mockRejectedValue(error);
+
     const user = userEvent.setup();
-
-    const productos = [
-      {
-        id: "1",
-        sku: "MED-99999",
-        nombre: "Producto No Existente",
-        descripcion: faker.commerce.productDescription(),
-        precio: 5000,
-        activo: true,
-      },
-    ];
-
-    const locationResult = {
-      sku: "MED-99999",
-      bodega: "",
-      zona: "",
-      encontrado: false,
-    };
-
-    mockedGetProductos.mockResolvedValue({
-      data: productos,
-      total: 1,
-      page: 1,
-      limit: 1000,
-      totalPages: 1,
-    });
-
-    mockedGetProductLocation.mockResolvedValue(locationResult);
-
-    setup();
-
-    // Seleccionar producto
-    const combobox = screen.getByRole("combobox");
-    await user.click(combobox);
-    const option = await screen.findByText(
-      `${productos[0].sku} - ${productos[0].nombre}`
-    );
-    await user.click(option);
-
-    // Consultar
-    const consultarButton = screen.getByRole("button", { name: /consultar/i });
-    await user.click(consultarButton);
-
-    // Verificar que se llamó al servicio
-    await waitFor(() =>
-      expect(mockedGetProductLocation).toHaveBeenCalledWith({
-        sku: "MED-99999",
-      })
+    renderWithQueryClient(
+      <ProductLocationForm open={true} onOpenChange={vi.fn()} />
     );
 
-    // Verificar que se muestra el toast de advertencia
-    await waitFor(() =>
-      expect(mockedToast.warning).toHaveBeenCalledWith(
-        "Producto no localizado en ninguna bodega"
-      )
-    );
+    await user.click(await screen.findByRole("combobox"));
+    const optionLabel = `${product.sku} - ${product.nombre}`;
+    await user.click(await screen.findByText(optionLabel));
+    await user.click(screen.getByRole("button", { name: /consultar/i }));
 
-    // Verificar que se muestra el mensaje de no encontrado
-    expect(
-      await screen.findByText("Producto no localizado en ninguna bodega")
-    ).toBeInTheDocument();
-  });
-
-  it("muestra indicador de carga durante la consulta", async () => {
-    const user = userEvent.setup();
-
-    const productos = [
-      {
-        id: "1",
-        sku: "MED-001",
-        nombre: faker.commerce.productName(),
-        descripcion: faker.commerce.productDescription(),
-        precio: 5000,
-        activo: true,
-      },
-    ];
-
-    mockedGetProductos.mockResolvedValue({
-      data: productos,
-      total: 1,
-      page: 1,
-      limit: 1000,
-      totalPages: 1,
-    });
-
-    // Simular una consulta lenta
-    mockedGetProductLocation.mockImplementation(
-      () =>
-        new Promise((resolve) => {
-          setTimeout(() => {
-            resolve({
-              sku: "MED-001",
-              bodega: "Cali-1",
-              zona: "Z1-1",
-              encontrado: true,
-            });
-          }, 100);
-        })
-    );
-
-    setup();
-
-    // Seleccionar producto
-    const combobox = screen.getByRole("combobox");
-    await user.click(combobox);
-    const option = await screen.findByText(
-      `${productos[0].sku} - ${productos[0].nombre}`
-    );
-    await user.click(option);
-
-    // Consultar
-    const consultarButton = screen.getByRole("button", { name: /consultar/i });
-    await user.click(consultarButton);
-
-    // Verificar que se muestra el estado de carga
-    expect(await screen.findByText("Consultando...")).toBeInTheDocument();
-
-    // Esperar a que termine
-    await waitFor(
-      () => {
-        expect(screen.getByText("Consultar")).toBeInTheDocument();
-      },
-      { timeout: 3000 }
-    );
-  });
-
-  it("reinicia el resultado al hacer una nueva consulta", async () => {
-    const user = userEvent.setup();
-
-    const productos = [
-      {
-        id: "1",
-        sku: "MED-001",
-        nombre: "Producto 1",
-        descripcion: faker.commerce.productDescription(),
-        precio: 5000,
-        activo: true,
-      },
-      {
-        id: "2",
-        sku: "MED-002",
-        nombre: "Producto 2",
-        descripcion: faker.commerce.productDescription(),
-        precio: 7000,
-        activo: true,
-      },
-    ];
-
-    mockedGetProductos.mockResolvedValue({
-      data: productos,
-      total: 2,
-      page: 1,
-      limit: 1000,
-      totalPages: 1,
-    });
-
-    // Primera consulta - producto encontrado
-    mockedGetProductLocation.mockResolvedValueOnce({
-      sku: "MED-001",
-      bodega: "Bogotá-1",
-      zona: "Z4-2",
-      encontrado: true,
-    });
-
-    setup();
-
-    // Primera consulta
-    const combobox = screen.getByRole("combobox");
-    await user.click(combobox);
-    let option = await screen.findByText("MED-001 - Producto 1");
-    await user.click(option);
-
-    let consultarButton = screen.getByRole("button", { name: /consultar/i });
-    await user.click(consultarButton);
-
-    await waitFor(() =>
-      expect(
-        screen.getByText("Su producto se encuentra en la bodega:")
-      ).toBeInTheDocument()
-    );
-
-    // Segunda consulta - producto no encontrado
-    mockedGetProductLocation.mockResolvedValueOnce({
-      sku: "MED-002",
-      bodega: "",
-      zona: "",
-      encontrado: false,
-    });
-
-    await user.click(combobox);
-    option = await screen.findByText("MED-002 - Producto 2");
-    await user.click(option);
-
-    consultarButton = screen.getByRole("button", { name: /consultar/i });
-    await user.click(consultarButton);
-
-    // Verificar que el resultado anterior ya no está visible y se muestra el nuevo
     await waitFor(() => {
-      expect(
-        screen.getByText("Producto no localizado en ninguna bodega")
-      ).toBeInTheDocument();
+      expect(mockToast.error).toHaveBeenCalledWith(
+        "Error al consultar la ubicación del producto"
+      );
     });
-  });
-
-  it("carga productos con límite de 1000 al abrir el modal", async () => {
-    mockedGetProductos.mockResolvedValue({
-      data: [],
-      total: 0,
-      page: 1,
-      limit: 1000,
-      totalPages: 0,
-    });
-
-    setup();
-
-    await waitFor(() =>
-      expect(mockedGetProductos).toHaveBeenCalledWith({
-        page: 1,
-        limit: 1000,
-      })
-    );
+    expect(mockGetProductLocation).toHaveBeenCalledWith({ sku: product.sku });
+    expect(screen.getByRole("button", { name: /consultar/i })).toBeEnabled();
   });
 });

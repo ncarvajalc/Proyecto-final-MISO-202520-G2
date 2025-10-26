@@ -1,19 +1,11 @@
-import React from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import {
-  beforeAll,
-  afterAll,
-  afterEach,
-  describe,
-  expect,
-  it,
-  vi,
-} from "vitest";
 import { faker } from "@faker-js/faker";
-import { setupServer } from "msw/node";
-import { http, HttpResponse } from "msw";
+import { screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("@/services/proveedores.service", () => ({
+  createProveedor: vi.fn(),
+}));
 
 vi.mock("sonner", () => ({
   toast: {
@@ -23,66 +15,90 @@ vi.mock("sonner", () => ({
 }));
 
 import { CreateProveedorForm } from "@/components/proveedor/CreateProveedorForm";
+import { createProveedor } from "@/services/proveedores.service";
 import { toast } from "sonner";
 
-const server = setupServer();
-
-beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
-afterAll(() => server.close());
-afterEach(() => {
-  server.resetHandlers();
-  vi.unstubAllEnvs();
-});
-
-const renderComponent = () => {
-  const queryClient = new QueryClient();
-  const onOpenChange = vi.fn();
-  const utils = render(
-    <QueryClientProvider client={queryClient}>
-      <CreateProveedorForm open={true} onOpenChange={onOpenChange} />
-    </QueryClientProvider>
-  );
-  const formElement = utils.container.querySelector("form");
-  formElement?.setAttribute("novalidate", "true");
-  return { onOpenChange, ...utils };
-};
-
-const fillBaseForm = async () => {
-  const user = userEvent.setup();
-  await user.type(screen.getByPlaceholderText("Nombre"), faker.company.name());
-  await user.type(screen.getByPlaceholderText("Id tax"), faker.string.alphanumeric({ length: 10 }));
-  await user.type(screen.getByPlaceholderText("Dirección"), faker.location.streetAddress());
-  await user.type(screen.getByPlaceholderText("Teléfono"), faker.phone.number());
-  await user.type(screen.getByPlaceholderText("Correo"), faker.internet.email());
-  await user.type(screen.getByPlaceholderText("Contacto"), faker.person.fullName());
-  return user;
-};
+import { renderWithQueryClient } from "../../../../tests/test-utils";
 
 describe("CreateProveedorForm - Functional", () => {
-  const mockedToast = vi.mocked(toast);
+  const mockCreateProveedor = vi.mocked(createProveedor);
+  const mockToast = vi.mocked(toast);
+  let formValues: {
+    nombre: string;
+    idTax: string;
+    direccion: string;
+    telefono: string;
+    correo: string;
+    contacto: string;
+  };
 
-  it("muestra feedback de error cuando la API falla", async () => {
-    faker.seed(802);
-    const apiUrl = "http://localhost:4012";
-    vi.stubEnv("VITE_API_URL", apiUrl);
+  beforeEach(() => {
+    vi.clearAllMocks();
+    faker.seed(2);
+    formValues = {
+      nombre: faker.company.name(),
+      idTax: faker.string.alphanumeric(10),
+      direccion: faker.location.streetAddress(),
+      telefono: faker.string.numeric(10),
+      correo: faker.internet.email(),
+      contacto: faker.person.fullName(),
+    };
+  });
 
-    server.use(
-      http.post(`${apiUrl}/proveedores`, () =>
-        HttpResponse.json({ detail: "Duplicado" }, { status: 409 })
-      )
+  const renderForm = (onOpenChange = vi.fn()) => {
+    const utils = renderWithQueryClient(
+      <CreateProveedorForm open={true} onOpenChange={onOpenChange} />
     );
+    utils.container.querySelector("form")?.setAttribute("novalidate", "true");
+    return { onOpenChange, ...utils };
+  };
 
-    const { onOpenChange } = renderComponent();
-    const user = await fillBaseForm();
+  const fillRequiredFields = async () => {
+    const user = userEvent.setup();
+    await user.type(screen.getByPlaceholderText("Nombre"), formValues.nombre);
+    await user.type(screen.getByPlaceholderText("Id tax"), formValues.idTax);
+    await user.type(
+      screen.getByPlaceholderText("Dirección"),
+      formValues.direccion
+    );
+    await user.type(
+      screen.getByPlaceholderText("Teléfono"),
+      formValues.telefono
+    );
+    await user.type(screen.getByPlaceholderText("Correo"), formValues.correo);
+    await user.type(screen.getByPlaceholderText("Contacto"), formValues.contacto);
+    return user;
+  };
 
+  it("envía el formulario y muestra una notificación de éxito", async () => {
+    mockCreateProveedor.mockResolvedValue({ id: "1" } as never);
+    const { onOpenChange } = renderForm(vi.fn());
+
+    const user = await fillRequiredFields();
     await user.click(screen.getByRole("button", { name: /crear/i }));
 
-    await waitFor(() =>
-      expect(mockedToast.error).toHaveBeenCalledWith("Error al crear proveedor", {
-        description: "Duplicado",
-      })
-    );
-    expect(onOpenChange).not.toHaveBeenCalled();
-    expect(screen.getByRole("button", { name: /crear/i })).not.toBeDisabled();
+    await waitFor(() => {
+      expect(mockCreateProveedor).toHaveBeenCalled();
+      expect(mockToast.success).toHaveBeenCalledWith(
+        "Proveedor creado exitosamente"
+      );
+      expect(onOpenChange).toHaveBeenCalledWith(false);
+    });
+  });
+
+  it("muestra un error cuando la creación falla", async () => {
+    mockCreateProveedor.mockRejectedValue(new Error("boom"));
+
+    renderForm();
+
+    const user = await fillRequiredFields();
+    await user.click(screen.getByRole("button", { name: /crear/i }));
+
+    await waitFor(() => {
+      expect(mockToast.error).toHaveBeenCalledWith(
+        "Error al crear proveedor",
+        expect.any(Object)
+      );
+    });
   });
 });

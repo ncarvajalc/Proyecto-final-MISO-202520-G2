@@ -1,12 +1,7 @@
-import React from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { faker } from "@faker-js/faker";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { faker } from "@faker-js/faker";
-
-import { CreateProveedorForm } from "@/components/proveedor/CreateProveedorForm";
-import { createProveedor } from "@/services/proveedores.service";
 
 vi.mock("@/services/proveedores.service", () => ({
   createProveedor: vi.fn(),
@@ -19,69 +14,82 @@ vi.mock("sonner", () => ({
   },
 }));
 
-const renderForm = () => {
-  const queryClient = new QueryClient();
-  const onOpenChange = vi.fn();
-  const utils = render(
-    <QueryClientProvider client={queryClient}>
-      <CreateProveedorForm open={true} onOpenChange={onOpenChange} />
-    </QueryClientProvider>
-  );
-  const formElement = utils.container.querySelector("form");
-  formElement?.setAttribute("novalidate", "true");
-  return { onOpenChange, ...utils };
-};
+import { CreateProveedorForm } from "@/components/proveedor/CreateProveedorForm";
+import { createProveedor } from "@/services/proveedores.service";
+
+import { renderWithQueryClient } from "../../../../tests/test-utils";
 
 describe("CreateProveedorForm - Unit", () => {
+  const mockCreateProveedor = vi.mocked(createProveedor);
+  let requiredFields: {
+    nombre: string;
+    idTax: string;
+    direccion: string;
+    telefono: string;
+    contacto: string;
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(createProveedor).mockReset();
-    faker.seed(801);
+    faker.seed(1);
+    requiredFields = {
+      nombre: faker.company.name(),
+      idTax: faker.string.alphanumeric(10),
+      direccion: faker.location.streetAddress(),
+      telefono: faker.string.numeric(10),
+      contacto: faker.person.fullName(),
+    };
   });
 
-  it("muestra mensajes de error cuando los campos requeridos están vacíos", async () => {
+  const renderForm = () => {
+    const utils = renderWithQueryClient(
+      <CreateProveedorForm open={true} onOpenChange={vi.fn()} />
+    );
+    utils.container.querySelector("form")?.setAttribute("novalidate", "true");
+    return utils;
+  };
+
+  it("valida que los campos obligatorios sean requeridos", async () => {
     const user = userEvent.setup();
     renderForm();
 
     await user.click(screen.getByRole("button", { name: /crear/i }));
 
-    await waitFor(() => {
+    await waitFor(async () => {
       expect(screen.getByText("El nombre es requerido")).toBeInTheDocument();
       expect(screen.getByText("El Tax ID es requerido")).toBeInTheDocument();
       expect(screen.getByText("La dirección es requerida")).toBeInTheDocument();
       expect(screen.getByText("El teléfono es requerido")).toBeInTheDocument();
-      expect(
-        screen.getByText("Debe ser un correo electrónico válido")
-      ).toBeInTheDocument();
       expect(screen.getByText("El contacto es requerido")).toBeInTheDocument();
+      expect(
+        await screen.findByText(/correo electrónico válido/i)
+      ).toBeInTheDocument();
     });
+    expect(mockCreateProveedor).not.toHaveBeenCalled();
   });
 
-  it("valida el formato del correo electrónico", async () => {
+  it("rechaza correos con formato inválido", async () => {
     const user = userEvent.setup();
     renderForm();
 
-    await user.type(screen.getByPlaceholderText("Nombre"), faker.company.name());
-    await user.type(
-      screen.getByPlaceholderText("Id tax"),
-      faker.string.alphanumeric({ length: 10 })
-    );
+    await user.type(screen.getByPlaceholderText("Nombre"), requiredFields.nombre);
+    await user.type(screen.getByPlaceholderText("Id tax"), requiredFields.idTax);
     await user.type(
       screen.getByPlaceholderText("Dirección"),
-      faker.location.streetAddress()
+      requiredFields.direccion
     );
-    await user.type(screen.getByPlaceholderText("Teléfono"), faker.phone.number());
+    await user.type(
+      screen.getByPlaceholderText("Teléfono"),
+      requiredFields.telefono
+    );
     await user.type(
       screen.getByPlaceholderText("Correo"),
-      faker.word.sample()
+      faker.lorem.word()
     );
-    await user.type(
-      screen.getByPlaceholderText("Contacto"),
-      faker.person.fullName()
-    );
+    await user.type(screen.getByPlaceholderText("Contacto"), requiredFields.contacto);
 
     await user.click(screen.getByRole("button", { name: /crear/i }));
 
-    expect(vi.mocked(createProveedor)).not.toHaveBeenCalled();
+    expect(mockCreateProveedor).not.toHaveBeenCalled();
   });
 });
