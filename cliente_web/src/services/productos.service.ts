@@ -7,7 +7,12 @@
  * The apiClient automatically includes JWT token in all requests.
  */
 
-import type { Producto, ProductosResponse, PaginationParams, BulkUploadProductsResponse } from "@/types/producto";
+import type {
+  Producto,
+  ProductosResponse,
+  PaginationParams,
+  BulkUploadProductsResponse,
+} from "@/types/producto";
 import { ApiClient } from "@/lib/api-client";
 import { getApiBaseUrl } from "@/config/api";
 
@@ -31,12 +36,18 @@ export const getProductos = async (params: PaginationParams): Promise<ProductosR
     throw new Error(`HTTP error! status: ${response.status}`);
   }
 
-  const responseData = await response.json();
+  const responseData: {
+    data: Array<Omit<Producto, "id"> & { id: number | string }>;
+    total: number;
+    page: number;
+    limit: number;
+    total_pages: number;
+  } = await response.json();
 
   // Convert id to string for frontend compatibility
-  const data = responseData.data.map((producto: any) => ({
+  const data: Producto[] = responseData.data.map((producto) => ({
     ...producto,
-    id: String(producto.id)
+    id: String(producto.id),
   }));
 
   return {
@@ -72,12 +83,13 @@ export const createProducto = async (
     throw new Error(`HTTP error! status: ${response.status}`);
   }
 
-  const responseData = await response.json();
+  const responseData: Omit<Producto, "id"> & { id: number | string } =
+    await response.json();
 
   // Convert id to string for frontend compatibility
   return {
     ...responseData,
-    id: String(responseData.id)
+    id: String(responseData.id),
   };
 };
 
@@ -93,9 +105,11 @@ export const createProducto = async (
  * ```
  */
 export const updateProducto = async (
-  _id: string,
-  _producto: Partial<Producto>
+  id: string,
+  producto: Partial<Producto>
 ): Promise<Producto> => {
+  void id;
+  void producto;
   throw new Error("updateProducto not implemented - backend endpoint pending");
 };
 
@@ -110,7 +124,8 @@ export const updateProducto = async (
  * };
  * ```
  */
-export const deleteProducto = async (_id: string): Promise<void> => {
+export const deleteProducto = async (id: string): Promise<void> => {
+  void id;
   throw new Error("deleteProducto not implemented - backend endpoint pending");
 };
 
@@ -156,7 +171,7 @@ export const deleteProducto = async (_id: string): Promise<void> => {
  * };
  * ```
  */
-export const bulkUploadProductos =  async (
+export const bulkUploadProductos = async (
   file: File
 ): Promise<BulkUploadProductsResponse> => {
   const apiClient = new ApiClient(getApiBaseUrl());

@@ -6,12 +6,16 @@ import { createPlanVenta, getPlanesVenta } from "@/services/planesVenta.service"
 const postMock = vi.fn();
 const getMock = vi.fn();
 
-vi.mock("@/lib/api-client", () => ({
-  ApiClient: vi.fn().mockImplementation(() => ({
-    post: postMock,
-    get: getMock,
-  })),
-}));
+vi.mock("@/lib/api-client", () => {
+  const ApiClientMock = vi.fn(function ApiClientMockImpl() {
+    this.post = postMock;
+    this.get = getMock;
+  });
+
+  return {
+    ApiClient: ApiClientMock,
+  };
+});
 
 describe("planesVenta.service - unit", () => {
   let apiUrl: string;

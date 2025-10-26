@@ -3,24 +3,11 @@ import { useForm } from "react-hook-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { z } from "zod";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Form } from "@/components/ui/form";
 import { createVendedor } from "@/services/vendedores.service";
+import { FormActionButtons } from "@/components/forms/FormActionButtons";
+import { FormInputField } from "@/components/forms/FormInputField";
 
 // Zod schema for validation
 const formSchema = z.object({
@@ -88,60 +75,29 @@ export function CreateVendedorForm({
           </DialogTitle>
         </DialogHeader>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {/* Nombre */}
-            <FormField
-              control={form.control}
-              name="nombre"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-sm font-medium">Nombre</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Nombre del vendedor"
-                      {...field}
-                      disabled={createMutation.isPending}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Email */}
-            <FormField
-              control={form.control}
-              name="correo"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-sm font-medium">Email</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="email"
-                      placeholder="Email"
-                      {...field}
-                      disabled={createMutation.isPending}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <DialogFooter className="gap-2">
-              <Button type="submit" disabled={createMutation.isPending}>
-                {createMutation.isPending ? "Creando..." : "Crear"}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormInputField
+                control={form.control}
+                name="nombre"
+                label="Nombre"
+                placeholder="Nombre del vendedor"
                 disabled={createMutation.isPending}
-              >
-                Cancelar
-              </Button>
-            </DialogFooter>
+              />
+
+              <FormInputField
+                control={form.control}
+                name="correo"
+                label="Email"
+                type="email"
+                placeholder="Email"
+                disabled={createMutation.isPending}
+              />
+
+            <FormActionButtons
+              isSubmitting={createMutation.isPending}
+              onCancel={() => onOpenChange(false)}
+            />
           </form>
         </Form>
       </DialogContent>

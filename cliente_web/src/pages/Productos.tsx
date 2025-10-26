@@ -1,16 +1,6 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Typography1 } from "@/components/ui/typography1";
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Pagination } from "@/components/ui/pagination";
+import { TableCell, TableRow } from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -24,11 +14,16 @@ import { CreateProductoForm } from "@/components/producto/CreateProductoForm";
 import { BulkUploadProductosForm } from "@/components/producto/BulkUploadProductosForm";
 import { ProductLocationForm } from "@/components/warehouse/ProductLocationForm";
 import { ProductWarehouseLocationForm } from "@/components/warehouse/ProductWarehouseLocationForm";
+import { PageHeader, PageStateMessage } from "@/components/common/PageLayout";
+import { usePaginatedResource } from "@/hooks/usePaginatedResource";
+import {
+  PaginatedTable,
+  PaginationControls,
+} from "@/components/common/PaginatedTable";
 
 const ITEMS_PER_PAGE = 5;
 
 export default function Productos() {
-  const [currentPage, setCurrentPage] = useState(1);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isBulkUploadDialogOpen, setIsBulkUploadDialogOpen] = useState(false);
   const [isStockDialogOpen, setIsStockDialogOpen] = useState(false);
@@ -37,13 +32,14 @@ export default function Productos() {
   const [isWarehouseLocationDialogOpen, setIsWarehouseLocationDialogOpen] =
     useState(false);
 
-  // Fetch productos using TanStack Query with server-side pagination
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ["productos", currentPage, ITEMS_PER_PAGE],
-    queryFn: () => getProductos({ page: currentPage, limit: ITEMS_PER_PAGE }),
-  });
-
-  const totalPages = data?.totalPages || 0;
+  const {
+    data,
+    isLoading,
+    isError,
+    currentPage,
+    setCurrentPage,
+    totalPages,
+  } = usePaginatedResource("productos", getProductos, ITEMS_PER_PAGE);
 
   // Button handlers
   const handleNuevoProducto = () => {
@@ -69,142 +65,121 @@ export default function Productos() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-muted-foreground">Cargando productos...</p>
-      </div>
-    );
+    return <PageStateMessage message="Cargando productos..." />;
   }
 
   if (isError) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-destructive">Error al cargar los productos</p>
-      </div>
+      <PageStateMessage
+        message="Error al cargar los productos"
+        variant="error"
+      />
     );
   }
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 items-center justify-center">
-        <Typography1 className="mb-0">Productos</Typography1>
+      <PageHeader
+        title="Productos"
+        actions={
+          <>
+            <Button onClick={handleNuevoProducto}>
+              <Plus className="h-4 w-4" />
+              Nuevo producto
+            </Button>
+            <Button onClick={handleCargaMasiva} variant="darker">
+              <Upload className="h-4 w-4" />
+              Carga masiva
+            </Button>
+            <Button onClick={handleStock} variant="lighter">
+              <ShoppingBag className="h-4 w-4" />
+              Stock
+            </Button>
+          </>
+        }
+      />
 
-        <div className="flex gap-3">
-          <Button onClick={handleNuevoProducto}>
-            <Plus className="h-4 w-4" />
-            Nuevo producto
-          </Button>
-          <Button onClick={handleCargaMasiva} variant="darker">
-            <Upload className="h-4 w-4" />
-            Carga masiva
-          </Button>
-          <Button onClick={handleStock} variant="lighter">
-            <ShoppingBag className="h-4 w-4" />
-            Stock
-          </Button>
-        </div>
-      </div>
-
-      {/* Table */}
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>SKU</TableHead>
-            <TableHead>Nombre</TableHead>
-            <TableHead>Descripción</TableHead>
-            <TableHead>Precio</TableHead>
-            <TableHead>Especificaciones</TableHead>
-            <TableHead>Hoja Técnica</TableHead>
-            <TableHead>¿Activo?</TableHead>
+      <PaginatedTable
+        columns={[
+          { key: "sku", header: "SKU" },
+          { key: "nombre", header: "Nombre" },
+          { key: "descripcion", header: "Descripción" },
+          { key: "precio", header: "Precio" },
+          { key: "especificaciones", header: "Especificaciones" },
+          { key: "hoja", header: "Hoja Técnica" },
+          { key: "activo", header: "¿Activo?" },
+        ]}
+        data={data?.data}
+        emptyMessage="No hay productos disponibles"
+        renderRow={(producto) => (
+          <TableRow key={producto.id}>
+            <TableCell className="font-medium">{producto.sku}</TableCell>
+            <TableCell>{producto.nombre}</TableCell>
+            <TableCell className="max-w-xs truncate">
+              {producto.descripcion}
+            </TableCell>
+            <TableCell>
+              ${producto.precio.toLocaleString("es-CO")}
+            </TableCell>
+            <TableCell>
+              {producto.especificaciones &&
+              producto.especificaciones.length > 0 ? (
+                <div className="space-y-1 text-xs">
+                  {producto.especificaciones.slice(0, 2).map((esp, idx) => (
+                    <div key={idx} className="text-muted-foreground">
+                      <span className="font-medium">{esp.nombre}:</span>{" "}
+                      {esp.valor}
+                    </div>
+                  ))}
+                  {producto.especificaciones.length > 2 && (
+                    <div className="text-muted-foreground">
+                      +{producto.especificaciones.length - 2} más
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <span className="text-xs text-muted-foreground">
+                  Sin especificaciones
+                </span>
+              )}
+            </TableCell>
+            <TableCell>
+              {producto.hojaTecnica ? (
+                <div className="space-y-1 text-xs">
+                  {producto.hojaTecnica.urlManual && (
+                    <div className="cursor-pointer text-brand-600 hover:underline">
+                      Manual
+                    </div>
+                  )}
+                  {producto.hojaTecnica.urlHojaInstalacion && (
+                    <div className="cursor-pointer text-brand-600 hover:underline">
+                      Instalación
+                    </div>
+                  )}
+                  {producto.hojaTecnica.certificaciones &&
+                    producto.hojaTecnica.certificaciones.length > 0 && (
+                      <div className="text-muted-foreground">
+                        ✓ {producto.hojaTecnica.certificaciones.join(", ")}
+                      </div>
+                    )}
+                </div>
+              ) : (
+                <span className="text-xs text-muted-foreground">
+                  Sin hoja técnica
+                </span>
+              )}
+            </TableCell>
+            <TableCell>{producto.activo ? "Sí" : "No"}</TableCell>
           </TableRow>
-        </TableHeader>
-        <TableBody>
-          {!data?.data || data.data.length === 0 ? (
-            <TableRow>
-              <TableCell
-                colSpan={7}
-                className="text-center text-muted-foreground"
-              >
-                No hay productos disponibles
-              </TableCell>
-            </TableRow>
-          ) : (
-            data.data.map((producto) => (
-              <TableRow key={producto.id}>
-                <TableCell className="font-medium">{producto.sku}</TableCell>
-                <TableCell>{producto.nombre}</TableCell>
-                <TableCell className="max-w-xs truncate">
-                  {producto.descripcion}
-                </TableCell>
-                <TableCell>
-                  ${producto.precio.toLocaleString("es-CO")}
-                </TableCell>
-                <TableCell>
-                  {producto.especificaciones &&
-                  producto.especificaciones.length > 0 ? (
-                    <div className="text-xs space-y-1">
-                      {producto.especificaciones.slice(0, 2).map((esp, idx) => (
-                        <div key={idx} className="text-muted-foreground">
-                          <span className="font-medium">{esp.nombre}:</span>{" "}
-                          {esp.valor}
-                        </div>
-                      ))}
-                      {producto.especificaciones.length > 2 && (
-                        <div className="text-muted-foreground">
-                          +{producto.especificaciones.length - 2} más
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <span className="text-muted-foreground text-xs">
-                      Sin especificaciones
-                    </span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  {producto.hojaTecnica ? (
-                    <div className="text-xs space-y-1">
-                      {producto.hojaTecnica.urlManual && (
-                        <div className="text-brand-600 hover:underline cursor-pointer">
-                          Manual
-                        </div>
-                      )}
-                      {producto.hojaTecnica.urlHojaInstalacion && (
-                        <div className="text-brand-600 hover:underline cursor-pointer">
-                          Instalación
-                        </div>
-                      )}
-                      {producto.hojaTecnica.certificaciones &&
-                        producto.hojaTecnica.certificaciones.length > 0 && (
-                          <div className="text-muted-foreground">
-                            ✓ {producto.hojaTecnica.certificaciones.join(", ")}
-                          </div>
-                        )}
-                    </div>
-                  ) : (
-                    <span className="text-muted-foreground text-xs">
-                      Sin hoja técnica
-                    </span>
-                  )}
-                </TableCell>
-                <TableCell>{producto.activo ? "Sí" : "No"}</TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
+        )}
+      />
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex justify-end">
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
-          />
-        </div>
-      )}
+      <PaginationControls
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+      />
 
       {/* Create Producto Dialog */}
       <CreateProductoForm

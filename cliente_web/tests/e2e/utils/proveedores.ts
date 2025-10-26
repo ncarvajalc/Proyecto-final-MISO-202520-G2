@@ -140,7 +140,7 @@ export const loginAsAdmin = async (): Promise<AuthBootstrap> => {
         permissions: loginJson.permissions ?? fallbackPermissions,
       },
     };
-  } catch (error) {
+  } catch {
     return {
       token: "test-token",
       storagePayload: {

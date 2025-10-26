@@ -1,4 +1,3 @@
-import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -50,7 +49,7 @@ describe("CreateInformeComercialForm - Integration", () => {
 
   it("envía la información y muestra indicadores tras éxito", async () => {
     const user = userEvent.setup();
-    const { onOpenChange, queryClient } = setup();
+    setup();
 
     const nombre = faker.commerce.productName();
     const responseData = {

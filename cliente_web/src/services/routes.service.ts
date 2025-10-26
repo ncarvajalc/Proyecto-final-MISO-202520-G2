@@ -6,6 +6,63 @@
  */
 
 import { getApiBaseUrl } from "@/config/api";
+const JSON_HEADERS = {
+  "Content-Type": "application/json",
+} as const;
+
+type FetchOptions = RequestInit & {
+  parseErrorDetail?: boolean;
+};
+
+const buildRequestUrl = (
+  path: string,
+  params?: Record<string, string | number | undefined>
+): string => {
+  const baseUrl = getApiBaseUrl();
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  const url = new URL(`${baseUrl}${normalizedPath}`);
+
+  if (params) {
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        url.searchParams.set(key, String(value));
+      }
+    });
+  }
+
+  return url.toString();
+};
+
+const fetchJson = async <T>(
+  url: string,
+  options: FetchOptions = {}
+): Promise<T> => {
+  const { parseErrorDetail = false, headers, ...requestInit } = options;
+
+  const response = await fetch(url, {
+    headers: {
+      ...JSON_HEADERS,
+      ...(headers || {}),
+    },
+    ...requestInit,
+  });
+
+  if (!response.ok) {
+    if (parseErrorDetail) {
+      const errorData = (await response.json().catch(() => undefined)) as
+        | { detail?: string }
+        | undefined;
+
+      if (errorData?.detail) {
+        throw new Error(errorData.detail);
+      }
+    }
+
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  return response.json() as Promise<T>;
+};
 
 /**
  * Route Stop type
@@ -52,21 +109,18 @@ export interface Route {
 export const getRoutesByVehicle = async (
   vehicleId: string
 ): Promise<Route[]> => {
-  const baseUrl = getApiBaseUrl();
-  const url = `${baseUrl}/rutas?vehicle_id=${vehicleId}&limit=100`;
-
-  const response = await fetch(url, {
-    headers: {
-      "Content-Type": "application/json",
-    },
+  const url = buildRequestUrl("/rutas", {
+    vehicle_id: vehicleId,
+    limit: 100,
   });
 
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
+  const response = await fetchJson<{ data?: Route[] } | Route[]>(url);
+
+  if (Array.isArray(response)) {
+    return response;
   }
 
-  const responseData = await response.json();
-  return responseData.data || [];
+  return response?.data ?? [];
 };
 
 /**
@@ -79,20 +133,8 @@ export const getRoutesByVehicle = async (
  * GET /rutas/{routeId}
  */
 export const getRoute = async (routeId: string): Promise<Route> => {
-  const baseUrl = getApiBaseUrl();
-  const url = `${baseUrl}/rutas/${routeId}`;
-
-  const response = await fetch(url, {
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
-  }
-
-  return response.json();
+  const url = buildRequestUrl(`/rutas/${routeId}`);
+  return fetchJson<Route>(url);
 };
 
 /**
@@ -113,22 +155,11 @@ export const optimizeRoute = async (
   startLon: number = -74.0817,
   avgSpeedKmh: number = 40.0
 ): Promise<Route> => {
-  const baseUrl = getApiBaseUrl();
-  const url = `${baseUrl}/rutas/${routeId}/optimize?start_lat=${startLat}&start_lon=${startLon}&avg_speed_kmh=${avgSpeedKmh}`;
-
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+  const url = buildRequestUrl(`/rutas/${routeId}/optimize`, {
+    start_lat: startLat,
+    start_lon: startLon,
+    avg_speed_kmh: avgSpeedKmh,
   });
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(
-      errorData.detail || `HTTP error! status: ${response.status}`
-    );
-  }
-
-  return response.json();
+  return fetchJson<Route>(url, { method: "POST", parseErrorDetail: true });
 };

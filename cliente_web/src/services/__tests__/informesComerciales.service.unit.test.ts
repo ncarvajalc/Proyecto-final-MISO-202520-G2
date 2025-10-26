@@ -9,12 +9,16 @@ import {
 const postMock = vi.fn();
 const getMock = vi.fn();
 
-vi.mock("@/lib/api-client", () => ({
-  ApiClient: vi.fn().mockImplementation(() => ({
-    post: postMock,
-    get: getMock,
-  })),
-}));
+vi.mock("@/lib/api-client", () => {
+  const ApiClientMock = vi.fn(function ApiClientMockImpl() {
+    this.post = postMock;
+    this.get = getMock;
+  });
+
+  return {
+    ApiClient: ApiClientMock,
+  };
+});
 
 describe("informesComerciales.service - unit", () => {
   let apiUrl: string;

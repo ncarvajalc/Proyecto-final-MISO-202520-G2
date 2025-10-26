@@ -6,13 +6,7 @@ import { z } from "zod";
 import { useState } from "react";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -21,7 +15,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Popover,
@@ -40,6 +33,8 @@ import { cn } from "@/lib/utils";
 import { createPlanVenta } from "@/services/planesVenta.service";
 import { getVendedores } from "@/services/vendedores.service";
 import type { PlanVenta } from "@/types/planVenta";
+import { FormActionButtons } from "@/components/forms/FormActionButtons";
+import { FormInputField } from "@/components/forms/FormInputField";
 
 // Zod schema for validation
 const formSchema = z.object({
@@ -155,63 +150,28 @@ export function CreatePlanVentaForm({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {/* Identificador del Plan */}
-            <FormField
+            <FormInputField
               control={form.control}
               name="identificador"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-sm font-medium">
-                    Identificador del Plan
-                  </FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Identificador del plan"
-                      {...field}
-                      disabled={createMutation.isPending}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              label="Identificador del Plan"
+              placeholder="Identificador del plan"
+              disabled={createMutation.isPending}
             />
 
-            {/* Nombre */}
-            <FormField
+            <FormInputField
               control={form.control}
               name="nombre"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-sm font-medium">Nombre</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Plan Ventas Q1 2025"
-                      {...field}
-                      disabled={createMutation.isPending}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              label="Nombre"
+              placeholder="Plan Ventas Q1 2025"
+              disabled={createMutation.isPending}
             />
 
-            {/* Periodo */}
-            <FormField
+            <FormInputField
               control={form.control}
               name="periodo"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-sm font-medium">Periodo</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="ej. 01/01/2025 - 31/03/2025"
-                      {...field}
-                      disabled={createMutation.isPending}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              label="Periodo"
+              placeholder="ej. 01/01/2025 - 31/03/2025"
+              disabled={createMutation.isPending}
             />
 
             {/* Descripción */}
@@ -332,38 +292,19 @@ export function CreatePlanVentaForm({
             />
 
             {/* Meta */}
-            <FormField
+            <FormInputField
               control={form.control}
               name="meta"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-sm font-medium">Meta</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      placeholder="Cuota en monto ($)"
-                      {...field}
-                      disabled={createMutation.isPending}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              label="Meta"
+              type="number"
+              placeholder="Cuota en monto ($)"
+              disabled={createMutation.isPending}
             />
 
-            <DialogFooter className="gap-2">
-              <Button type="submit" disabled={createMutation.isPending}>
-                {createMutation.isPending ? "Creando..." : "Crear"}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={createMutation.isPending}
-              >
-                Cancelar
-              </Button>
-            </DialogFooter>
+            <FormActionButtons
+              isSubmitting={createMutation.isPending}
+              onCancel={() => onOpenChange(false)}
+            />
           </form>
         </Form>
       </DialogContent>

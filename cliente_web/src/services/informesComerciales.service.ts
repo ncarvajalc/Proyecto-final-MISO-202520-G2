@@ -9,6 +9,7 @@
 
 import { getApiBaseUrl } from "@/config/api";
 import { ApiClient } from "@/lib/api-client";
+import { buildPaginationMeta } from "@/lib/pagination";
 import type {
   InformeComercial,
   InformesComercialResponse,
@@ -72,17 +73,11 @@ export const getInformesComerciales = async (
       informe.unidadesVendidas ?? informe.unidades_vendidas ?? 0,
   }));
 
-  const totalPages =
-    response.totalPages ??
-    response.total_pages ??
-    (response.total > 0 ? Math.ceil(response.total / params.limit) : 0);
+  const pagination = buildPaginationMeta(response, params.limit);
 
   return {
     data: normalizedData,
-    total: response.total,
-    page: response.page,
-    limit: response.limit,
-    totalPages,
+    ...pagination,
   };
 };
 

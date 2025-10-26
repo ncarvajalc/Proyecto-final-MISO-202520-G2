@@ -5,6 +5,7 @@ import { z } from "zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createProducto } from "@/services/productos.service";
 import { Button } from "@/components/ui/button";
+import { FormActionButtons } from "@/components/forms/FormActionButtons";
 import {
   Form,
   FormControl,
@@ -385,19 +386,11 @@ export function CreateProductoForm({
             </div>
 
             {/* Buttons */}
-            <div className="flex justify-end gap-3 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={createMutation.isPending}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={createMutation.isPending}>
-                {createMutation.isPending ? "Creando..." : "Crear"}
-              </Button>
-            </div>
+            <FormActionButtons
+              layout="inline"
+              isSubmitting={createMutation.isPending}
+              onCancel={() => onOpenChange(false)}
+            />
           </form>
         </Form>
       </DialogContent>
