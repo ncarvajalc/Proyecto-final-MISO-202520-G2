@@ -30,7 +30,7 @@ router = APIRouter(prefix="/inventario", tags=["inventario"])
 def create_inventory(inventory: ProductInventoryCreate, db: Session = Depends(get_db)):
     """
     Crea un nuevo registro de inventario
-    
+
     Example body:
     ```json
     {
@@ -39,12 +39,14 @@ def create_inventory(inventory: ProductInventoryCreate, db: Session = Depends(ge
         "batch_number": "BATCH-001",
         "quantity": 100,
         "storage_type": "cold",
+        "zona": "A1-3",
         "capacity": 500,
         "expiration_date": "2025-12-31"
     }
     ```
-    
+
     storage_type: "general", "cold", "ultra-cold"
+    zona: Physical location in warehouse (e.g., "A1-3", "B2-5")
     """
     return create(db, inventory)
 

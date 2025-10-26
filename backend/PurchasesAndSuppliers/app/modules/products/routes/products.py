@@ -33,6 +33,7 @@ def list_products(page: int = 1, limit: int = 10, db: Session = Depends(get_db))
 import os
 
 INVENTORY_SERVICE_URL = "http://warehouse:8003/inventario/"
+WAREHOUSE_SERVICE_URL = "http://warehouse:8003/bodegas/"
 
 
 
@@ -57,31 +58,45 @@ async def obtener_localizacion_producto(
 
     try:
         async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
-            response = await client.get(INVENTORY_SERVICE_URL)
+            inventory_response = await client.get(INVENTORY_SERVICE_URL)
 
-        if response.status_code != 200:
-            raise HTTPException(status_code=500, detail="Error al consultar el servicio de inventario.")
+            if inventory_response.status_code != 200:
+                raise HTTPException(status_code=500, detail="Error al consultar el servicio de inventario.")
 
-        data = response.json()
-        inventarios = data.get("data", [])
+            inventory_data = inventory_response.json()
+            inventarios = inventory_data.get("data", [])
 
-        # Busca el producto por product_id
-        for item in inventarios:
-            if item.get("product_id") == sku:
-                return {
-                    "sku": sku,
-                    "bodega": item.get("warehouse_id", ""),
-                    "zona": item.get("storage_type", ""),  # puedes ajustar si tienes otro campo para zona
-                    "encontrado": True
-                }
+            # Busca el producto por product_id
+            for item in inventarios:
+                if item.get("product_id") == sku:
+                    warehouse_id = item.get("warehouse_id", "")
 
-        # Si no lo encontró
-        return {
-            "sku": sku,
-            "bodega": "",
-            "zona": "",
-            "encontrado": False
-        }
+                    # Fetch warehouse name
+                    warehouse_name = warehouse_id
+                    if warehouse_id:
+                        try:
+                            warehouse_response = await client.get(f"{WAREHOUSE_SERVICE_URL}{warehouse_id}")
+                            if warehouse_response.status_code == 200:
+                                warehouse_data = warehouse_response.json()
+                                warehouse_name = warehouse_data.get("nombre", warehouse_id)
+                        except Exception:
+                            # If warehouse fetch fails, use ID as fallback
+                            warehouse_name = warehouse_id
+
+                    return {
+                        "sku": sku,
+                        "bodega": warehouse_name,
+                        "zona": item.get("zona", ""),
+                        "encontrado": True
+                    }
+
+            # Si no lo encontró
+            return {
+                "sku": sku,
+                "bodega": "",
+                "zona": "",
+                "encontrado": False
+            }
 
     except httpx.ConnectError:
         raise HTTPException(status_code=500, detail="No se pudo conectar al servicio de inventario.")
@@ -105,13 +120,25 @@ async def obtener_localizacion_en_bodega(
 
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
-            response = await client.get(INVENTORY_SERVICE_URL)
+            # Fetch inventory data
+            inventory_response = await client.get(INVENTORY_SERVICE_URL)
 
-        if response.status_code != 200:
-            raise HTTPException(status_code=500, detail="Error al consultar el servicio de inventario.")
+            if inventory_response.status_code != 200:
+                raise HTTPException(status_code=500, detail="Error al consultar el servicio de inventario.")
 
-        data = response.json()
-        items = data.get("data", [])
+            # Fetch warehouse name
+            warehouse_response = await client.get(f"{WAREHOUSE_SERVICE_URL}{bodegaId}")
+
+            if warehouse_response.status_code == 404:
+                raise HTTPException(status_code=404, detail="Bodega no encontrada.")
+            elif warehouse_response.status_code != 200:
+                raise HTTPException(status_code=500, detail="Error al consultar el servicio de bodegas.")
+
+        inventory_data = inventory_response.json()
+        items = inventory_data.get("data", [])
+
+        warehouse_data = warehouse_response.json()
+        warehouse_name = warehouse_data.get("nombre", bodegaId)
 
         # Buscar producto en la bodega indicada
         producto_en_bodega = next(
@@ -119,15 +146,11 @@ async def obtener_localizacion_en_bodega(
             None
         )
 
-        # Si la bodega no existe
-        if not any(item["warehouse_id"] == bodegaId for item in items):
-            raise HTTPException(status_code=404, detail="Bodega no encontrada.")
-
         # Si el producto no está en la bodega
         if not producto_en_bodega:
             return {
                 "sku": sku,
-                "bodega": bodegaId,
+                "bodega": warehouse_name,
                 "zona": "",
                 "encontrado": False
             }
@@ -135,13 +158,15 @@ async def obtener_localizacion_en_bodega(
         # Producto encontrado
         return {
             "sku": sku,
-            "bodega": bodegaId,
-            "zona": producto_en_bodega.get("storage_type", ""),
+            "bodega": warehouse_name,
+            "zona": producto_en_bodega.get("zona", ""),
             "encontrado": True
         }
 
     except httpx.ConnectError:
         raise HTTPException(status_code=500, detail="No se pudo conectar al servicio de inventario.")
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error interno del servidor: {str(e)}")
 

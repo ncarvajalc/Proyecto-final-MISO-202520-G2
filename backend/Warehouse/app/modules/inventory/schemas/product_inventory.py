@@ -9,6 +9,7 @@ class ProductInventoryBase(BaseModel):
     batch_number: str
     quantity: int = Field(ge=0, description="Cantidad debe ser mayor o igual a 0")
     storage_type: str = Field(..., description="Tipo: general, cold, ultra-cold")
+    zona: Optional[str] = Field(None, description="Ubicación física en bodega (ej: Z4-2, A1-5)")
     capacity: Optional[int] = Field(None, ge=0)
     expiration_date: Optional[date] = None
 
@@ -23,6 +24,7 @@ class ProductInventoryUpdate(BaseModel):
     batch_number: Optional[str] = None
     quantity: Optional[int] = Field(None, ge=0)
     storage_type: Optional[str] = None
+    zona: Optional[str] = None
     capacity: Optional[int] = Field(None, ge=0)
     expiration_date: Optional[date] = None
 

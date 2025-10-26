@@ -13,6 +13,7 @@ class ProductInventory(Base):
     batch_number = Column(String(255), nullable=False, index=True)
     quantity = Column(Integer, nullable=False, default=0)
     storage_type = Column(String(50), nullable=False)  # general, cold, ultra-cold
+    zona = Column(String(50), nullable=True)  # Physical location/zone in warehouse (e.g., "Z4-2", "A1-5")
     capacity = Column(Integer, nullable=True)
     expiration_date = Column(Date, nullable=True)
     created_at = Column(TIMESTAMP, server_default=func.now())
