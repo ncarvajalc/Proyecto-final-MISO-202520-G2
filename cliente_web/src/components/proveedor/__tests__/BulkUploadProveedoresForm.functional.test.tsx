@@ -1,6 +1,5 @@
 import { faker } from "@faker-js/faker";
 import { fireEvent, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/services/proveedores.service", () => ({
@@ -28,8 +27,6 @@ describe("BulkUploadProveedoresForm - Functional", () => {
   });
 
   it("muestra un error cuando el archivo no es CSV", async () => {
-    const user = userEvent.setup();
-
     renderWithQueryClient(
       <BulkUploadProveedoresForm open={true} onOpenChange={vi.fn()} />
     );
