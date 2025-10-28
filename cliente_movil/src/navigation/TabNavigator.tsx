@@ -4,7 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { CarteraScreen } from "../modules/cartera/screens/CarteraScreen";
 import { RutasScreen } from "../modules/rutas/screens/RutasScreen";
 import { VisitStackNavigator } from "../modules/visitas/navigation/VisitStackNavigator";
-import { ProductosScreen } from "../modules/productos/screens/ProductosScreen";
+import { ProductStackNavigator } from "../modules/productos/navigation/ProductStackNavigator";
 import { PedidosScreen } from "../modules/pedidos/screens/PedidosScreen";
 import { EntregasScreen } from "../modules/entregas/screens/EntregasScreen";
 
@@ -70,13 +70,14 @@ export const TabNavigator: React.FC = () => {
       />
       <Tab.Screen
         name="Productos"
-        component={ProductosScreen}
+        component={ProductStackNavigator}
         options={{
           title: "Productos",
           tabBarLabel: "Productos",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="cart" size={size} color={color} />
           ),
+          headerShown: false,
         }}
       />
       <Tab.Screen

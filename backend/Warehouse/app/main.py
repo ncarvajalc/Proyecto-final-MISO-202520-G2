@@ -3,8 +3,12 @@ from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
 
 from app.core.database import SessionLocal
+from app.modules.inventory.routes import inventory
 
-app = FastAPI()
+app = FastAPI(title="Warehouse Service")
+
+# Include routers
+app.include_router(inventory.router)
 
 
 @app.get("/health", tags=["health"])
@@ -19,4 +23,4 @@ def healthcheck():
 
 @app.get("/")
 def read_root():
-    return {"message": "Hello from FastAPI on Cloud Run!"}
+    return {"message": "Warehouse Service - Inventory Management"}

@@ -13,6 +13,9 @@ PREFIX_ROUTES: Dict[str, str] = {
     "/productos": "http://purchases_suppliers:8001",
     "/planes-venta": "http://salesforce:8004",
     "/vendedores": "http://salesforce:8004",
+    "/visitas": "http://salesforce:8004",
+    "/institutional-clients": "http://salesforce:8004",
+    "/inventario": "http://warehouse:8003",
 }
 
 HEALTH_ENDPOINTS: Dict[str, str] = {
@@ -136,6 +139,7 @@ async def proxy(full_path: str, request: Request) -> Response:
             target_url,
             content=body,
             headers=headers,
+            follow_redirects=False,
         )
     except httpx.RequestError as exc:  # pragma: no cover - network failure path
         raise HTTPException(status_code=502, detail=f"Upstream request failed: {exc}") from exc
@@ -160,6 +164,14 @@ async def proxy(full_path: str, request: Request) -> Response:
     for key, value in upstream_response.headers.multi_items():
         if key.lower() in excluded_headers:
             continue
+        # Rewrite Location header for redirects to use gateway URL instead of internal service URLs
+        if key.lower() == "location":
+            # Replace internal service URLs with gateway URL
+            for internal_prefix, internal_url in PREFIX_ROUTES.items():
+                if value.startswith(internal_url):
+                    # Replace internal URL with gateway URL (localhost:8080)
+                    value = value.replace(internal_url, "http://localhost:8080")
+                    break
         proxied_response.headers.append(key, value)
 
     return proxied_response
