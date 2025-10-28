@@ -1,6 +1,7 @@
 import { toast } from "sonner";
 
 import { createCsvBulkUploadForm } from "@/components/common/createCsvBulkUploadForm";
+import { showBulkUploadError } from "@/components/common/bulkUploadNotifications";
 import { bulkUploadProductos } from "@/services/productos.service";
 
 const PRODUCTOS_TEMPLATE = `sku,nombre,descripcion,precio,especificaciones,urlManual,urlHojaInstalacion,certificaciones
@@ -42,10 +43,6 @@ export const BulkUploadProductosForm = createCsvBulkUploadForm({
       });
     }
   },
-  onError: (error: Error & { detail?: string }) => {
-    toast.error("Error en carga masiva", {
-      description: error.detail ?? error.message,
-    });
-  },
+  onError: showBulkUploadError,
   queryKey: "productos",
 });

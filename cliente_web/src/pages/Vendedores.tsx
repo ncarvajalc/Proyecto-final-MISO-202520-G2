@@ -7,17 +7,19 @@ import { Plus, FileText, Loader2 } from "lucide-react";
 import { CreateVendedorForm } from "@/components/vendedor/CreateVendedorForm";
 import { AsignacionesModal } from "@/components/vendedor/AsignacionesModal";
 import type { Vendedor } from "@/types/vendedor";
-import { PageHeader, PageStateMessage } from "@/components/common/PageLayout";
-import { usePaginatedResource } from "@/hooks/usePaginatedResource";
-import {
-  PaginatedTable,
-  PaginationControls,
-} from "@/components/common/PaginatedTable";
+import { ResourcePageLayout } from "@/components/common/ResourcePageLayout";
+import { ResourcePageActionButton } from "@/components/common/ResourcePageActionButton";
+import { useResourcePageData } from "@/hooks/useResourcePageData";
+import { useDialogState } from "@/hooks/useDialogState";
 
-const ITEMS_PER_PAGE = 5;
+const VENDEDORES_ITEMS_PER_PAGE = 5;
 
 export default function Vendedores() {
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const {
+    isOpen: isCreateDialogOpen,
+    setIsOpen: setIsCreateDialogOpen,
+    openDialog: openCreateDialog,
+  } = useDialogState();
   const [isAsignacionesModalOpen, setIsAsignacionesModalOpen] = useState(false);
   const [selectedVendedor, setSelectedVendedor] = useState<Vendedor | null>(
     null
@@ -26,18 +28,16 @@ export default function Vendedores() {
     null
   );
 
-  const {
-    data,
-    isLoading,
-    isError,
-    currentPage,
-    setCurrentPage,
-    totalPages,
-  } = usePaginatedResource("vendedores", getVendedores, ITEMS_PER_PAGE);
+  const vendedoresPage = useResourcePageData<Vendedor>({
+    resourceKey: "vendedores",
+    fetcher: getVendedores,
+    itemsPerPage: VENDEDORES_ITEMS_PER_PAGE,
+  });
+  const { data, layoutConfig } = vendedoresPage;
 
   // Button handlers
   const handleNuevoVendedor = () => {
-    setIsCreateDialogOpen(true);
+    openCreateDialog();
   };
 
   const handleOpenAsignaciones = async (vendedor: Vendedor) => {
@@ -55,84 +55,86 @@ export default function Vendedores() {
     }
   };
 
-  if (isLoading) {
-    return <PageStateMessage message="Cargando vendedores..." />;
-  }
-
-  if (isError) {
-    return (
-      <PageStateMessage
-        message="Error al cargar los vendedores"
-        variant="error"
-      />
-    );
-  }
+  const layoutProps = {
+    title: "Vendedores",
+    actions: (
+      <ResourcePageActionButton
+        onClick={handleNuevoVendedor}
+        icon={<Plus className="h-4 w-4" />}
+      >
+        Nuevo vendedor
+      </ResourcePageActionButton>
+    ),
+    loadingMessage: "Cargando vendedores...",
+    errorMessage: "Error al cargar los vendedores",
+    state: layoutConfig.state,
+    table: buildVendedorTable({
+      data: data?.data,
+      onViewAssignments: handleOpenAsignaciones,
+      loadingId: loadingVendedorId,
+    }),
+    pagination: layoutConfig.pagination,
+  };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <PageHeader
-        title="Vendedores"
-        actions={
-          <Button onClick={handleNuevoVendedor}>
-            <Plus className="h-4 w-4" />
-            Nuevo vendedor
-          </Button>
-        }
-      />
-
-      <PaginatedTable
-        columns={[
-          { key: "id", header: "ID" },
-          { key: "nombre", header: "Nombre" },
-          { key: "correo", header: "Correo" },
-          { key: "plan", header: "Plan de venta", className: "text-center" },
-        ]}
-        data={data?.data}
-        emptyMessage="No hay vendedores disponibles"
-        renderRow={(vendedor) => (
-          <TableRow key={vendedor.id}>
-            <TableCell className="font-medium">{vendedor.id}</TableCell>
-            <TableCell>{vendedor.nombre}</TableCell>
-            <TableCell>{vendedor.correo}</TableCell>
-            <TableCell className="text-center">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleOpenAsignaciones(vendedor)}
-                className="h-8 w-8 p-0"
-                disabled={loadingVendedorId === vendedor.id}
-              >
-                {loadingVendedorId === vendedor.id ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <FileText className="h-4 w-4" />
-                )}
-                <span className="sr-only">Ver asignaciones</span>
-              </Button>
-            </TableCell>
-          </TableRow>
-        )}
-      />
-
-      <PaginationControls
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={setCurrentPage}
-      />
-
-      {/* Create Vendedor Dialog */}
+    <ResourcePageLayout<Vendedor> {...layoutProps}>
       <CreateVendedorForm
         open={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
       />
 
-      {/* Asignaciones Modal */}
       <AsignacionesModal
         open={isAsignacionesModalOpen}
         onOpenChange={setIsAsignacionesModalOpen}
         vendedor={selectedVendedor}
       />
-    </div>
+    </ResourcePageLayout>
   );
+}
+
+interface VendedorTableConfig {
+  data?: Vendedor[];
+  onViewAssignments: (vendedor: Vendedor) => void;
+  loadingId: string | null;
+}
+
+function buildVendedorTable({
+  data,
+  onViewAssignments,
+  loadingId,
+}: VendedorTableConfig) {
+  return {
+    columns: [
+      { key: "id", header: "ID", className: "w-[280px]" },
+      { key: "nombre", header: "Nombre" },
+      { key: "correo", header: "Correo" },
+      { key: "acciones", header: "Acciones", className: "w-[140px]" },
+    ],
+    data,
+    emptyMessage: "No hay vendedores registrados",
+    renderRow: (vendedor: Vendedor) => (
+      <TableRow key={vendedor.id}>
+        <TableCell className="font-mono text-xs">{vendedor.id}</TableCell>
+        <TableCell className="font-medium">{vendedor.nombre}</TableCell>
+        <TableCell>{vendedor.correo}</TableCell>
+        <TableCell>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-2"
+            onClick={() => onViewAssignments(vendedor)}
+            disabled={loadingId === vendedor.id}
+          >
+            {loadingId === vendedor.id ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <FileText className="h-4 w-4" />
+            )}
+            Ver asignaciones
+          </Button>
+        </TableCell>
+      </TableRow>
+    ),
+  };
 }

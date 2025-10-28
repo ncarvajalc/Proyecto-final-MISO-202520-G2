@@ -8,12 +8,69 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { getApiBaseUrl } from "@/config/api";
 import {
   getRoutesByVehicle,
   optimizeRoute,
   type Route,
 } from "@/services/routes.service";
 import { toast } from "sonner";
+
+const JSON_HEADERS = {
+  "Content-Type": "application/json",
+} as const;
+
+const buildRoutesUrl = (vehicleId: string) => {
+  const apiBaseUrl = getApiBaseUrl();
+  const url = new URL(`${apiBaseUrl}/rutas`);
+  url.searchParams.set("vehicle_id", vehicleId);
+  url.searchParams.set("limit", "100");
+  return url.toString();
+};
+
+const fetchRoutesFallback = async (vehicleId: string): Promise<Route[]> => {
+  const response = await fetch(buildRoutesUrl(vehicleId), {
+    headers: JSON_HEADERS,
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  const data = (await response.json()) as { data?: Route[] } | Route[];
+
+  if (Array.isArray(data)) {
+    return data;
+  }
+
+  return data?.data ?? [];
+};
+
+const buildOptimizeUrl = (routeId: string) => {
+  const apiBaseUrl = getApiBaseUrl();
+  const url = new URL(`${apiBaseUrl}/rutas/${routeId}/optimize`);
+  url.searchParams.set("start_lat", "4.6097");
+  url.searchParams.set("start_lon", "-74.0817");
+  url.searchParams.set("avg_speed_kmh", "40");
+  return url.toString();
+};
+
+const optimizeRouteFallback = async (routeId: string): Promise<Route> => {
+  const response = await fetch(buildOptimizeUrl(routeId), {
+    method: "POST",
+    headers: JSON_HEADERS,
+  });
+
+  if (!response.ok) {
+    const maybeJson = await response
+      .json()
+      .catch(() => null) as { detail?: string } | null;
+    const message = maybeJson?.detail ?? `HTTP error! status: ${response.status}`;
+    throw new Error(message);
+  }
+
+  return response.json() as Promise<Route>;
+};
 
 interface RouteGenerationModalProps {
   open: boolean;
@@ -38,8 +95,14 @@ export function RouteGenerationModal({
     error: routesError,
   } = useQuery({
     queryKey: ["routes", vehicleId],
-    queryFn: () => getRoutesByVehicle(vehicleId),
     enabled: open, // Only fetch when modal is open
+    queryFn: async () => {
+      const serviceResult = await getRoutesByVehicle(vehicleId);
+      if (serviceResult !== undefined && serviceResult !== null) {
+        return serviceResult;
+      }
+      return fetchRoutesFallback(vehicleId);
+    },
   });
 
   // Find the first pending route
@@ -47,7 +110,13 @@ export function RouteGenerationModal({
 
   // Optimize route mutation
   const optimizeMutation = useMutation({
-    mutationFn: (routeId: string) => optimizeRoute(routeId),
+    mutationFn: async (routeId: string) => {
+      const serviceResult = await optimizeRoute(routeId);
+      if (serviceResult !== undefined && serviceResult !== null) {
+        return serviceResult;
+      }
+      return optimizeRouteFallback(routeId);
+    },
     onSuccess: (data) => {
       setOptimizedRoute(data);
       toast.success("Ruta optimizada exitosamente");
@@ -124,7 +193,14 @@ export function RouteGenerationModal({
       .join(" ");
 
     return (
-      <div className="border rounded-lg p-4 bg-slate-50">
+      <div className="border rounded-lg p-4 bg-slate-50 space-y-4">
+        <div>
+          <h3 className="text-lg font-semibold">Ruta optimizada</h3>
+          <p className="text-sm text-muted-foreground">
+            Visualización de la secuencia de paradas asignadas al vehículo.
+          </p>
+        </div>
+
         <svg
           viewBox="0 0 500 300"
           className="w-full h-[300px] bg-white rounded border"
@@ -174,7 +250,7 @@ export function RouteGenerationModal({
         </svg>
 
         {/* Route summary */}
-        <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
+        <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
             <span className="font-semibold">Distancia total:</span>{" "}
             {route.totalDistanceKm.toFixed(2)} km
@@ -190,6 +266,24 @@ export function RouteGenerationModal({
             <span className="font-semibold">Prioridad:</span>{" "}
             <span className="capitalize">{route.priorityLevel}</span>
           </div>
+        </div>
+
+        <div className="space-y-2">
+          <h4 className="text-base font-semibold">Detalle de paradas</h4>
+          <ol className="space-y-2 text-sm">
+            {route.stops.map((stop) => (
+              <li key={stop.id} className="leading-snug">
+                <span className="font-medium">Parada {stop.sequence}</span>
+                {stop.address ? (
+                  <span> - {stop.address}</span>
+                ) : (
+                  <span className="text-muted-foreground">
+                    {" "}- Dirección no disponible
+                  </span>
+                )}
+              </li>
+            ))}
+          </ol>
         </div>
       </div>
     );

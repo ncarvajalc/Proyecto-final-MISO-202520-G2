@@ -9,6 +9,7 @@
 
 import type { VehiculosResponse, PaginationParams } from "@/types/logistica";
 import { getApiBaseUrl } from "@/config/api";
+import { fetchJsonOrThrow } from "@/services/utils/http";
 
 /**
  * Backend response type for vehicles endpoint
@@ -72,17 +73,7 @@ export const getVehiculos = async (
   const baseUrl = getApiBaseUrl();
   const url = `${baseUrl}/vehiculos?page=${page}&limit=${limit}`;
 
-  const response = await fetch(url, {
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
-  }
-
-  const responseData: BackendVehiculosResponse = await response.json();
+  const responseData = await fetchJsonOrThrow<BackendVehiculosResponse>(url);
 
   // Map backend response to frontend types
   // Backend uses snake_case (total_pages), frontend uses camelCase (totalPages)

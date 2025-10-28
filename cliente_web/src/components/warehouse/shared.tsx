@@ -104,7 +104,7 @@ export const LocationResultCard = ({
   </div>
 );
 
-interface WarehouseDialogActionsProps {
+export interface WarehouseDialogActionsProps {
   onCancel: () => void;
   onConfirm: () => void;
   canConfirm: boolean;

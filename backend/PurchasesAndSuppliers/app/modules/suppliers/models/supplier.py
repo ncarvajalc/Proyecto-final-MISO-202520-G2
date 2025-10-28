@@ -9,9 +9,13 @@ from pydantic import (
     EmailStr,
     Field,
     HttpUrl,
+    TypeAdapter,
     ValidationError,
     field_validator,
 )
+
+
+_http_url_adapter = TypeAdapter(HttpUrl)
 
 
 class SupplierCertificate(BaseModel):
@@ -21,14 +25,29 @@ class SupplierCertificate(BaseModel):
     cuerpoCertificador: str = ""
     fechaCertificacion: str = ""
     fechaVencimiento: str = ""
-    urlDocumento: Optional[HttpUrl] = None
+    urlDocumento: Optional[str] = None
 
     @field_validator("urlDocumento", mode="before")
-    def _allow_blank_url(cls, value: Optional[str]):  # noqa: D401
-        """Allow optional URL fields to be blank without raising validation errors."""
+    def _strip_and_allow_blank(cls, value: Optional[str]):  # noqa: D401
+        """Normalize optional URL values, preserving blanks as ``None``."""
 
-        if value in (None, "", " "):
+        if value is None:
             return None
+
+        if isinstance(value, str):
+            stripped = value.strip()
+            return stripped or None
+
+        return value
+
+    @field_validator("urlDocumento")
+    def _validate_url(cls, value: Optional[str]):  # noqa: D401
+        """Ensure the provided URL is valid without altering its formatting."""
+
+        if value is None:
+            return None
+
+        _http_url_adapter.validate_python(value)
         return value
 
     def is_empty(self) -> bool:
@@ -55,7 +74,7 @@ class SupplierCertificate(BaseModel):
             "cuerpoCertificador": self.cuerpoCertificador,
             "fechaCertificacion": self.fechaCertificacion,
             "fechaVencimiento": self.fechaVencimiento,
-            "urlDocumento": str(self.urlDocumento) if self.urlDocumento else "",
+            "urlDocumento": self.urlDocumento or "",
         }
 
 
@@ -109,7 +128,7 @@ class SupplierCreate(BaseModel):
             "certificado_fecha_vencimiento": certificate.fechaVencimiento
             if has_certificate
             else None,
-            "certificado_url": str(certificate.urlDocumento)
+            "certificado_url": certificate.urlDocumento
             if has_certificate and certificate.urlDocumento
             else None,
         }

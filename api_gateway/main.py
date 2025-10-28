@@ -1,5 +1,6 @@
 """Simple FastAPI-based API gateway for routing frontend traffic."""
 
+import asyncio
 from contextlib import asynccontextmanager
 from typing import Dict, Optional, Tuple
 
@@ -71,34 +72,47 @@ async def root() -> Dict[str, str]:
     return {"message": "API Gateway running"}
 
 
+HEALTHCHECK_TIMEOUT = httpx.Timeout(3.0, connect=1.0, read=2.0)
+
+
+async def _check_service_health(
+    client: httpx.AsyncClient, name: str, url: str
+) -> Tuple[str, Dict[str, object], bool]:
+    """Return the health payload for the given service without raising errors."""
+    try:
+        response = await client.get(url, timeout=HEALTHCHECK_TIMEOUT)
+    except httpx.RequestError as exc:  # pragma: no cover - network failure path
+        return name, {"status": "unreachable", "error": str(exc)}, False
+
+    try:
+        payload: object = response.json()
+    except ValueError:
+        payload = response.text
+
+    healthy = response.is_success
+    result: Dict[str, object] = {
+        "status": "ok" if healthy else "error",
+        "http_status": response.status_code,
+        "detail": payload,
+    }
+    return name, result, healthy
+
+
 @app.get("/health")
 async def healthcheck() -> Dict[str, object]:
     """Aggregate the health of upstream services."""
     client: httpx.AsyncClient = app.state.client
     services: Dict[str, Dict[str, object]] = {}
+
+    tasks = [
+        asyncio.create_task(_check_service_health(client, name, url))
+        for name, url in HEALTH_ENDPOINTS
+    ]
+
     all_ok = True
-
-    for name, url in HEALTH_ENDPOINTS:
-        try:
-            response = await client.get(url)
-            try:
-                payload: object = response.json()
-            except ValueError:
-                payload = response.text
-
-            healthy = response.is_success
-            services[name] = {
-                "status": "ok" if healthy else "error",
-                "http_status": response.status_code,
-                "detail": payload,
-            }
-            all_ok &= healthy
-        except httpx.RequestError as exc:  # pragma: no cover - network failure path
-            services[name] = {
-                "status": "unreachable",
-                "error": str(exc),
-            }
-            all_ok = False
+    for name, result, healthy in await asyncio.gather(*tasks):
+        services[name] = result
+        all_ok &= healthy
 
     return {"status": "ok" if all_ok else "degraded", "services": services}
 

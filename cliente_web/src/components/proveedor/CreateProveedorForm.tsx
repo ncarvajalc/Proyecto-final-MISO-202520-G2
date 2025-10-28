@@ -1,13 +1,9 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { toast } from "sonner";
 import { z } from "zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createProveedor } from "@/services/proveedores.service";
-import { FormActionButtons } from "@/components/forms/FormActionButtons";
-import { FormInputField } from "@/components/forms/FormInputField";
+import { InlineEntityDialog, renderFormFields } from "@/components/forms";
 import {
-  Form,
   FormControl,
   FormField,
   FormItem,
@@ -21,13 +17,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { useCreateEntityMutation } from "@/hooks/useCreateEntityMutation";
+import { optionalUrlField } from "@/lib/validation";
 
 // Zod validation schema based on acceptance criteria
 const formSchema = z.object({
@@ -61,13 +52,7 @@ const formSchema = z.object({
   certificadoCuerpo: z.string().optional(),
   certificadoFechaCertificacion: z.string().optional(),
   certificadoFechaVencimiento: z.string().optional(),
-  certificadoUrl: z
-    .string()
-    .url({
-      message: "Debe ser una URL válida",
-    })
-    .optional()
-    .or(z.literal("")),
+  certificadoUrl: optionalUrlField("Debe ser una URL válida"),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -137,6 +122,7 @@ const certificateFields: FieldConfig[] = [
   },
 ];
 
+
 interface CreateProveedorFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -146,26 +132,22 @@ export function CreateProveedorForm({
   open,
   onOpenChange,
 }: CreateProveedorFormProps) {
-  const queryClient = useQueryClient();
-
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues,
   });
 
-  const createMutation = useMutation({
+  const createMutation = useCreateEntityMutation<
+    Parameters<typeof createProveedor>[0],
+    Awaited<ReturnType<typeof createProveedor>>
+  >({
     mutationFn: createProveedor,
+    queryKey: ["proveedores"],
+    successMessage: "Proveedor creado exitosamente",
+    errorTitle: "Error al crear proveedor",
     onSuccess: () => {
-      toast.success("Proveedor creado exitosamente");
-      queryClient.invalidateQueries({ queryKey: ["proveedores"] });
       form.reset(defaultValues);
       onOpenChange(false);
-    },
-    onError: (error: Error & { detail?: string }) => {
-      const description = error.detail ?? error.message ?? "Error inesperado";
-      toast.error("Error al crear proveedor", {
-        description,
-      });
     },
   });
 
@@ -200,88 +182,58 @@ export function CreateProveedorForm({
     createMutation.mutate(proveedorData);
   }
 
+  const providerDialogProps = {
+    open,
+    onOpenChange,
+    form,
+    onSubmit,
+    isSubmitting: createMutation.isPending,
+    formClassName: "space-y-6",
+    title: "Crear proveedor",
+    description:
+      "Completa el formulario para registrar un proveedor y guardar su información en el sistema.",
+    descriptionId: "create-proveedor-description",
+    descriptionClassName: "sr-only",
+    contentClassName: "max-w-2xl max-h-[90vh] overflow-y-auto",
+  } as const;
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        aria-describedby="create-proveedor-description"
-        className="max-w-2xl max-h-[90vh] overflow-y-auto"
-      >
-        <DialogHeader>
-          <DialogTitle>Crear proveedor</DialogTitle>
-          <DialogDescription
-            id="create-proveedor-description"
-            className="sr-only"
-          >
-            Completa el formulario para registrar un proveedor y guardar su
-            información en el sistema.
-          </DialogDescription>
-        </DialogHeader>
+    <InlineEntityDialog<FormValues> {...providerDialogProps}>
+      {renderFormFields(form.control, basicFields, createMutation.isPending)}
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* Campos básicos requeridos */}
-            {basicFields.map(({ name, label, placeholder, type }) => (
-              <FormInputField
-                key={name}
-                control={form.control}
-                name={name}
-                label={label}
-                placeholder={placeholder}
-                type={type}
-                disabled={createMutation.isPending}
-              />
-            ))}
+      <FormField
+        control={form.control}
+        name="estado"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Estado</FormLabel>
+            <Select onValueChange={field.onChange} value={field.value}>
+              <FormControl>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecciona un estado" />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                <SelectItem value="Activo">Activo</SelectItem>
+                <SelectItem value="Inactivo">Inactivo</SelectItem>
+              </SelectContent>
+            </Select>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
 
-            <FormField
-              control={form.control}
-              name="estado"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Estado</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecciona un estado" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="Activo">Activo</SelectItem>
-                      <SelectItem value="Inactivo">Inactivo</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+      <div className="border-t pt-6">
+        <h3 className="mb-4 text-lg font-semibold">Certificado</h3>
 
-            {/* Certificado - Campos opcionales */}
-            <div className="pt-6 border-t">
-              <h3 className="text-lg font-semibold mb-4">Certificado</h3>
-
-              <div className="space-y-6">
-                {certificateFields.map(({ name, label, placeholder, type }) => (
-                  <FormInputField
-                    key={name}
-                    control={form.control}
-                    name={name}
-                    label={label}
-                    placeholder={placeholder}
-                    type={type}
-                    disabled={createMutation.isPending}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* Buttons */}
-            <FormActionButtons
-              layout="inline"
-              isSubmitting={createMutation.isPending}
-              onCancel={() => onOpenChange(false)}
-            />
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+        <div className="space-y-6">
+          {renderFormFields(
+            form.control,
+            certificateFields,
+            createMutation.isPending
+          )}
+        </div>
+      </div>
+    </InlineEntityDialog>
   );
 }

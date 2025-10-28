@@ -43,35 +43,46 @@ export interface UserProfile {
  * @returns AuthResponse with token, user info, and permissions
  * @throws Error if login fails
  */
-export const login = async (
-  credentials: LoginCredentials
-): Promise<AuthResponse> => {
-  const apiBaseUrl = getApiBaseUrl();
+const API_BASE_URL = getApiBaseUrl();
+
+async function requestJson<T>(
+  path: string,
+  init: RequestInit,
+  defaultErrorMessage: string
+): Promise<T> {
   try {
-    const response = await fetch(`${apiBaseUrl}/auth/login`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(credentials),
-    });
+    const response = await fetch(`${API_BASE_URL}${path}`, init);
 
     if (!response.ok) {
       const error = await response
         .json()
-        .catch(() => ({ detail: "Login failed" }));
-      throw new Error(error.detail || "Login failed");
+        .catch(() => ({ detail: defaultErrorMessage }));
+      throw new Error(error.detail || defaultErrorMessage);
     }
 
-    const data: AuthResponse = await response.json();
-    return data;
+    return response.json();
   } catch (error) {
     if (error instanceof Error) {
       throw error;
     }
     throw new Error("Error de conexión con el servidor");
   }
-};
+}
+
+export const login = async (
+  credentials: LoginCredentials
+): Promise<AuthResponse> =>
+  requestJson<AuthResponse>(
+    "/auth/login",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(credentials),
+    },
+    "Login failed"
+  );
 
 /**
  * Validate JWT token
@@ -112,29 +123,14 @@ export const validateToken = async (token: string): Promise<boolean> => {
  * @returns User profile with permissions
  * @throws Error if request fails
  */
-export const getCurrentUser = async (token: string): Promise<UserProfile> => {
-  const apiBaseUrl = getApiBaseUrl();
-  try {
-    const response = await fetch(`${apiBaseUrl}/auth/me`, {
+export const getCurrentUser = async (token: string): Promise<UserProfile> =>
+  requestJson<UserProfile>(
+    "/auth/me",
+    {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,
       },
-    });
-
-    if (!response.ok) {
-      const error = await response
-        .json()
-        .catch(() => ({ detail: "Failed to get user profile" }));
-      throw new Error(error.detail || "Failed to get user profile");
-    }
-
-    const data: UserProfile = await response.json();
-    return data;
-  } catch (error) {
-    if (error instanceof Error) {
-      throw error;
-    }
-    throw new Error("Error de conexión con el servidor");
-  }
-};
+    },
+    "Failed to get user profile"
+  );

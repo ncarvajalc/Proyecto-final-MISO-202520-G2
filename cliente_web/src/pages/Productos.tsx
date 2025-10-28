@@ -4,22 +4,19 @@ import { TableCell, TableRow } from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import { getProductos } from "@/services/productos.service";
+import type { Producto } from "@/types/producto";
 import { Plus, Upload, ShoppingBag } from "lucide-react";
 import { CreateProductoForm } from "@/components/producto/CreateProductoForm";
 import { BulkUploadProductosForm } from "@/components/producto/BulkUploadProductosForm";
 import { ProductLocationForm } from "@/components/warehouse/ProductLocationForm";
 import { ProductWarehouseLocationForm } from "@/components/warehouse/ProductWarehouseLocationForm";
-import { PageHeader, PageStateMessage } from "@/components/common/PageLayout";
+import { ResourcePageLayout } from "@/components/common/ResourcePageLayout";
 import { usePaginatedResource } from "@/hooks/usePaginatedResource";
-import {
-  PaginatedTable,
-  PaginationControls,
-} from "@/components/common/PaginatedTable";
 
 const ITEMS_PER_PAGE = 5;
 
@@ -64,44 +61,30 @@ export default function Productos() {
     setIsWarehouseLocationDialogOpen(true);
   };
 
-  if (isLoading) {
-    return <PageStateMessage message="Cargando productos..." />;
-  }
-
-  if (isError) {
-    return (
-      <PageStateMessage
-        message="Error al cargar los productos"
-        variant="error"
-      />
-    );
-  }
-
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <PageHeader
-        title="Productos"
-        actions={
-          <>
-            <Button onClick={handleNuevoProducto}>
-              <Plus className="h-4 w-4" />
-              Nuevo producto
-            </Button>
-            <Button onClick={handleCargaMasiva} variant="darker">
-              <Upload className="h-4 w-4" />
-              Carga masiva
-            </Button>
-            <Button onClick={handleStock} variant="lighter">
-              <ShoppingBag className="h-4 w-4" />
-              Stock
-            </Button>
-          </>
-        }
-      />
-
-      <PaginatedTable
-        columns={[
+    <ResourcePageLayout<Producto>
+      title="Productos"
+      actions={
+        <>
+          <Button onClick={handleNuevoProducto}>
+            <Plus className="h-4 w-4" />
+            Nuevo producto
+          </Button>
+          <Button onClick={handleCargaMasiva} variant="darker">
+            <Upload className="h-4 w-4" />
+            Carga masiva
+          </Button>
+          <Button onClick={handleStock} variant="lighter">
+            <ShoppingBag className="h-4 w-4" />
+            Stock
+          </Button>
+        </>
+      }
+      loadingMessage="Cargando productos..."
+      errorMessage="Error al cargar los productos"
+      state={{ isLoading, isError }}
+      table={{
+        columns: [
           { key: "sku", header: "SKU" },
           { key: "nombre", header: "Nombre" },
           { key: "descripcion", header: "Descripción" },
@@ -109,10 +92,10 @@ export default function Productos() {
           { key: "especificaciones", header: "Especificaciones" },
           { key: "hoja", header: "Hoja Técnica" },
           { key: "activo", header: "¿Activo?" },
-        ]}
-        data={data?.data}
-        emptyMessage="No hay productos disponibles"
-        renderRow={(producto) => (
+        ],
+        data: data?.data,
+        emptyMessage: "No hay productos disponibles",
+        renderRow: (producto) => (
           <TableRow key={producto.id}>
             <TableCell className="font-medium">{producto.sku}</TableCell>
             <TableCell>{producto.nombre}</TableCell>
@@ -172,28 +155,24 @@ export default function Productos() {
             </TableCell>
             <TableCell>{producto.activo ? "Sí" : "No"}</TableCell>
           </TableRow>
-        )}
-      />
-
-      <PaginationControls
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={setCurrentPage}
-      />
-
-      {/* Create Producto Dialog */}
+        ),
+      }}
+      pagination={{
+        currentPage,
+        totalPages,
+        onPageChange: setCurrentPage,
+      }}
+    >
       <CreateProductoForm
         open={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
       />
 
-      {/* Bulk Upload Productos Dialog */}
       <BulkUploadProductosForm
         open={isBulkUploadDialogOpen}
         onOpenChange={setIsBulkUploadDialogOpen}
       />
 
-      {/* Stock Queries Dialog */}
       <Dialog open={isStockDialogOpen} onOpenChange={setIsStockDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -225,17 +204,15 @@ export default function Productos() {
         </DialogContent>
       </Dialog>
 
-      {/* Product Location Form */}
       <ProductLocationForm
         open={isProductLocationDialogOpen}
         onOpenChange={setIsProductLocationDialogOpen}
       />
 
-      {/* Product Warehouse Location Form */}
       <ProductWarehouseLocationForm
         open={isWarehouseLocationDialogOpen}
         onOpenChange={setIsWarehouseLocationDialogOpen}
       />
-    </div>
+    </ResourcePageLayout>
   );
 }
