@@ -16,10 +16,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-Base.metadata.create_all(bind=engine)
-
 # Include routers
 app.include_router(inventory.router)
+
+# Create database tables after models are imported
+Base.metadata.create_all(bind=engine)
 
 
 @app.get("/health", tags=["health"])
