@@ -38,6 +38,14 @@ async def bulk_upload_suppliers(
         return process_bulk_upload(db, file)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except Exception as exc:
+        # Log the full exception for debugging
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error interno procesando el archivo: {str(exc)}"
+        ) from exc
 
 
 @router.get("")
