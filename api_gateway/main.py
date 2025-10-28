@@ -1,6 +1,7 @@
 """Simple FastAPI-based API gateway for routing frontend traffic."""
-from __future__ import annotations
 
+import asyncio
+from contextlib import asynccontextmanager
 from typing import Dict, Optional, Tuple
 
 import httpx
@@ -38,17 +39,15 @@ HEALTH_ENDPOINTS: Tuple[Tuple[str, str], ...] = (
     ("tracking", "https://tracking-212820187078.us-central1.run.app/health"),
 )
 
-SUPPORTED_METHODS = [
-    "GET",
-    "POST",
-    "PUT",
-    "PATCH",
-    "DELETE",
-    "OPTIONS",
-    "HEAD",
-]
 
-app = FastAPI(title="MISO API Gateway")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        app.state.client = client
+        yield
+
+
+app = FastAPI(title="MISO API Gateway", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -57,22 +56,36 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-@app.on_event("startup")
-async def _startup() -> None:
-    app.state.client = httpx.AsyncClient(timeout=30.0)
-
-
-@app.on_event("shutdown")
-async def _shutdown() -> None:
-    client: httpx.AsyncClient = app.state.client
-    await client.aclose()
-
-
 @app.get("/")
 async def root() -> Dict[str, str]:
     """Return a simple message indicating the gateway is running."""
     return {"message": "API Gateway running"}
+
+
+HEALTHCHECK_TIMEOUT = httpx.Timeout(3.0, connect=1.0, read=2.0)
+
+
+async def _check_service_health(
+    client: httpx.AsyncClient, name: str, url: str
+) -> Tuple[str, Dict[str, object], bool]:
+    """Return the health payload for the given service without raising errors."""
+    try:
+        response = await client.get(url, timeout=HEALTHCHECK_TIMEOUT)
+    except httpx.RequestError as exc:  # pragma: no cover - network failure path
+        return name, {"status": "unreachable", "error": str(exc)}, False
+
+    try:
+        payload: object = response.json()
+    except ValueError:
+        payload = response.text
+
+    healthy = response.is_success
+    result: Dict[str, object] = {
+        "status": "ok" if healthy else "error",
+        "http_status": response.status_code,
+        "detail": payload,
+    }
+    return name, result, healthy
 
 
 @app.get("/health")
@@ -80,7 +93,6 @@ async def healthcheck() -> Dict[str, object]:
     """Aggregate the health of upstream services."""
     client: httpx.AsyncClient = app.state.client
     services: Dict[str, Dict[str, object]] = {}
-    all_ok = True
 
     for name, url in HEALTH_ENDPOINTS:
         try:
@@ -105,13 +117,13 @@ async def healthcheck() -> Dict[str, object]:
             }
             all_ok = False
 
+    all_ok = True
+    for name, result, healthy in await asyncio.gather(*tasks):
+        services[name] = result
+        all_ok &= healthy
+
     return {"status": "ok" if all_ok else "degraded", "services": services}
 
-
-def _resolve_upstream(path: str) -> Optional[Tuple[str, str]]:
-    """Return the matching prefix and upstream base URL for a given path."""
-    if not path.startswith("/"):
-        path = f"/{path}"
 
     # PREFIX_ROUTES is already sorted with longer prefixes first
     for prefix, upstream in PREFIX_ROUTES:
@@ -120,22 +132,19 @@ def _resolve_upstream(path: str) -> Optional[Tuple[str, str]]:
     return None
 
 
-@app.api_route("/{full_path:path}", methods=SUPPORTED_METHODS)
+@app.api_route(
+    "/{full_path:path}",
+    methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
+)
 async def proxy(full_path: str, request: Request) -> Response:
     """Proxy any request matching the configured prefixes to the upstream service."""
-    resolved = _resolve_upstream(f"/{full_path}")
-    if resolved is None:
-        raise HTTPException(status_code=404, detail="No upstream service configured for path")
+    upstream = _resolve_upstream(f"/{full_path}")
+    if upstream is None:
+        raise HTTPException(
+            status_code=404, detail="No upstream service configured for path"
+        )
 
-    prefix, upstream = resolved
-    prefix_without_leading = prefix[1:] if prefix.startswith("/") else prefix
-    suffix = full_path[len(prefix_without_leading) :] if prefix_without_leading else full_path
-    suffix = suffix or ""
-    if suffix and not suffix.startswith("/"):
-        suffix = f"/{suffix}"
-    # Ensure we keep the full original path including the prefix
-    target_path = f"{prefix}{suffix}"
-    target_url = f"{upstream}{target_path}"
+    target_url = f"{upstream}{request.url.path}"
     if request.url.query:
         target_url = f"{target_url}?{request.url.query}"
 
@@ -143,7 +152,7 @@ async def proxy(full_path: str, request: Request) -> Response:
     headers = {
         key: value
         for key, value in request.headers.items()
-        if key.lower() not in {"host", "content-length"}
+        if key.lower() not in REQUEST_HEADER_SKIP
     }
 
     client: httpx.AsyncClient = request.app.state.client
@@ -157,19 +166,9 @@ async def proxy(full_path: str, request: Request) -> Response:
             follow_redirects=False,
         )
     except httpx.RequestError as exc:  # pragma: no cover - network failure path
-        raise HTTPException(status_code=502, detail=f"Upstream request failed: {exc}") from exc
-
-    excluded_headers = {
-        "content-length",
-        "transfer-encoding",
-        "connection",
-        "keep-alive",
-        "proxy-authenticate",
-        "proxy-authorization",
-        "te",
-        "trailers",
-        "upgrade",
-    }
+        raise HTTPException(
+            status_code=502, detail=f"Upstream request failed: {exc}"
+        ) from exc
 
     proxied_response = Response(
         content=upstream_response.content,
@@ -177,7 +176,7 @@ async def proxy(full_path: str, request: Request) -> Response:
     )
 
     for key, value in upstream_response.headers.multi_items():
-        if key.lower() in excluded_headers:
+        if key.lower() in RESPONSE_HEADER_SKIP:
             continue
         # Rewrite Location header for redirects to use gateway URL instead of internal service URLs
         if key.lower() == "location":
@@ -190,3 +189,4 @@ async def proxy(full_path: str, request: Request) -> Response:
         proxied_response.headers.append(key, value)
 
     return proxied_response
+

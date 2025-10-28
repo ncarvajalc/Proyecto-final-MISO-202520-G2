@@ -857,14 +857,19 @@ test.describe.serial("HUP-002 Registro masivo de proveedores", () => {
     await gotoProveedores(page);
     await initialResponse;
 
+    const certificacionBaseDate = faker.date.past({ years: 1 });
+    const certificacionExpiryDate = faker.date.future({
+      years: 1,
+      refDate: certificacionBaseDate,
+    });
     const aliasedPayload = buildSupplierPayload("CSV Alias", {
       estado: "Activo",
       certificado: {
-        nombre: "Cert Salud",
-        cuerpoCertificador: "FDA",
-        fechaCertificacion: "2024-01-01",
-        fechaVencimiento: "2025-01-01",
-        urlDocumento: "https://example.com/cert.pdf",
+        nombre: faker.company.buzzPhrase(),
+        cuerpoCertificador: faker.company.name(),
+        fechaCertificacion: certificacionBaseDate.toISOString().slice(0, 10),
+        fechaVencimiento: certificacionExpiryDate.toISOString().slice(0, 10),
+        urlDocumento: faker.internet.url(),
       },
     });
     const csvPayload = { ...aliasedPayload, estado: "inactive" as unknown as SupplierPayload["estado"] };

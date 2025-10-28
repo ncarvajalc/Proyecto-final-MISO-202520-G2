@@ -1,11 +1,6 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, waitFor } from "@testing-library/react";
 import { faker } from "@faker-js/faker";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-
-import { BulkUploadProveedoresForm } from "@/components/proveedor/BulkUploadProveedoresForm";
-import { bulkUploadProveedores } from "@/services/proveedores.service";
-import { toast } from "sonner";
 
 vi.mock("@/services/proveedores.service", () => ({
   bulkUploadProveedores: vi.fn(),
@@ -18,54 +13,47 @@ vi.mock("sonner", () => ({
   },
 }));
 
-const renderComponent = () => {
-  const queryClient = new QueryClient();
-  const onOpenChange = vi.fn();
-  const utils = render(
-    <QueryClientProvider client={queryClient}>
-      <BulkUploadProveedoresForm open={true} onOpenChange={onOpenChange} />
-    </QueryClientProvider>
-  );
-  const formElement = document.querySelector("form");
-  formElement?.setAttribute("novalidate", "true");
-  return { queryClient, onOpenChange, ...utils };
-};
+import { BulkUploadProveedoresForm } from "@/components/proveedor/BulkUploadProveedoresForm";
+import { toast } from "sonner";
 
-const mockedBulkUpload = vi.mocked(bulkUploadProveedores);
-const mockedToast = vi.mocked(toast);
+import { renderWithQueryClient } from "../../../../tests/test-utils";
 
 describe("BulkUploadProveedoresForm - Functional", () => {
+  const mockToast = vi.mocked(toast);
+
   beforeEach(() => {
-    faker.seed(202509);
     vi.clearAllMocks();
-    mockedBulkUpload.mockReset();
+    faker.seed(6);
   });
 
-  it("muestra un mensaje de error cuando se selecciona un archivo no CSV", async () => {
-    renderComponent();
-    await waitFor(() => {
-      expect(document.querySelector('input[type="file"]')).not.toBeNull();
-    });
-    const fileInput = document.querySelector(
-      'input[type="file"]'
-    ) as HTMLInputElement;
+  it("muestra un error cuando el archivo no es CSV", async () => {
+    renderWithQueryClient(
+      <BulkUploadProveedoresForm open={true} onOpenChange={vi.fn()} />
+    );
+
+    const fileInput = document.querySelector<HTMLInputElement>('input[type="file"]');
+    expect(fileInput).not.toBeNull();
 
     const invalidFile = new File(
       [faker.lorem.paragraph()],
-      `${faker.string.alphanumeric({ length: 8 })}.txt`,
+      `${faker.string.alphanumeric(8)}.txt`,
       {
         type: "text/plain",
       }
     );
 
-    fireEvent.change(fileInput, { target: { files: [invalidFile] } });
+    Object.defineProperty(fileInput!, "files", {
+      value: [invalidFile],
+      configurable: true,
+    });
 
-    expect(mockedBulkUpload).not.toHaveBeenCalled();
-    await waitFor(() =>
-      expect(mockedToast.error).toHaveBeenCalledWith("Archivo inválido", {
+    fireEvent.change(fileInput!);
+
+    await waitFor(() => {
+      expect(mockToast.error).toHaveBeenCalledWith("Archivo inválido", {
         description: "Solo se permiten archivos CSV",
-      })
-    );
-    expect(fileInput.value).toBe("");
+      });
+    });
+    expect(screen.getByRole("button", { name: /crear/i })).toBeDisabled();
   });
 });

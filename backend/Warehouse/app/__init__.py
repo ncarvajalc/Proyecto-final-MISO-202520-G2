@@ -1,1 +1,1 @@
-"""Application package for the service."""
+"""Warehouse API Application"""
