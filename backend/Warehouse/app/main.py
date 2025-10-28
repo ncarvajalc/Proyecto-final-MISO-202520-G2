@@ -1,12 +1,22 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
 from app.core.database import SessionLocal, engine, Base
 
-from app.core.database import SessionLocal
 from app.modules.inventory.routes import inventory
 
 app = FastAPI(title="Warehouse Service")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+Base.metadata.create_all(bind=engine)
 
 # Include routers
 app.include_router(inventory.router)
