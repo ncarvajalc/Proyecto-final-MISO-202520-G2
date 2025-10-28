@@ -19,6 +19,21 @@ import { ApiClient } from "@/lib/api-client";
 
 const apiClient = new ApiClient(getApiBaseUrl());
 
+const fetchWarehouseLocation = async <T>(
+  path: string,
+  params: Record<string, string>
+): Promise<T> => {
+  try {
+    return await apiClient.get<T>(path, { params });
+  } catch (error) {
+    const typedError = error as Error & { detail?: string };
+    if (typedError.detail) {
+      throw new Error(typedError.detail);
+    }
+    throw typedError;
+  }
+};
+
 /**
  * Get product location in warehouse
  *
@@ -103,24 +118,10 @@ const apiClient = new ApiClient(getApiBaseUrl());
  */
 export const getProductLocation = async (
   request: ProductLocationRequest
-): Promise<ProductLocation> => {
-  const { sku } = request;
-
-  try {
-    return await apiClient.get<ProductLocation>(
-      "/productos/localizacion/",
-      {
-        params: { sku },
-      }
-    );
-  } catch (error) {
-    const typedError = error as Error & { detail?: string };
-    if (typedError.detail) {
-      throw new Error(typedError.detail);
-    }
-    throw typedError;
-  }
-};
+): Promise<ProductLocation> =>
+  fetchWarehouseLocation<ProductLocation>("/productos/localizacion/", {
+    sku: request.sku,
+  });
 
 /**
  * Get list of available warehouses (bodegas)
@@ -267,24 +268,11 @@ export const getBodegas = async (): Promise<Bodega[]> =>
  */
 export const getProductLocationInWarehouse = async (
   request: ProductWarehouseLocationRequest
-): Promise<ProductWarehouseLocation> => {
-  const { sku, bodegaId } = request;
-
-  try {
-    return await apiClient.get<ProductWarehouseLocation>(
-      "/productos/localizacion-bodega/",
-      {
-        params: {
-          sku,
-          bodegaId,
-        },
-      }
-    );
-  } catch (error) {
-    const typedError = error as Error & { detail?: string };
-    if (typedError.detail) {
-      throw new Error(typedError.detail);
+): Promise<ProductWarehouseLocation> =>
+  fetchWarehouseLocation<ProductWarehouseLocation>(
+    "/productos/localizacion-bodega/",
+    {
+      sku: request.sku,
+      bodegaId: request.bodegaId,
     }
-    throw typedError;
-  }
-};
+  );

@@ -11,6 +11,33 @@ import {
 } from "./ui/navigation-menu";
 import { useAuth } from "@/contexts/auth-hooks";
 
+const catalogLinks = [
+  { to: "/catalogos/proveedores", label: "Proveedores" },
+  { to: "/catalogos/productos", label: "Productos" },
+];
+
+const commercialLinks = [
+  { to: "/comercial/vendedores", label: "Vendedores" },
+  { to: "/comercial/planes-venta", label: "Planes de venta" },
+  { to: "/comercial/informes-comerciales", label: "Informes comerciales" },
+];
+
+const renderNavigationLinks = (
+  links: Array<{ to: string; label: string }>
+) => (
+  <ul className="grid w-[200px] gap-2">
+    {links.map(({ to, label }) => (
+      <li key={to}>
+        <NavigationMenuLink asChild>
+          <Link to={to} className="flex items-center justify-between">
+            {label}
+          </Link>
+        </NavigationMenuLink>
+      </li>
+    ))}
+  </ul>
+);
+
 const Navbar = () => {
   const { logout } = useAuth();
   const navigate = useNavigate();
@@ -39,75 +66,23 @@ const Navbar = () => {
                 <NavigationMenuList>
                   {/* Gestión de catálogos */}
                   <NavigationMenuItem>
-                    <NavigationMenuTrigger>
-                      <Link to="/catalogos">Gestión de catálogos</Link>
-                    </NavigationMenuTrigger>
-                    <NavigationMenuContent>
-                      <ul className="grid w-[200px] gap-2">
-                        <li>
-                          <NavigationMenuLink asChild>
-                            <Link
-                              to="/catalogos/proveedores"
-                              className="flex items-center justify-between"
-                            >
-                              Proveedores
-                            </Link>
-                          </NavigationMenuLink>
-                        </li>
-                        <li>
-                          <NavigationMenuLink asChild>
-                            <Link
-                              to="/catalogos/productos"
-                              className="flex items-center justify-between"
-                            >
-                              Productos
-                            </Link>
-                          </NavigationMenuLink>
-                        </li>
-                      </ul>
-                    </NavigationMenuContent>
-                  </NavigationMenuItem>
+                  <NavigationMenuTrigger>
+                    <Link to="/catalogos">Gestión de catálogos</Link>
+                  </NavigationMenuTrigger>
+                  <NavigationMenuContent>
+                    {renderNavigationLinks(catalogLinks)}
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
 
-                  {/* Gestión comercial */}
-                  <NavigationMenuItem>
-                    <NavigationMenuTrigger>
-                      <Link to="/comercial">Gestión comercial</Link>
-                    </NavigationMenuTrigger>
-                    <NavigationMenuContent>
-                      <ul className="grid w-[200px] gap-2">
-                        <li>
-                          <NavigationMenuLink asChild>
-                            <Link
-                              to="/comercial/vendedores"
-                              className="flex items-center justify-between"
-                            >
-                              Vendedores
-                            </Link>
-                          </NavigationMenuLink>
-                        </li>
-                        <li>
-                          <NavigationMenuLink asChild>
-                            <Link
-                              to="/comercial/planes-venta"
-                              className="flex items-center justify-between"
-                            >
-                              Planes de venta
-                            </Link>
-                          </NavigationMenuLink>
-                        </li>
-                        <li>
-                          <NavigationMenuLink asChild>
-                            <Link
-                              to="/comercial/informes-comerciales"
-                              className="flex items-center justify-between"
-                            >
-                              Informes comerciales
-                            </Link>
-                          </NavigationMenuLink>
-                        </li>
-                      </ul>
-                    </NavigationMenuContent>
-                  </NavigationMenuItem>
+                {/* Gestión comercial */}
+                <NavigationMenuItem>
+                  <NavigationMenuTrigger>
+                    <Link to="/comercial">Gestión comercial</Link>
+                  </NavigationMenuTrigger>
+                  <NavigationMenuContent>
+                    {renderNavigationLinks(commercialLinks)}
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
 
                   {/* Gestión logística - Simple link */}
                   <NavigationMenuItem>

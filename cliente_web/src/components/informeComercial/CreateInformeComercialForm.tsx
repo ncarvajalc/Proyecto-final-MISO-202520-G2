@@ -1,29 +1,19 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
 import { z } from "zod";
+import { useForm } from "react-hook-form";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { FormActionButtons } from "@/components/forms/FormActionButtons";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import { DialogFooter } from "@/components/ui/dialog";
+import { FormDialog } from "@/components/forms/FormDialog";
 import { createInformeComercial } from "@/services/informesComerciales.service";
 import type { InformeComercial } from "@/types/informeComercial";
+import { useCreateEntityMutation } from "@/hooks/useCreateEntityMutation";
+import {
+  EntityFormDialog,
+  renderFormFields,
+  useEntityFormDialogConfig,
+  type FieldDefinition,
+} from "@/components/forms";
 
 // Zod schema for validation
 const formSchema = z.object({
@@ -44,11 +34,18 @@ interface CreateInformeComercialFormProps {
   onOpenChange: (open: boolean) => void;
 }
 
+const informeFields: FieldDefinition<FormValues>[] = [
+  {
+    name: "nombre",
+    label: "Nombre",
+    placeholder: "ej. IC-2025-Q1",
+  },
+];
+
 export function CreateInformeComercialForm({
   open,
   onOpenChange,
 }: CreateInformeComercialFormProps) {
-  const queryClient = useQueryClient();
   const [createdInforme, setCreatedInforme] = useState<InformeComercial | null>(
     null
   );
@@ -60,18 +57,17 @@ export function CreateInformeComercialForm({
     },
   });
 
-  const createMutation = useMutation({
+  const createMutation = useCreateEntityMutation<
+    Parameters<typeof createInformeComercial>[0],
+    Awaited<ReturnType<typeof createInformeComercial>>
+  >({
     mutationFn: createInformeComercial,
+    queryKey: ["informesComerciales"],
+    successMessage: "Informe comercial creado exitosamente",
+    errorTitle: "Error al crear informe comercial",
     onSuccess: (data) => {
       setCreatedInforme(data);
-      toast.success("Informe comercial creado exitosamente");
-      queryClient.invalidateQueries({ queryKey: ["informesComerciales"] });
-    },
-    onError: (error: Error & { detail?: string }) => {
-      const description = error.detail ?? error.message ?? "Error inesperado";
-      toast.error("Error al crear informe comercial", {
-        description,
-      });
+      form.reset();
     },
   });
 
@@ -81,11 +77,20 @@ export function CreateInformeComercialForm({
     });
   }
 
-  function handleClose() {
+  const closeDialog = () => {
     form.reset();
     setCreatedInforme(null);
     onOpenChange(false);
-  }
+  };
+
+  const handleDialogChange = (nextOpen: boolean) => {
+    if (!nextOpen) {
+      closeDialog();
+      return;
+    }
+
+    onOpenChange(true);
+  };
 
   // Format currency
   const formatCurrency = (value: number) => {
@@ -97,7 +102,7 @@ export function CreateInformeComercialForm({
     }).format(value);
   };
 
-  // Format number
+  // Format number with two decimal places for consistency
   const formatNumber = (value: number) => {
     return new Intl.NumberFormat("es-ES", {
       minimumFractionDigits: 2,
@@ -105,76 +110,67 @@ export function CreateInformeComercialForm({
     }).format(value);
   };
 
-  return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>Informe Comercial</DialogTitle>
-        </DialogHeader>
+  const dialogConfig = useEntityFormDialogConfig<FormValues>({
+    open,
+    onOpenChange: handleDialogChange,
+    form,
+    onSubmit,
+    isSubmitting: createMutation.isPending,
+    onCancel: closeDialog,
+    submitFirst: false,
+    formClassName: "space-y-6",
+  });
 
-        {!createdInforme ? (
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <FormField
-                control={form.control}
-                name="nombre"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nombre</FormLabel>
-                    <FormControl>
-                      <Input placeholder="ej. IC-2025-Q1" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+  if (createdInforme) {
+    return (
+      <FormDialog
+        open={open}
+        onOpenChange={handleDialogChange}
+        title="Informe Comercial"
+        contentClassName="sm:max-w-[500px]"
+      >
+        <div className="space-y-6">
+          <div>
+            <p className="text-sm font-medium text-muted-foreground">Nombre</p>
+            <p className="text-base">{createdInforme.nombre}</p>
+          </div>
 
-              <FormActionButtons
-                isSubmitting={createMutation.isPending}
-                onCancel={handleClose}
-                submitFirst={false}
-              />
-            </form>
-          </Form>
-        ) : (
-          <div className="space-y-6">
-            {/* Nombre del informe creado */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Indicadores Clave</h3>
+
             <div>
               <p className="text-sm font-medium text-muted-foreground">
-                Nombre
+                Ventas Totales
               </p>
-              <p className="text-base">{createdInforme.nombre}</p>
+              <p className="text-2xl font-semibold">
+                {formatCurrency(createdInforme.ventasTotales || 0)}
+              </p>
             </div>
 
-            {/* Indicadores Clave */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Indicadores Clave</h3>
-
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Ventas Totales
-                </p>
-                <p className="text-2xl font-semibold">
-                  {formatCurrency(createdInforme.ventasTotales || 0)}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Unidades Vendidas
-                </p>
-                <p className="text-2xl font-semibold">
-                  {formatNumber(createdInforme.unidadesVendidas || 0)}
-                </p>
-              </div>
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">
+                Unidades Vendidas
+              </p>
+              <p className="text-2xl font-semibold">
+                {formatNumber(createdInforme.unidadesVendidas || 0)}
+              </p>
             </div>
-
-            <DialogFooter>
-              <Button onClick={handleClose}>Cerrar</Button>
-            </DialogFooter>
           </div>
-        )}
-      </DialogContent>
-    </Dialog>
+
+          <DialogFooter>
+            <Button onClick={closeDialog}>Cerrar</Button>
+          </DialogFooter>
+        </div>
+      </FormDialog>
+    );
+  }
+
+  return (
+    <EntityFormDialog<FormValues>
+      {...dialogConfig}
+      title="Informe Comercial"
+    >
+      {renderFormFields(form.control, informeFields, createMutation.isPending)}
+    </EntityFormDialog>
   );
 }

@@ -1,13 +1,9 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, useFieldArray } from "react-hook-form";
-import { toast } from "sonner";
+import { useForm, useFieldArray, type Control } from "react-hook-form";
 import { z } from "zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createProducto } from "@/services/productos.service";
 import { Button } from "@/components/ui/button";
-import { FormActionButtons } from "@/components/forms/FormActionButtons";
 import {
-  Form,
   FormControl,
   FormField,
   FormItem,
@@ -16,12 +12,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
   MultiSelect,
   MultiSelectContent,
   MultiSelectItem,
@@ -29,6 +19,9 @@ import {
   MultiSelectValue,
 } from "@/components/ui/multi-select";
 import { Plus, Trash2 } from "lucide-react";
+import { InlineEntityDialog, renderFormFields } from "@/components/forms";
+import { useCreateEntityMutation } from "@/hooks/useCreateEntityMutation";
+import { optionalUrlField } from "@/lib/validation";
 
 // Zod validation schema based on acceptance criteria
 const formSchema = z.object({
@@ -54,20 +47,8 @@ const formSchema = z.object({
       })
     )
     .optional(),
-  hojaTecnicaUrlManual: z
-    .string()
-    .url({
-      message: "Debe ser una URL válida",
-    })
-    .optional()
-    .or(z.literal("")),
-  hojaTecnicaUrlInstalacion: z
-    .string()
-    .url({
-      message: "Debe ser una URL válida",
-    })
-    .optional()
-    .or(z.literal("")),
+  hojaTecnicaUrlManual: optionalUrlField("Debe ser una URL válida"),
+  hojaTecnicaUrlInstalacion: optionalUrlField("Debe ser una URL válida"),
   hojaTecnicaCertificaciones: z.array(z.string()).optional(),
 });
 
@@ -78,12 +59,67 @@ interface CreateProductoFormProps {
   onOpenChange: (open: boolean) => void;
 }
 
+const basicProductFields = [
+  {
+    name: "sku" as const,
+    label: "SKU",
+    placeholder: "MED-001",
+  },
+  {
+    name: "nombre" as const,
+    label: "Nombre",
+    placeholder: "Nombre del producto",
+  },
+  {
+    name: "descripcion" as const,
+    label: "Descripción",
+    placeholder: "Descripción del producto",
+  },
+];
+
+const hojaTecnicaUrlFields = [
+  {
+    name: "hojaTecnicaUrlManual" as const,
+    label: "URL del manual",
+    placeholder: "https://ejemplo.com/manual.pdf",
+  },
+  {
+    name: "hojaTecnicaUrlInstalacion" as const,
+    label: "URL de hoja de instalación",
+    placeholder: "https://ejemplo.com/instalacion.pdf",
+  },
+];
+
+const renderHojaTecnicaUrlFields = (
+  control: Control<FormValues>,
+  disabled: boolean
+) =>
+  hojaTecnicaUrlFields.map(({ name, label, placeholder }) => (
+    <FormField
+      key={name}
+      control={control}
+      name={name}
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel>{label}</FormLabel>
+          <FormControl>
+            <Input
+              type="url"
+              placeholder={placeholder}
+              {...field}
+              disabled={disabled}
+            />
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  ));
+
 export function CreateProductoForm({
   open,
   onOpenChange,
 }: CreateProductoFormProps) {
-  const queryClient = useQueryClient();
-
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -103,19 +139,17 @@ export function CreateProductoForm({
     name: "especificaciones",
   });
 
-  const createMutation = useMutation({
+  const createMutation = useCreateEntityMutation<
+    Parameters<typeof createProducto>[0],
+    Awaited<ReturnType<typeof createProducto>>
+  >({
     mutationFn: createProducto,
+    queryKey: ["productos"],
+    successMessage: "Producto creado exitosamente",
+    errorTitle: "Error al crear producto",
     onSuccess: () => {
-      toast.success("Producto creado exitosamente");
-      queryClient.invalidateQueries({ queryKey: ["productos"] });
       form.reset();
       onOpenChange(false);
-    },
-    onError: (error: Error & { detail?: string }) => {
-      const description = error.detail ?? error.message ?? "Error inesperado";
-      toast.error("Error al crear producto", {
-        description,
-      });
     },
   });
 
@@ -156,244 +190,156 @@ export function CreateProductoForm({
     createMutation.mutate(productoData);
   }
 
+  const productDialogProps = {
+    open,
+    onOpenChange,
+    form,
+    onSubmit,
+    isSubmitting: createMutation.isPending,
+    formClassName: "space-y-6",
+    title: "Crear producto",
+    contentClassName: "max-w-2xl max-h-[90vh] overflow-y-auto",
+  } as const;
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Crear producto</DialogTitle>
-        </DialogHeader>
+    <InlineEntityDialog<FormValues> {...productDialogProps}>
+      {renderFormFields(form.control, basicProductFields, createMutation.isPending)}
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* Campos básicos requeridos */}
-            <FormField
-              control={form.control}
-              name="sku"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>SKU</FormLabel>
-                  <FormControl>
-                    <Input placeholder="MED-001" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+      <FormField
+        control={form.control}
+        name="precio"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Precio</FormLabel>
+            <FormControl>
+              <Input
+                type="number"
+                placeholder="5000"
+                {...field}
+                onChange={(e) =>
+                  field.onChange(
+                    e.target.value ? parseFloat(e.target.value) : undefined
+                  )
+                }
+                disabled={createMutation.isPending}
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
 
-            <FormField
-              control={form.control}
-              name="nombre"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nombre</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Nombre del producto" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+      {/* Especificaciones - Array dinámico */}
+      <div className="pt-6 border-t">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold">Especificaciones (opcional)</h3>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => append({ nombre: "", valor: "" })}
+          >
+            <Plus className="h-4 w-4" />
+            Agregar
+          </Button>
+        </div>
 
-            <FormField
-              control={form.control}
-              name="descripcion"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Descripción</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Descripción del producto" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="precio"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Precio</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      placeholder="5000"
-                      {...field}
-                      onChange={(e) =>
-                        field.onChange(
-                          e.target.value
-                            ? parseFloat(e.target.value)
-                            : undefined
-                        )
-                      }
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Especificaciones - Array dinámico */}
-            <div className="pt-6 border-t">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold">
-                  Especificaciones (opcional)
-                </h3>
+        {fields.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            No hay especificaciones. Click "Agregar" para añadir una.
+          </p>
+        ) : (
+          <div className="space-y-4">
+            {fields.map((field, index) => (
+              <div key={field.id} className="flex gap-3 items-start">
+                <FormField
+                  control={form.control}
+                  name={`especificaciones.${index}.nombre`}
+                  render={({ field }) => (
+                    <FormItem className="flex-1">
+                      <FormControl>
+                        <Input placeholder="Nombre" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name={`especificaciones.${index}.valor`}
+                  render={({ field }) => (
+                    <FormItem className="flex-1">
+                      <FormControl>
+                        <Input placeholder="Valor" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <Button
                   type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => append({ nombre: "", valor: "" })}
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => remove(index)}
+                  className="mt-0"
                 >
-                  <Plus className="h-4 w-4" />
-                  Agregar
+                  <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>
               </div>
+            ))}
+          </div>
+        )}
+      </div>
 
-              {fields.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  No hay especificaciones. Click "Agregar" para añadir una.
-                </p>
-              ) : (
-                <div className="space-y-4">
-                  {fields.map((field, index) => (
-                    <div key={field.id} className="flex gap-3 items-start">
-                      <FormField
-                        control={form.control}
-                        name={`especificaciones.${index}.nombre`}
-                        render={({ field }) => (
-                          <FormItem className="flex-1">
-                            <FormControl>
-                              <Input placeholder="Nombre" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name={`especificaciones.${index}.valor`}
-                        render={({ field }) => (
-                          <FormItem className="flex-1">
-                            <FormControl>
-                              <Input placeholder="Valor" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => remove(index)}
-                        className="mt-0"
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+      {/* Hoja Técnica - Campos opcionales */}
+      <div className="pt-6 border-t">
+        <h3 className="text-lg font-semibold mb-4">Hoja Técnica (opcional)</h3>
 
-            {/* Hoja Técnica - Campos opcionales */}
-            <div className="pt-6 border-t">
-              <h3 className="text-lg font-semibold mb-4">
-                Hoja Técnica (opcional)
-              </h3>
+        <div className="space-y-6">
+          {renderHojaTecnicaUrlFields(form.control, createMutation.isPending)}
 
-              <div className="space-y-6">
-                <FormField
-                  control={form.control}
-                  name="hojaTecnicaUrlManual"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>URL del manual</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="url"
-                          placeholder="https://ejemplo.com/manual.pdf"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="hojaTecnicaUrlInstalacion"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>URL de hoja de instalación</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="url"
-                          placeholder="https://ejemplo.com/instalacion.pdf"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="hojaTecnicaCertificaciones"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Certificaciones</FormLabel>
-                      <FormControl>
-                        <MultiSelect
-                          values={field.value}
-                          onValuesChange={field.onChange}
-                        >
-                          <MultiSelectTrigger className="w-full">
-                            <MultiSelectValue placeholder="Selecciona certificaciones" />
-                          </MultiSelectTrigger>
-                          <MultiSelectContent>
-                            <MultiSelectItem value="INVIMA">
-                              INVIMA
-                            </MultiSelectItem>
-                            <MultiSelectItem value="FDA">FDA</MultiSelectItem>
-                            <MultiSelectItem value="ISO 9001">
-                              ISO 9001
-                            </MultiSelectItem>
-                            <MultiSelectItem value="ISO 13485">
-                              ISO 13485
-                            </MultiSelectItem>
-                            <MultiSelectItem value="CE">CE</MultiSelectItem>
-                            <MultiSelectItem value="GMP">
-                              GMP (Good Manufacturing Practice)
-                            </MultiSelectItem>
-                            <MultiSelectItem value="OMS">
-                              OMS (Organización Mundial de la Salud)
-                            </MultiSelectItem>
-                            <MultiSelectItem value="COFEPRIS">
-                              COFEPRIS
-                            </MultiSelectItem>
-                          </MultiSelectContent>
-                        </MultiSelect>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </div>
-
-            {/* Buttons */}
-            <FormActionButtons
-              layout="inline"
-              isSubmitting={createMutation.isPending}
-              onCancel={() => onOpenChange(false)}
-            />
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+          <FormField
+            control={form.control}
+            name="hojaTecnicaCertificaciones"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Certificaciones</FormLabel>
+                <FormControl>
+                  <MultiSelect
+                    values={field.value}
+                    onValuesChange={field.onChange}
+                  >
+                    <MultiSelectTrigger className="w-full">
+                      <MultiSelectValue placeholder="Selecciona certificaciones" />
+                    </MultiSelectTrigger>
+                    <MultiSelectContent>
+                      <MultiSelectItem value="INVIMA">INVIMA</MultiSelectItem>
+                      <MultiSelectItem value="FDA">FDA</MultiSelectItem>
+                      <MultiSelectItem value="ISO 9001">
+                        ISO 9001
+                      </MultiSelectItem>
+                      <MultiSelectItem value="ISO 13485">
+                        ISO 13485
+                      </MultiSelectItem>
+                      <MultiSelectItem value="CE">CE</MultiSelectItem>
+                      <MultiSelectItem value="GMP">
+                        GMP (Good Manufacturing Practice)
+                      </MultiSelectItem>
+                      <MultiSelectItem value="OMS">
+                        OMS (Organización Mundial de la Salud)
+                      </MultiSelectItem>
+                      <MultiSelectItem value="COFEPRIS">
+                        COFEPRIS
+                      </MultiSelectItem>
+                    </MultiSelectContent>
+                  </MultiSelect>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+      </div>
+    </InlineEntityDialog>
   );
 }

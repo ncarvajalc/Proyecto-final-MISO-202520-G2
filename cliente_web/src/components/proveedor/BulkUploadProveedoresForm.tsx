@@ -1,6 +1,7 @@
 import { toast } from "sonner";
 
 import { createCsvBulkUploadForm } from "@/components/common/createCsvBulkUploadForm";
+import { showBulkUploadError } from "@/components/common/bulkUploadNotifications";
 import { bulkUploadProveedores } from "@/services/proveedores.service";
 import type { BulkUploadResponse } from "@/types/proveedor";
 
@@ -29,10 +30,6 @@ export const BulkUploadProveedoresForm = createCsvBulkUploadForm<BulkUploadRespo
     });
 
   },
-  onError: (error: Error & { detail?: string }) => {
-    toast.error("Error en carga masiva", {
-      description: error.detail ?? error.message,
-    });
-  },
+  onError: showBulkUploadError,
   queryKey: "proveedores",
 });
