@@ -50,9 +50,14 @@ describe("VisitFormScreen", () => {
   });
 
   it("muestra un mensaje cuando faltan campos obligatorios", async () => {
-    const { getByText } = render(<VisitFormScreen />);
+    const { getByText, getAllByText } = render(<VisitFormScreen />);
 
-    fireEvent.press(getByText("Guardar Visita"));
+    // Click the Guardar button to open modal
+    fireEvent.press(getByText("Guardar"));
+
+    // Click the Guardar button in the modal to confirm
+    const guardarButtons = getAllByText("Guardar");
+    fireEvent.press(guardarButtons[guardarButtons.length - 1]);
 
     await waitFor(() => {
       expect(alertSpy).toHaveBeenCalledWith(
@@ -67,14 +72,19 @@ describe("VisitFormScreen", () => {
   it("registra la visita y vuelve al listado cuando la API responde correctamente", async () => {
     mockCreateVisit.mockResolvedValue(undefined);
 
-    const { getByPlaceholderText, getByText } = render(<VisitFormScreen />);
+    const { getByPlaceholderText, getByText, getAllByText } = render(<VisitFormScreen />);
 
     fireEvent.changeText(
       getByPlaceholderText("Ingrese dirección"),
       "Cra 45 #20-10"
     );
 
-    fireEvent.press(getByText("Guardar Visita"));
+    // Click the Guardar button to open modal
+    fireEvent.press(getByText("Guardar"));
+
+    // Click the Guardar button in the modal to confirm
+    const guardarButtons = getAllByText("Guardar");
+    fireEvent.press(guardarButtons[guardarButtons.length - 1]);
 
     await waitFor(() => expect(mockCreateVisit).toHaveBeenCalledTimes(1));
 
@@ -116,14 +126,19 @@ describe("VisitFormScreen", () => {
       .spyOn(console, "error")
       .mockImplementation(() => {});
 
-    const { getByPlaceholderText, getByText } = render(<VisitFormScreen />);
+    const { getByPlaceholderText, getByText, getAllByText } = render(<VisitFormScreen />);
 
     fireEvent.changeText(
       getByPlaceholderText("Ingrese dirección"),
       "Cra 45 #20-10"
     );
 
-    fireEvent.press(getByText("Guardar Visita"));
+    // Click the Guardar button to open modal
+    fireEvent.press(getByText("Guardar"));
+
+    // Click the Guardar button in the modal to confirm
+    const guardarButtons = getAllByText("Guardar");
+    fireEvent.press(guardarButtons[guardarButtons.length - 1]);
 
     await waitFor(() => expect(mockCreateVisit).toHaveBeenCalledTimes(1));
 
