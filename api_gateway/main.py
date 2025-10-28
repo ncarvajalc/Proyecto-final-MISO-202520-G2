@@ -68,7 +68,7 @@ def _resolve_upstream(path: str) -> Optional[str]:
     return next(
         (
             base_url
-            for prefix, base_url in PREFIX_ROUTES
+            for prefix, base_url in PREFIX_ROUTES.items()
             if normalized == prefix or normalized.startswith(f"{prefix}/")
         ),
         None,
