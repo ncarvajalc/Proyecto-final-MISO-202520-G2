@@ -50,7 +50,7 @@ jobs:
           pnpm run build
 
       - name: Start backend services
-        run: docker compose --profile backend up -d --build --wait api_gateway
+        run: docker compose --profile backend build --no-cache && docker compose --profile backend up -d --wait api_gateway
 
       - name: Run E2E tests
         working-directory: cliente_web
