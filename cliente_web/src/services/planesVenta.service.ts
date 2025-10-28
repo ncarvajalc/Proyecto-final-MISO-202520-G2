@@ -10,6 +10,7 @@
 import { getApiBaseUrl } from "@/config/api";
 import { ApiClient } from "@/lib/api-client";
 import type { PlanVenta, PlanesVentaResponse, PaginationParams } from "@/types/planVenta";
+import { toPaginatedResult } from "@/services/utils/pagination";
 
 /**
  * Mock data for testing
@@ -198,18 +199,7 @@ export const getPlanesVenta = async (params: PaginationParams): Promise<PlanesVe
       plan.unidadesVendidas ?? plan.unidades_vendidas ?? 0,
   }));
 
-  const totalPages =
-    response.totalPages ??
-    response.total_pages ??
-    (response.total > 0 ? Math.ceil(response.total / params.limit) : 0);
-
-  return {
-    data: normalizedData,
-    total: response.total,
-    page: response.page,
-    limit: response.limit,
-    totalPages,
-  };
+  return toPaginatedResult(response, params.limit, normalizedData);
 };
 
 /**

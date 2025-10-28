@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
+from app.core.database import SessionLocal, engine, Base
 
 from app.core.database import SessionLocal
 from app.modules.inventory.routes import inventory
@@ -20,6 +21,7 @@ def healthcheck():
         return {"status": "ok", "db": True}
     except OperationalError:
         return {"status": "error", "db": False}
+
 
 @app.get("/")
 def read_root():

@@ -66,7 +66,7 @@ def test_bulk_row_accepts_prefixed_certificate_headers() -> None:
 
     assert isinstance(row.certificado, SupplierCertificate)
     assert row.certificado.cuerpoCertificador == "Bureau Veritas"
-    assert str(row.certificado.urlDocumento) == payload["certificate_url"]
+    assert row.certificado.urlDocumento == payload["certificate_url"]
 
 
 def test_bulk_row_accepts_dotted_certificate_headers() -> None:

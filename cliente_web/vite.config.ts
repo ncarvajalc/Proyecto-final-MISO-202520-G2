@@ -16,10 +16,18 @@ export default defineConfig(({ mode }) => {
     },
   },
   base: env.VITE_BASE || "/Proyecto-final-MISO-202520-G2/",
+  server: {
+    allowedHosts: [
+      "cliente-web-212820187078.us-central1.run.app",
+      // puedes agregar otras URLs si fuera necesario
+    ],
+  },
   test: {
     globals: true,
     environment: "jsdom",
     setupFiles: "./src/tests/setupTests.ts",
+    testTimeout: 15000,
+    hookTimeout: 15000,
     coverage: {
       provider: "v8",
       reporter: ["text", "lcov"],

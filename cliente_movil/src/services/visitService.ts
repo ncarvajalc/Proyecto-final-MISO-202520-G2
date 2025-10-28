@@ -5,7 +5,6 @@ export const visitService = {
   async getVisits(page: number = 1, limit: number = 10): Promise<VisitsResponse> {
     const apiBaseUrl = getApiBaseUrl();
     const url = `${apiBaseUrl}/visitas/?page=${page}&limit=${limit}`;
-    console.log("Fetching visits from:", url);
     const response = await fetch(url);
 
     if (!response.ok) {

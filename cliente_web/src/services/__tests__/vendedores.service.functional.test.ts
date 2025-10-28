@@ -5,11 +5,15 @@ import { getVendedor, getVendedores } from "@/services/vendedores.service";
 
 const getMock = vi.fn();
 
-vi.mock("@/lib/api-client", () => ({
-  ApiClient: vi.fn().mockImplementation(() => ({
-    get: getMock,
-  })),
-}));
+vi.mock("@/lib/api-client", () => {
+  const ApiClientMock = vi.fn(function ApiClientMockImpl() {
+    this.get = getMock;
+  });
+
+  return {
+    ApiClient: ApiClientMock,
+  };
+});
 
 describe("vendedores.service - functional", () => {
   faker.seed(567);

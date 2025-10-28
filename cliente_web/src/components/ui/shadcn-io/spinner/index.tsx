@@ -24,22 +24,25 @@ const CircleFilled = ({
   className,
   size = 24,
   ...props
-}: SpinnerVariantProps) => (
-  <div className="relative" style={{ width: size, height: size }}>
-    <div className="absolute inset-0 rotate-180">
-      <LoaderCircleIcon
-        className={cn('animate-spin', className, 'text-foreground opacity-20')}
-        size={size}
-        {...props}
-      />
+}: SpinnerVariantProps) => {
+  const layers = [
+    'absolute inset-0 rotate-180 text-foreground opacity-20',
+    'relative',
+  ];
+
+  return (
+    <div className="relative" style={{ width: size, height: size }}>
+      {layers.map((layerClass) => (
+        <LoaderCircleIcon
+          key={layerClass}
+          className={cn('animate-spin', className, layerClass)}
+          size={size}
+          {...props}
+        />
+      ))}
     </div>
-    <LoaderCircleIcon
-      className={cn('relative animate-spin', className)}
-      size={size}
-      {...props}
-    />
-  </div>
-);
+  );
+};
 
 const Ellipsis = ({ size = 24, ...props }: SpinnerVariantProps) => {
   return (
@@ -87,6 +90,31 @@ const Ellipsis = ({ size = 24, ...props }: SpinnerVariantProps) => {
   );
 };
 
+const AnimatedRingCircle = ({ begin }: { begin: string }) => (
+  <circle cx="22" cy="22" r="1">
+    <animate
+      attributeName="r"
+      begin={begin}
+      calcMode="spline"
+      dur="1.8s"
+      keySplines="0.165, 0.84, 0.44, 1"
+      keyTimes="0; 1"
+      repeatCount="indefinite"
+      values="1; 20"
+    />
+    <animate
+      attributeName="stroke-opacity"
+      begin={begin}
+      calcMode="spline"
+      dur="1.8s"
+      keySplines="0.3, 0.61, 0.355, 1"
+      keyTimes="0; 1"
+      repeatCount="indefinite"
+      values="1; 0"
+    />
+  </circle>
+);
+
 const Ring = ({ size = 24, ...props }: SpinnerVariantProps) => (
   <svg
     height={size}
@@ -98,50 +126,8 @@ const Ring = ({ size = 24, ...props }: SpinnerVariantProps) => (
   >
     <title>Loading...</title>
     <g fill="none" fillRule="evenodd" strokeWidth="2">
-      <circle cx="22" cy="22" r="1">
-        <animate
-          attributeName="r"
-          begin="0s"
-          calcMode="spline"
-          dur="1.8s"
-          keySplines="0.165, 0.84, 0.44, 1"
-          keyTimes="0; 1"
-          repeatCount="indefinite"
-          values="1; 20"
-        />
-        <animate
-          attributeName="stroke-opacity"
-          begin="0s"
-          calcMode="spline"
-          dur="1.8s"
-          keySplines="0.3, 0.61, 0.355, 1"
-          keyTimes="0; 1"
-          repeatCount="indefinite"
-          values="1; 0"
-        />
-      </circle>
-      <circle cx="22" cy="22" r="1">
-        <animate
-          attributeName="r"
-          begin="-0.9s"
-          calcMode="spline"
-          dur="1.8s"
-          keySplines="0.165, 0.84, 0.44, 1"
-          keyTimes="0; 1"
-          repeatCount="indefinite"
-          values="1; 20"
-        />
-        <animate
-          attributeName="stroke-opacity"
-          begin="-0.9s"
-          calcMode="spline"
-          dur="1.8s"
-          keySplines="0.3, 0.61, 0.355, 1"
-          keyTimes="0; 1"
-          repeatCount="indefinite"
-          values="1; 0"
-        />
-      </circle>
+      <AnimatedRingCircle begin="0s" />
+      <AnimatedRingCircle begin="-0.9s" />
     </g>
   </svg>
 );

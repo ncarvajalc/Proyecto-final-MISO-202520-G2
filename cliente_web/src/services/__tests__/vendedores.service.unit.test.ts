@@ -14,14 +14,18 @@ const getMock = vi.fn();
 const putMock = vi.fn();
 const deleteMock = vi.fn();
 
-vi.mock("@/lib/api-client", () => ({
-  ApiClient: vi.fn().mockImplementation(() => ({
-    post: postMock,
-    get: getMock,
-    put: putMock,
-    delete: deleteMock,
-  })),
-}));
+vi.mock("@/lib/api-client", () => {
+  const ApiClientMock = vi.fn(function ApiClientMockImpl() {
+    this.post = postMock;
+    this.get = getMock;
+    this.put = putMock;
+    this.delete = deleteMock;
+  });
+
+  return {
+    ApiClient: ApiClientMock,
+  };
+});
 
 describe("vendedores.service - unit", () => {
   let apiUrl: string;

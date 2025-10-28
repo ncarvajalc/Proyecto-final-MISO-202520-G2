@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status,HTTPException, Query
+import httpx
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
