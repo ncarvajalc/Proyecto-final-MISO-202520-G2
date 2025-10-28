@@ -7,22 +7,36 @@ import httpx
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 
-PREFIX_ROUTES: Dict[str, str] = {
-    "/auth": "http://security_audit:8000",
-    "/proveedores": "http://purchases_suppliers:8001",
-    "/productos": "http://purchases_suppliers:8001",
-    "/planes-venta": "http://salesforce:8004",
-    "/vendedores": "http://salesforce:8004",
-    "/visitas": "http://salesforce:8004",
-    "/institutional-clients": "http://salesforce:8004",
-    "/inventario": "http://warehouse:8003",
-}
+PREFIX_ROUTES: Tuple[Tuple[str, str], ...] = (
+    # Order matters: check longer prefixes first to avoid partial matches.
+    ("/institutional-clients", "http://salesforce:8004"),
+    ("/informes-comerciales", "http://salesforce:8004"),
+    ("/planes-venta", "http://salesforce:8004"),
+    ("/vendedores", "http://salesforce:8004"),
+    ("/proveedores", "http://purchases_suppliers:8001"),
+    ("/productos", "http://purchases_suppliers:8001"),
+    ("/inventario", "http://warehouse:8003"),
+    ("/vehiculos", "http://tracking:8002"),
+    ("/paradas", "http://tracking:8002"),
+    ("/bodegas", "http://warehouse:8003"),
+    ("/visitas", "http://salesforce:8004"),
+    ("/rutas", "http://tracking:8002"),
+    ("/auth", "http://security_audit:8000"),
+)
 
-HEALTH_ENDPOINTS: Dict[str, str] = {
-    "security_audit": "http://security_audit:8000/health",
-    "purchases_suppliers": "http://purchases_suppliers:8001/health",
-    "salesforce": "http://salesforce:8004/health",
-}
+HEALTH_ENDPOINTS: Tuple[Tuple[str, str], ...] = (
+    (
+        "security_audit",
+        "https://security-audit-212820187078.us-central1.run.app/health",
+    ),
+    (
+        "purchases_suppliers",
+        "https://purchases-suppliers-212820187078.us-central1.run.app/health",
+    ),
+    ("salesforce", "https://salesforce-212820187078.us-central1.run.app/health"),
+    # TODO: Update with actual Cloud Run URL after deployment
+    ("tracking", "https://tracking-212820187078.us-central1.run.app/health"),
+)
 
 SUPPORTED_METHODS = [
     "GET",
@@ -68,7 +82,7 @@ async def healthcheck() -> Dict[str, object]:
     services: Dict[str, Dict[str, object]] = {}
     all_ok = True
 
-    for name, url in HEALTH_ENDPOINTS.items():
+    for name, url in HEALTH_ENDPOINTS:
         try:
             response = await client.get(url)
             payload: object
@@ -99,9 +113,10 @@ def _resolve_upstream(path: str) -> Optional[Tuple[str, str]]:
     if not path.startswith("/"):
         path = f"/{path}"
 
-    for prefix in sorted(PREFIX_ROUTES, key=len, reverse=True):
+    # PREFIX_ROUTES is already sorted with longer prefixes first
+    for prefix, upstream in PREFIX_ROUTES:
         if path == prefix or path.startswith(f"{prefix}/"):
-            return prefix, PREFIX_ROUTES[prefix]
+            return prefix, upstream
     return None
 
 
@@ -167,7 +182,7 @@ async def proxy(full_path: str, request: Request) -> Response:
         # Rewrite Location header for redirects to use gateway URL instead of internal service URLs
         if key.lower() == "location":
             # Replace internal service URLs with gateway URL
-            for internal_prefix, internal_url in PREFIX_ROUTES.items():
+            for internal_prefix, internal_url in PREFIX_ROUTES:
                 if value.startswith(internal_url):
                     # Replace internal URL with gateway URL (localhost:8080)
                     value = value.replace(internal_url, "http://localhost:8080")
