@@ -13,11 +13,16 @@ PREFIX_ROUTES: Dict[str, str] = {
     "/proveedores": "http://purchases_suppliers:8001",
     "/productos": "http://purchases_suppliers:8001",
     "/planes-venta": "http://salesforce:8004",
+    "/informes-comerciales": "http://salesforce:8004",
     "/vendedores": "http://salesforce:8004",
     "/visitas": "http://salesforce:8004",
     "/institutional-clients": "http://salesforce:8004",
     "/pedidos": "http://salesforce:8004",
     "/inventario": "http://warehouse:8003",
+    "/vehiculos": "http://tracking:8002",
+    "/paradas": "http://tracking:8002",
+    "/rutas": "http://tracking:8002",
+    "/bodegas": "http://warehouse:8003",
 }
 
 REQUEST_HEADER_SKIP = {"host", "content-length"}
