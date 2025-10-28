@@ -3,3 +3,9 @@
 venv/
 *.pyc
 *.db
+
+# macOS
+.DS_Store
+
+# Test coverage
+cliente_web/coverage/

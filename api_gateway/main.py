@@ -15,6 +15,7 @@ PREFIX_ROUTES: Dict[str, str] = {
     "/vendedores": "http://salesforce:8004",
     "/visitas": "http://salesforce:8004",
     "/institutional-clients": "http://salesforce:8004",
+    "/pedidos": "http://salesforce:8004",
     "/inventario": "http://warehouse:8003",
 }
 

@@ -5,7 +5,7 @@ import { CarteraScreen } from "../modules/cartera/screens/CarteraScreen";
 import { RutasScreen } from "../modules/rutas/screens/RutasScreen";
 import { VisitStackNavigator } from "../modules/visitas/navigation/VisitStackNavigator";
 import { ProductStackNavigator } from "../modules/productos/navigation/ProductStackNavigator";
-import { PedidosScreen } from "../modules/pedidos/screens/PedidosScreen";
+import { PedidosStackNavigator } from "../modules/pedidos/navigation/PedidosStackNavigator";
 import { EntregasScreen } from "../modules/entregas/screens/EntregasScreen";
 
 const Tab = createBottomTabNavigator();
@@ -82,13 +82,14 @@ export const TabNavigator: React.FC = () => {
       />
       <Tab.Screen
         name="Pedidos"
-        component={PedidosScreen}
+        component={PedidosStackNavigator}
         options={{
           title: "Pedidos",
           tabBarLabel: "Pedidos",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="document-text" size={size} color={color} />
           ),
+          headerShown: false,
         }}
       />
       <Tab.Screen

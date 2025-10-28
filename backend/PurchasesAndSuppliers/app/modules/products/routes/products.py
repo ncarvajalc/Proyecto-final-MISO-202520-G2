@@ -25,4 +25,10 @@ def list_products(page: int = 1, limit: int = 10, db: Session = Depends(get_db))
     return product_service.read(db, page=page, limit=limit)
 
 
+@router.get("/{product_id}")
+def get_product(product_id: int, db: Session = Depends(get_db)):
+    """Get a single product by ID."""
+    return product_service.read_by_id(db, product_id)
+
+
 __all__ = ["router"]

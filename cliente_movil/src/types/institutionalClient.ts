@@ -2,6 +2,8 @@ export interface InstitutionalClient {
   id: string;
   nombre_institucion: string;
   direccion: string;
+  ciudad: string | null;
+  pais: string | null;
   direccion_institucional: string; // email
   identificacion_tributaria: string; // NIT
   representante_legal: string;
