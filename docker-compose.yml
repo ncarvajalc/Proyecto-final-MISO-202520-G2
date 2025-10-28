@@ -13,8 +13,8 @@ x-http-health: &http-health
   healthcheck:
     test: ["CMD", "python", "-c", "import os,urllib.request; urllib.request.urlopen('http://localhost:'+os.getenv('PORT','8000')+'/health')"]
     interval: 5s
-    timeout: 5s
-    retries: 5
+    timeout: 10s
+    retries: 10
 
 x-fastapi-base: &fastapi-base
   <<: *http-health
