@@ -89,46 +89,22 @@ async def _check_service_health(
 
 
 @app.get("/health")
-async def healthcheck() -> Dict[str, object]:
-    """Aggregate the health of upstream services."""
-    client: httpx.AsyncClient = app.state.client
-    services: Dict[str, Dict[str, object]] = {}
-
-    for name, url in HEALTH_ENDPOINTS:
-        try:
-            response = await client.get(url)
-            payload: object
-            try:
-                payload = response.json()
-            except ValueError:
-                payload = response.text
-
-            healthy = response.status_code < 400
-            services[name] = {
-                "status": "ok" if healthy else "error",
-                "http_status": response.status_code,
-                "detail": payload,
-            }
-            all_ok = all_ok and healthy
-        except httpx.RequestError as exc:  # pragma: no cover - network failure path
-            services[name] = {
-                "status": "unreachable",
-                "error": str(exc),
-            }
-            all_ok = False
-
-    all_ok = True
-    for name, result, healthy in await asyncio.gather(*tasks):
-        services[name] = result
-        all_ok &= healthy
-
-    return {"status": "ok" if all_ok else "degraded", "services": services}
+async def healthcheck() -> Dict[str, str]:
+    """Simple health check that only verifies the gateway itself is running."""
+    return {"status": "ok"}
 
 
+# Headers to skip when proxying requests
+REQUEST_HEADER_SKIP = frozenset(["host", "content-length", "transfer-encoding"])
+RESPONSE_HEADER_SKIP = frozenset(["content-length", "transfer-encoding", "content-encoding"])
+
+
+def _resolve_upstream(path: str) -> Optional[str]:
+    """Find the upstream service URL for the given path."""
     # PREFIX_ROUTES is already sorted with longer prefixes first
     for prefix, upstream in PREFIX_ROUTES:
         if path == prefix or path.startswith(f"{prefix}/"):
-            return prefix, upstream
+            return upstream
     return None
 
 
