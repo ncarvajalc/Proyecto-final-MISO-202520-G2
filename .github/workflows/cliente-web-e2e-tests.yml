@@ -49,8 +49,12 @@ jobs:
           pnpm exec playwright install --with-deps
           pnpm run build
 
-      - name: Start backend services
-        run: docker compose --profile backend build --no-cache && docker compose --profile backend up -d --wait api_gateway
+      - name: Clean Docker and start backend services
+        run: |
+          docker compose down --volumes --rmi all || true
+          docker system prune -af || true
+          docker compose --profile backend build --no-cache
+          docker compose --profile backend up -d --wait api_gateway
 
       - name: Run E2E tests
         working-directory: cliente_web
