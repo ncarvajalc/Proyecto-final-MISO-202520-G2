@@ -96,8 +96,15 @@ class AuthService:
         token = self._generate_jwt_token(user)
 
         # Step 7: Update last_login_at
-        user.last_login_at = datetime.now(UTC)
-        self.db.commit()
+        try:
+            user.last_login_at = datetime.now(UTC)
+            self.db.commit()
+        except Exception as exc:
+            # If updating last_login fails, rollback but still return auth response
+            self.db.rollback()
+            # Log the error but don't fail the login
+            import traceback
+            traceback.print_exc()
 
         # Step 8: Build and return AuthResponse
         return AuthResponse(
