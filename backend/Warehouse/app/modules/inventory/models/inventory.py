@@ -14,7 +14,7 @@ class Inventory(Base):
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     product_id = Column(Integer, nullable=False, index=True)
-    warehouse_id = Column(Integer, ForeignKey("warehouses.id"), nullable=False)
+    warehouse_id = Column(Integer, ForeignKey("inventory_warehouses.id"), nullable=False)
     stock_quantity = Column(Integer, nullable=False, default=0)
     available_quantity = Column(Integer, nullable=False, default=0)
     created_at = Column(DateTime, server_default=func.now())
