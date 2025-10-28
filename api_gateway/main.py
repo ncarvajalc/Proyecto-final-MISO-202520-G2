@@ -16,6 +16,7 @@ PREFIX_ROUTES: Tuple[Tuple[str, str], ...] = (
     ("/vendedores", "http://salesforce:8004"),
     ("/proveedores", "http://purchases_suppliers:8001"),
     ("/productos", "http://purchases_suppliers:8001"),
+    ("/pedidos", "http://salesforce:8004"),
     ("/inventario", "http://warehouse:8003"),
     ("/vehiculos", "http://tracking:8002"),
     ("/paradas", "http://tracking:8002"),
