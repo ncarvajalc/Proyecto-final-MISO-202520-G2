@@ -10,7 +10,7 @@ from app.core.database import Base
 class Warehouse(Base):
     """Warehouse model representing physical storage locations."""
 
-    __tablename__ = "warehouses"
+    __tablename__ = "inventory_warehouses"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     name = Column(String(255), nullable=False)
