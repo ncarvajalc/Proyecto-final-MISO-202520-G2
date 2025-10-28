@@ -66,6 +66,18 @@ jobs:
             http-get://127.0.0.1:8080/health
           pnpm run test:e2e
 
+      - name: Show backend logs on failure
+        if: failure()
+        run: |
+          echo "=== Security Audit Service Logs ==="
+          docker compose logs security_audit --tail=100
+          echo ""
+          echo "=== Purchases Suppliers Service Logs ==="
+          docker compose logs purchases_suppliers --tail=100
+          echo ""
+          echo "=== API Gateway Logs ==="
+          docker compose logs api_gateway --tail=100
+
       - name: Upload Playwright artifacts
         if: always()
         uses: actions/upload-artifact@v4
