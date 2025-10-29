@@ -11,6 +11,7 @@ from app.core.pagination import build_pagination_metadata, get_pagination_offset
 
 from ..crud.crud_product import (
     create_product,
+    get_product,
     get_product_by_sku,
     get_products_all,
 )
@@ -78,4 +79,12 @@ def read(db: Session, page: int = 1, limit: int = 10) -> Dict[str, Any]:
     return {"data": serialized_products, **metadata}
 
 
-__all__ = ["create", "read"]
+def read_by_id(db: Session, product_id: int) -> Dict[str, Any]:
+    """Get a single product by ID."""
+    product = get_product(db, product_id)
+    if not product:
+        raise HTTPException(status_code=404, detail=f"Product {product_id} not found")
+    return _serialize_product(product)
+
+
+__all__ = ["create", "read", "read_by_id"]

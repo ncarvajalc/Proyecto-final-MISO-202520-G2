@@ -62,7 +62,7 @@ export const VisitListScreen: React.FC = () => {
   if (loading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#0369A1" />
+        <ActivityIndicator size="large" color="#024A77" />
       </View>
     );
   }
@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
   searchButton: {
     width: 120,
     height: 48,
-    backgroundColor: "#0369A1",
+    backgroundColor: "#024A77",
     borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",
@@ -190,7 +190,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: "700",
-    color: "#0369A1",
+    color: "#024A77",
     textAlign: "center",
     marginBottom: 20,
     paddingHorizontal: 20,

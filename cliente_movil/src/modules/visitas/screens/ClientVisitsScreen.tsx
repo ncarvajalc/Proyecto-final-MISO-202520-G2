@@ -63,7 +63,7 @@ export const ClientVisitsScreen: React.FC = () => {
   if (loading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#0369A1" />
+        <ActivityIndicator size="large" color="#024A77" />
       </View>
     );
   }
@@ -84,7 +84,7 @@ export const ClientVisitsScreen: React.FC = () => {
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color="#0369A1" />
+          <Ionicons name="arrow-back" size={24} color="#024A77" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Visitas</Text>
       </View>
@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   registerButton: {
-    backgroundColor: "#0369A1",
+    backgroundColor: "#024A77",
     paddingVertical: 12,
     paddingHorizontal: 32,
     borderRadius: 8,
@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
   listTitle: {
     fontSize: 24,
     fontWeight: "700",
-    color: "#0369A1",
+    color: "#024A77",
     textAlign: "center",
     paddingHorizontal: 20,
     paddingVertical: 12,
