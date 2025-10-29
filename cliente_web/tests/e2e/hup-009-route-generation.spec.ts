@@ -1,6 +1,7 @@
 import {
   test,
   expect,
+  request,
   type APIRequestContext,
   type Page,
 } from "@playwright/test";
@@ -9,6 +10,7 @@ import {
   ADMIN_EMAIL,
   ADMIN_PASSWORD,
   ITEMS_PER_PAGE,
+  API_GATEWAY_URL,
   loginAsAdmin,
   createTrackingApi,
   buildVehiclePayload,
@@ -32,6 +34,7 @@ import {
 
 const timestampSegment = Date.now().toString(36).toUpperCase();
 const SEED_PREFIX = `H9-${timestampSegment}`;
+const LOCATION_SEED_PREFIX = `HUP009-${Date.now()}`;
 
 const ensureAuthStorage = async (
   page: Page,
@@ -45,6 +48,118 @@ const ensureAuthStorage = async (
     },
     [token, payload]
   );
+};
+
+interface SeededProduct {
+  id: string;
+  sku: string;
+  nombre: string;
+}
+
+interface SeededWarehouse {
+  id: string;
+  nombre: string;
+}
+
+const createApiContext = async (
+  baseURL: string,
+  token?: string
+): Promise<APIRequestContext> =>
+  request.newContext({
+    baseURL,
+    extraHTTPHeaders: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+
+const createProduct = async (
+  api: APIRequestContext,
+  payload: {
+    sku: string;
+    nombre: string;
+    descripcion?: string;
+    precio?: number;
+    activo?: boolean;
+  }
+): Promise<SeededProduct> => {
+  const response = await api.post("/productos/", {
+    data: {
+      sku: payload.sku,
+      nombre: payload.nombre,
+      descripcion:
+        payload.descripcion ?? "Producto de prueba para HUP-009",
+      precio: payload.precio ?? 125000,
+      activo: payload.activo ?? true,
+    },
+  });
+
+  if (!response.ok()) {
+    throw new Error(
+      `Failed to create product (${response.status()}): ${await response.text()}`
+    );
+  }
+
+  const json = (await response.json()) as Record<string, unknown>;
+  return {
+    id: String(json.id ?? ""),
+    sku: String(json.sku ?? payload.sku),
+    nombre: String(json.nombre ?? payload.nombre),
+  };
+};
+
+const createWarehouse = async (
+  api: APIRequestContext,
+  payload: { nombre: string; ubicacion?: string }
+): Promise<SeededWarehouse> => {
+  const response = await api.post("/bodegas/", {
+    data: {
+      nombre: payload.nombre,
+      ubicacion: payload.ubicacion ?? "Bogotá",
+    },
+  });
+
+  if (!response.ok()) {
+    throw new Error(
+      `Failed to create warehouse (${response.status()}): ${await response.text()}`
+    );
+  }
+
+  const json = (await response.json()) as Record<string, unknown>;
+  return {
+    id: String(json.id ?? ""),
+    nombre: String(json.nombre ?? payload.nombre),
+  };
+};
+
+const createInventoryRecord = async (
+  api: APIRequestContext,
+  payload: {
+    warehouseId: string;
+    productId: string;
+    batchNumber?: string;
+    quantity?: number;
+    storageType?: string;
+    zona?: string;
+  }
+) => {
+  const response = await api.post("/inventario/", {
+    data: {
+      warehouse_id: payload.warehouseId,
+      product_id: payload.productId,
+      batch_number: payload.batchNumber ?? `${payload.productId}-B1`,
+      quantity: payload.quantity ?? 25,
+      storage_type: payload.storageType ?? "general",
+      zona: payload.zona ?? "Z1-1",
+      capacity: 250,
+    },
+  });
+
+  if (!response.ok()) {
+    throw new Error(
+      `Failed to create inventory (${response.status()}): ${await response.text()}`
+    );
+  }
 };
 
 const navigateToVehiclePage = async (page: Page, targetPage: number) => {
@@ -473,5 +588,54 @@ test.describe.serial("HUP-009 Generación de rutas logísticas", () => {
 
     await page.getByRole("button", { name: /volver/i }).click();
     await expect(dialog).not.toBeVisible();
+  });
+});
+
+test.describe.serial("HUP-009 Consulta de productos en bodega", () => {
+  let adminToken: string;
+  let storagePayload: { user: unknown; permissions: string[] };
+  let purchasesApi: APIRequestContext;
+  let warehouseApi: APIRequestContext;
+
+  let product: SeededProduct;
+  let locatedWarehouse: SeededWarehouse;
+  const locatedZone = "Z4-2";
+
+  test.beforeAll(async () => {
+    const auth = await loginAsAdmin();
+    adminToken = auth.token;
+    storagePayload = auth.storagePayload;
+
+    purchasesApi = await createApiContext(API_GATEWAY_URL, adminToken);
+    warehouseApi = await createApiContext("http://localhost:8003");
+
+    product = await createProduct(purchasesApi, {
+      sku: `${LOCATION_SEED_PREFIX}-SKU`,
+      nombre: `${LOCATION_SEED_PREFIX} Monitor cardíaco`,
+    });
+
+    locatedWarehouse = await createWarehouse(warehouseApi, {
+      nombre: `${LOCATION_SEED_PREFIX} Bodega Norte`,
+      ubicacion: "Bogotá",
+    });
+
+    await createInventoryRecord(warehouseApi, {
+      warehouseId: locatedWarehouse.id,
+      productId: product.sku,
+      zona: locatedZone,
+    });
+  });
+
+  test.afterAll(async () => {
+    await purchasesApi?.dispose();
+    await warehouseApi?.dispose();
+  });
+
+  test.beforeEach(async ({ page }) => {
+    if (!adminToken) {
+      throw new Error("Authentication bootstrap failed for HUP-009");
+    }
+
+    await ensureAuthStorage(page, adminToken, storagePayload);
   });
 });
