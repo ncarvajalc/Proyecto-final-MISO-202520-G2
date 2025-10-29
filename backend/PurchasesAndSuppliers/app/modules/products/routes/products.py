@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status,HTTPException, Query
+import httpx
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -23,6 +24,12 @@ def create_product(product: ProductCreate, db: Session = Depends(get_db)):
 def list_products(page: int = 1, limit: int = 10, db: Session = Depends(get_db)):
     """List products with pagination."""
     return product_service.read(db, page=page, limit=limit)
+
+
+@router.get("/{product_id}")
+def get_product(product_id: int, db: Session = Depends(get_db)):
+    """Get a single product by ID."""
+    return product_service.read_by_id(db, product_id)
 
 
 __all__ = ["router"]

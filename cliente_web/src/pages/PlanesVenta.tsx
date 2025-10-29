@@ -1,122 +1,78 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Typography1 } from "@/components/ui/typography1";
-import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Pagination } from "@/components/ui/pagination";
+import { TableCell, TableRow } from "@/components/ui/table";
 import { getPlanesVenta } from "@/services/planesVenta.service";
+import type { PlanVenta } from "@/types/planVenta";
 import { Plus } from "lucide-react";
 import { CreatePlanVentaForm } from "@/components/planVenta/CreatePlanVentaForm";
+import { ResourcePageLayout } from "@/components/common/ResourcePageLayout";
+import { ResourcePageActionButton } from "@/components/common/ResourcePageActionButton";
+import { useDialogState } from "@/hooks/useDialogState";
+import { useResourcePageData } from "@/hooks/useResourcePageData";
 
-const ITEMS_PER_PAGE = 5;
+const PLANES_PAGINATION = { pageSize: 5 } as const;
+
+const createPlanTable = (planes?: PlanVenta[]) => ({
+  columns: [
+    { key: "id", header: "ID" },
+    { key: "nombre", header: "Nombre" },
+    { key: "periodo", header: "Periodo" },
+    { key: "vendedor", header: "Vendedor" },
+    { key: "meta", header: "Meta" },
+  ],
+  data: planes,
+  emptyMessage: "No hay planes de venta disponibles",
+  renderRow: (plan: PlanVenta) => (
+    <TableRow key={plan.id}>
+      <TableCell className="font-medium">{plan.identificador}</TableCell>
+      <TableCell>{plan.nombre}</TableCell>
+      <TableCell>{plan.periodo}</TableCell>
+      <TableCell>{plan.vendedorNombre || plan.vendedorId}</TableCell>
+      <TableCell>{plan.meta}</TableCell>
+    </TableRow>
+  ),
+});
 
 export default function PlanesVenta() {
-  const [currentPage, setCurrentPage] = useState(1);
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-
-  // Fetch planes de venta using TanStack Query with server-side pagination
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ["planesVenta", currentPage, ITEMS_PER_PAGE],
-    queryFn: () => getPlanesVenta({ page: currentPage, limit: ITEMS_PER_PAGE }),
+  const planPageData = useResourcePageData<PlanVenta>({
+    resourceKey: "planesVenta",
+    fetcher: getPlanesVenta,
+    itemsPerPage: PLANES_PAGINATION.pageSize,
   });
-
-  const totalPages = data?.totalPages || 0;
+  const planData = planPageData.data;
+  const planLayoutConfig = planPageData.layoutConfig;
+  const {
+    isOpen: isCreateDialogOpen,
+    setIsOpen: setIsCreateDialogOpen,
+    openDialog: openCreateDialog,
+  } = useDialogState();
 
   // Button handlers
   const handleNuevoPlan = () => {
-    setIsCreateDialogOpen(true);
+    openCreateDialog();
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-muted-foreground">Cargando planes de venta...</p>
-      </div>
-    );
-  }
-
-  if (isError) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-destructive">Error al cargar los planes de venta</p>
-      </div>
-    );
-  }
+  const layoutProps = {
+    title: "Planes de Venta",
+    actions: (
+      <ResourcePageActionButton
+        onClick={handleNuevoPlan}
+        icon={<Plus className="h-4 w-4" />}
+      >
+        Nuevo Plan de Venta
+      </ResourcePageActionButton>
+    ),
+    loadingMessage: "Cargando planes de venta...",
+    errorMessage: "Error al cargar los planes de venta",
+    state: planLayoutConfig.state,
+    table: createPlanTable(planData?.data),
+    pagination: planLayoutConfig.pagination,
+  } as const;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 items-center justify-center">
-        <Typography1 className="mb-0">Planes de Venta</Typography1>
-
-        <div className="flex gap-3">
-          <Button onClick={handleNuevoPlan}>
-            <Plus className="h-4 w-4" />
-            Nuevo Plan de Venta
-          </Button>
-        </div>
-      </div>
-
-      {/* Table */}
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>ID</TableHead>
-            <TableHead>Nombre</TableHead>
-            <TableHead>Periodo</TableHead>
-            <TableHead>Vendedor</TableHead>
-            <TableHead>Meta</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {!data?.data || data.data.length === 0 ? (
-            <TableRow>
-              <TableCell
-                colSpan={5}
-                className="text-center text-muted-foreground"
-              >
-                No hay planes de venta disponibles
-              </TableCell>
-            </TableRow>
-          ) : (
-            data.data.map((plan) => (
-              <TableRow key={plan.id}>
-                <TableCell className="font-medium">
-                  {plan.identificador}
-                </TableCell>
-                <TableCell>{plan.nombre}</TableCell>
-                <TableCell>{plan.periodo}</TableCell>
-                <TableCell>{plan.vendedorNombre || plan.vendedorId}</TableCell>
-                <TableCell>{plan.meta}</TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
-
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex justify-end">
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
-          />
-        </div>
-      )}
-
-      {/* Create Plan de Venta Dialog */}
+    <ResourcePageLayout<PlanVenta> {...layoutProps}>
       <CreatePlanVentaForm
         open={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
       />
-    </div>
+    </ResourcePageLayout>
   );
 }

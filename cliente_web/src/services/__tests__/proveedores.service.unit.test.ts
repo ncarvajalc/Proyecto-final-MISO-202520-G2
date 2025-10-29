@@ -7,17 +7,21 @@ import {
   bulkUploadProveedores,
 } from "@/services/proveedores.service";
 
-const postMock = vi.fn();
-const getMock = vi.fn();
+const { postMock, getMock, ApiClientMock } = vi.hoisted(() => ({
+  postMock: vi.fn(),
+  getMock: vi.fn(),
+  ApiClientMock: vi.fn(function ApiClientMockImpl(this: {
+    post: typeof postMock;
+    get: typeof getMock;
+  }) {
+    this.post = postMock;
+    this.get = getMock;
+  }),
+}));
 
-vi.mock("@/lib/api-client", () => {
-  return {
-    ApiClient: vi.fn().mockImplementation(() => ({
-      post: postMock,
-      get: getMock,
-    })),
-  };
-});
+vi.mock("@/lib/api-client", () => ({
+  ApiClient: ApiClientMock,
+}));
 
 describe("createProveedor service", () => {
   let apiUrl: string;
@@ -27,6 +31,7 @@ describe("createProveedor service", () => {
   beforeEach(() => {
     postMock.mockReset();
     getMock.mockReset();
+    ApiClientMock.mockClear();
     vi.unstubAllEnvs();
     apiUrl = faker.internet.url();
     vi.stubEnv("VITE_API_URL", apiUrl);
@@ -68,6 +73,7 @@ describe("getProveedores service", () => {
 
   beforeEach(() => {
     getMock.mockReset();
+    ApiClientMock.mockClear();
     vi.unstubAllEnvs();
     apiUrl = faker.internet.url();
     vi.stubEnv("VITE_API_URL", apiUrl);
@@ -122,6 +128,7 @@ describe("bulkUploadProveedores service", () => {
 
   beforeEach(() => {
     postMock.mockReset();
+    ApiClientMock.mockClear();
     vi.unstubAllEnvs();
     apiUrl = faker.internet.url();
     vi.stubEnv("VITE_API_URL", apiUrl);

@@ -1,38 +1,31 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Typography1 } from "@/components/ui/typography1";
-import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Pagination } from "@/components/ui/pagination";
+import { TableCell, TableRow } from "@/components/ui/table";
 import { getInformesComerciales } from "@/services/informesComerciales.service";
+import type { InformeComercial } from "@/types/informeComercial";
 import { Plus } from "lucide-react";
 import { CreateInformeComercialForm } from "@/components/informeComercial/CreateInformeComercialForm";
+import { ResourcePageLayout } from "@/components/common/ResourcePageLayout";
+import { ResourcePageActionButton } from "@/components/common/ResourcePageActionButton";
+import { useResourcePageData } from "@/hooks/useResourcePageData";
+import { useDialogState } from "@/hooks/useDialogState";
 
 const ITEMS_PER_PAGE = 5;
 
 export default function InformesComerciales() {
-  const [currentPage, setCurrentPage] = useState(1);
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const {
+    isOpen: isCreateDialogOpen,
+    setIsOpen: setIsCreateDialogOpen,
+    openDialog: openCreateDialog,
+  } = useDialogState();
 
-  // Fetch informes comerciales using TanStack Query with server-side pagination
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ["informesComerciales", currentPage, ITEMS_PER_PAGE],
-    queryFn: () =>
-      getInformesComerciales({ page: currentPage, limit: ITEMS_PER_PAGE }),
+  const { data, layoutConfig } = useResourcePageData<InformeComercial>({
+    resourceKey: "informesComerciales",
+    fetcher: getInformesComerciales,
+    itemsPerPage: ITEMS_PER_PAGE,
   });
-
-  const totalPages = data?.totalPages || 0;
 
   // Button handlers
   const handleCrearInforme = () => {
-    setIsCreateDialogOpen(true);
+    openCreateDialog();
   };
 
   // Format date to local format
@@ -45,87 +38,44 @@ export default function InformesComerciales() {
     });
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-muted-foreground">
-          Cargando informes comerciales...
-        </p>
-      </div>
-    );
-  }
-
-  if (isError) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-destructive">
-          Error al cargar los informes comerciales
-        </p>
-      </div>
-    );
-  }
+  const layoutProps = {
+    title: "Informes Comerciales",
+    actions: (
+      <ResourcePageActionButton
+        onClick={handleCrearInforme}
+        icon={<Plus className="h-4 w-4" />}
+      >
+        Crear Informe Comercial
+      </ResourcePageActionButton>
+    ),
+    loadingMessage: "Cargando informes comerciales...",
+    errorMessage: "Error al cargar los informes comerciales",
+    state: layoutConfig.state,
+    table: {
+      columns: [
+        { key: "id", header: "ID" },
+        { key: "nombre", header: "Nombre" },
+        { key: "fecha", header: "Fecha" },
+      ],
+      data: data?.data,
+      emptyMessage: "No hay informes comerciales disponibles",
+      renderRow: (informe: InformeComercial) => (
+        <TableRow key={informe.id}>
+          <TableCell className="font-medium">{informe.id}</TableCell>
+          <TableCell>{informe.nombre}</TableCell>
+          <TableCell>{formatDate(informe.fecha)}</TableCell>
+        </TableRow>
+      ),
+    },
+    pagination: layoutConfig.pagination,
+  };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 items-center justify-center">
-        <Typography1 className="mb-0">Informes Comerciales</Typography1>
-
-        <div className="flex gap-3">
-          <Button onClick={handleCrearInforme}>
-            <Plus className="h-4 w-4" />
-            Crear Informe Comercial
-          </Button>
-        </div>
-      </div>
-
-      {/* Table */}
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>ID</TableHead>
-            <TableHead>Nombre</TableHead>
-            <TableHead>Fecha</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {!data?.data || data.data.length === 0 ? (
-            <TableRow>
-              <TableCell
-                colSpan={3}
-                className="text-center text-muted-foreground"
-              >
-                No hay informes comerciales disponibles
-              </TableCell>
-            </TableRow>
-          ) : (
-            data.data.map((informe) => (
-              <TableRow key={informe.id}>
-                <TableCell className="font-medium">{informe.id}</TableCell>
-                <TableCell>{informe.nombre}</TableCell>
-                <TableCell>{formatDate(informe.fecha)}</TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
-
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex justify-end">
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
-          />
-        </div>
-      )}
-
-      {/* Create Informe Comercial Dialog */}
+    <ResourcePageLayout<InformeComercial> {...layoutProps}>
       <CreateInformeComercialForm
         open={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
       />
-    </div>
+    </ResourcePageLayout>
   );
 }

@@ -78,7 +78,7 @@ export const CarteraScreen: React.FC = () => {
   if (isLoading && entities.length === 0) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0369A1" />
+        <ActivityIndicator size="large" color="#024A77" />
         <Text style={styles.loadingText}>Cargando instituciones...</Text>
       </View>
     );
@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 6,
-    backgroundColor: "#0369A1",
+    backgroundColor: "#024A77",
   },
   paginationButtonDisabled: {
     backgroundColor: "#e2e8f0",

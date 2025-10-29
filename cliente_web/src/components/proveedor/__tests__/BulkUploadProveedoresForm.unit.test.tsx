@@ -1,11 +1,7 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { faker } from "@faker-js/faker";
+import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-
-import { BulkUploadProveedoresForm } from "@/components/proveedor/BulkUploadProveedoresForm";
-import { bulkUploadProveedores } from "@/services/proveedores.service";
-import { toast } from "sonner";
 
 vi.mock("@/services/proveedores.service", () => ({
   bulkUploadProveedores: vi.fn(),
@@ -18,38 +14,44 @@ vi.mock("sonner", () => ({
   },
 }));
 
-const renderComponent = () => {
-  const queryClient = new QueryClient();
-  const onOpenChange = vi.fn();
-  const utils = render(
-    <QueryClientProvider client={queryClient}>
-      <BulkUploadProveedoresForm open={true} onOpenChange={onOpenChange} />
-    </QueryClientProvider>
-  );
-  const formElement = document.querySelector("form");
-  formElement?.setAttribute("novalidate", "true");
-  return { queryClient, onOpenChange, ...utils };
-};
+import { BulkUploadProveedoresForm } from "@/components/proveedor/BulkUploadProveedoresForm";
 
-const mockedBulkUpload = vi.mocked(bulkUploadProveedores);
-const mockedToast = vi.mocked(toast);
+import { renderWithQueryClient } from "../../../../tests/test-utils";
 
 describe("BulkUploadProveedoresForm - Unit", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockedBulkUpload.mockReset();
+    faker.seed(5);
   });
 
-  it("deshabilita el envío cuando no se ha seleccionado un archivo", async () => {
+  const renderForm = () =>
+    renderWithQueryClient(
+      <BulkUploadProveedoresForm open={true} onOpenChange={vi.fn()} />
+    );
+
+  it("muestra las acciones principales", () => {
+    renderForm();
+
+    expect(
+      screen.getByRole("heading", { name: /carga masiva proveedores/i })
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /descargar plantilla/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /crear/i })).toBeDisabled();
+  });
+
+  it("habilita el botón de carga al seleccionar un archivo", async () => {
     const user = userEvent.setup();
-    renderComponent();
+    renderForm();
 
-    const submitButton = screen.getByRole("button", { name: /crear/i });
-    expect(submitButton).toBeDisabled();
+    const fileInput = document.querySelector<HTMLInputElement>('input[type="file"]');
+    expect(fileInput).not.toBeNull();
+    const file = new File(
+      [faker.lorem.sentence()],
+      `${faker.string.alphanumeric(8)}.csv`,
+      { type: "text/csv" }
+    );
+    await user.upload(fileInput!, file);
 
-    await user.click(submitButton);
-
-    expect(mockedBulkUpload).not.toHaveBeenCalled();
-    expect(mockedToast.error).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: /crear/i })).toBeEnabled();
   });
 });

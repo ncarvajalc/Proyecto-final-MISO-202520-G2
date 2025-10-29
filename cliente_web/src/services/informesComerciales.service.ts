@@ -14,6 +14,7 @@ import type {
   InformesComercialResponse,
   PaginationParams,
 } from "@/types/informeComercial";
+import { toPaginatedResult } from "@/services/utils/pagination";
 
 /**
  * Fetch informes comerciales with pagination
@@ -72,18 +73,7 @@ export const getInformesComerciales = async (
       informe.unidadesVendidas ?? informe.unidades_vendidas ?? 0,
   }));
 
-  const totalPages =
-    response.totalPages ??
-    response.total_pages ??
-    (response.total > 0 ? Math.ceil(response.total / params.limit) : 0);
-
-  return {
-    data: normalizedData,
-    total: response.total,
-    page: response.page,
-    limit: response.limit,
-    totalPages,
-  };
+  return toPaginatedResult(response, params.limit, normalizedData);
 };
 
 /**

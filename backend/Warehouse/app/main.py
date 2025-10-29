@@ -1,10 +1,26 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
+from app.core.database import SessionLocal, engine, Base
 
-from app.core.database import SessionLocal
+from app.modules.inventory.routes.inventory import router as inventory_router
 
-app = FastAPI()
+app = FastAPI(title="Warehouse Service")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Include routers
+app.include_router(inventory_router)
+
+# Create database tables after models are imported
+Base.metadata.create_all(bind=engine)
 
 
 @app.get("/health", tags=["health"])
@@ -17,6 +33,7 @@ def healthcheck():
     except OperationalError:
         return {"status": "error", "db": False}
 
+
 @app.get("/")
 def read_root():
-    return {"message": "Hello from FastAPI on Cloud Run!"}
+    return {"message": "Warehouse Service - Inventory Management"}
