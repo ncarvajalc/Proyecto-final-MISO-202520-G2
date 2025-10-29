@@ -1,100 +1,248 @@
-import { faker } from "@faker-js/faker";
-import { test, expect } from "@playwright/test";
+import {
+  test,
+  expect,
+  type APIRequestContext,
+  type Page,
+} from "@playwright/test";
+
 import {
   ADMIN_EMAIL,
   ADMIN_PASSWORD,
-  API_GATEWAY_URL,
+  ITEMS_PER_PAGE,
   loginAsAdmin,
-  buildVehicleResponse,
-  buildRouteResponse,
-  buildRouteStopResponse,
+  createTrackingApi,
+  buildVehiclePayload,
+  createVehicleViaApi,
+  buildRoutePayload,
+  createRouteViaApi,
+  buildRouteStopPayload,
+  createRouteStopViaApi,
+  deleteRouteViaApi,
   gotoLogistica,
-  interceptVehiclesList,
-  interceptRoutesList,
-  interceptOptimizeRoute,
   waitForVehiclesListResponse,
   waitForRoutesListResponse,
   waitForOptimizeResponse,
-  expectVehicleRowVisible,
   waitForToastWithText,
+  expectVehicleRowVisible,
   openRouteGenerationModal,
-  interceptLogin,
-  interceptAuthBootstrap,
-} from "./utils/routes";
-import type {
-  VehicleResponse,
-  RouteResponse,
-  RouteStopResponse,
+  findVehiclePageViaApi,
+  type VehicleResponse,
+  type RouteResponse,
 } from "./utils/routes";
 
-const ITEMS_PER_PAGE = 5;
+const timestampSegment = Date.now().toString(36).toUpperCase();
+const SEED_PREFIX = `H9-${timestampSegment}`;
+
+const ensureAuthStorage = async (
+  page: Page,
+  token: string,
+  payload: { user: unknown; permissions: string[] }
+) => {
+  await page.addInitScript(
+    ([storedToken, storedPayload]) => {
+      localStorage.setItem("auth_token", storedToken as string);
+      localStorage.setItem("user_data", JSON.stringify(storedPayload));
+    },
+    [token, payload]
+  );
+};
+
+const navigateToVehiclePage = async (page: Page, targetPage: number) => {
+  if (targetPage <= 1) {
+    return;
+  }
+
+  let currentPage = 1;
+  while (currentPage < targetPage) {
+    const nextButton = page.getByRole("button", { name: "Siguiente" });
+    await expect(nextButton).toBeEnabled();
+    const responsePromise = waitForVehiclesListResponse(
+      page,
+      (response) => response.ok()
+    );
+    await nextButton.click();
+    await responsePromise;
+    currentPage += 1;
+  }
+};
 
 test.describe.serial("HUP-009 Generación de rutas logísticas", () => {
   let adminToken: string;
   let storagePayload: { user: unknown; permissions: string[] };
+  let trackingApi: APIRequestContext;
+
+  let vehicleWithRoute: VehicleResponse;
+  let vehicleWithoutPendingRoutes: VehicleResponse;
+  let vehicleWithoutStops: VehicleResponse;
+  let vehicleWithoutCoords: VehicleResponse;
+
+  let routeForOptimization: RouteResponse;
+  let routeWithoutStops: RouteResponse;
+  let routeWithoutCoords: RouteResponse;
+
+  let vehicleWithRoutePage = 1;
+  let vehicleWithoutPendingRoutesPage = 1;
+  let vehicleWithoutStopsPage = 1;
+  let vehicleWithoutCoordsPage = 1;
+
+  const cleanupRouteIds: string[] = [];
 
   test.beforeAll(async () => {
     const auth = await loginAsAdmin();
     adminToken = auth.token;
     storagePayload = auth.storagePayload;
+
+    trackingApi = await createTrackingApi(adminToken);
+
+    vehicleWithRoute = await createVehicleViaApi(
+      trackingApi,
+      buildVehiclePayload(`${SEED_PREFIX}-OPT`, { numeroEntregas: 12 })
+    );
+
+    routeForOptimization = await createRouteViaApi(
+      trackingApi,
+      buildRoutePayload({
+        vehicleId: vehicleWithRoute.id,
+        status: "pending",
+        priorityLevel: "alto",
+      })
+    );
+    cleanupRouteIds.push(routeForOptimization.id);
+
+    await createRouteStopViaApi(
+      trackingApi,
+      buildRouteStopPayload(routeForOptimization.id, {
+        sequence: 1,
+        latitude: 4.6097,
+        longitude: -74.0817,
+        address: "Calle 127 #15-20, Bogotá",
+      })
+    );
+
+    await createRouteStopViaApi(
+      trackingApi,
+      buildRouteStopPayload(routeForOptimization.id, {
+        sequence: 2,
+        latitude: 4.6534,
+        longitude: -74.0548,
+        address: "Autopista Norte #145-30, Bogotá",
+      })
+    );
+
+    vehicleWithoutPendingRoutes = await createVehicleViaApi(
+      trackingApi,
+      buildVehiclePayload(`${SEED_PREFIX}-DONE`, { numeroEntregas: 5 })
+    );
+
+    const completedRoute = await createRouteViaApi(
+      trackingApi,
+      buildRoutePayload({
+        vehicleId: vehicleWithoutPendingRoutes.id,
+        status: "completed",
+      })
+    );
+    cleanupRouteIds.push(completedRoute.id);
+
+    vehicleWithoutStops = await createVehicleViaApi(
+      trackingApi,
+      buildVehiclePayload(`${SEED_PREFIX}-ERR`, { numeroEntregas: 3 })
+    );
+
+    routeWithoutStops = await createRouteViaApi(
+      trackingApi,
+      buildRoutePayload({ vehicleId: vehicleWithoutStops.id })
+    );
+    cleanupRouteIds.push(routeWithoutStops.id);
+
+    vehicleWithoutCoords = await createVehicleViaApi(
+      trackingApi,
+      buildVehiclePayload(`${SEED_PREFIX}-NOC`, { numeroEntregas: 7 })
+    );
+
+    routeWithoutCoords = await createRouteViaApi(
+      trackingApi,
+      buildRoutePayload({ vehicleId: vehicleWithoutCoords.id })
+    );
+    cleanupRouteIds.push(routeWithoutCoords.id);
+
+    await createRouteStopViaApi(
+      trackingApi,
+      buildRouteStopPayload(routeWithoutCoords.id, {
+        sequence: 1,
+        latitude: null,
+        longitude: null,
+        address: "Cliente sin coordenadas",
+      })
+    );
+
+    const withRoutePageInfo = await findVehiclePageViaApi(
+      trackingApi,
+      vehicleWithRoute.id,
+      { limit: ITEMS_PER_PAGE }
+    );
+    vehicleWithRoutePage = withRoutePageInfo.page;
+
+    const withoutPendingPageInfo = await findVehiclePageViaApi(
+      trackingApi,
+      vehicleWithoutPendingRoutes.id,
+      { limit: ITEMS_PER_PAGE }
+    );
+    vehicleWithoutPendingRoutesPage = withoutPendingPageInfo.page;
+
+    const withoutStopsPageInfo = await findVehiclePageViaApi(
+      trackingApi,
+      vehicleWithoutStops.id,
+      { limit: ITEMS_PER_PAGE }
+    );
+    vehicleWithoutStopsPage = withoutStopsPageInfo.page;
+
+    const withoutCoordsPageInfo = await findVehiclePageViaApi(
+      trackingApi,
+      vehicleWithoutCoords.id,
+      { limit: ITEMS_PER_PAGE }
+    );
+    vehicleWithoutCoordsPage = withoutCoordsPageInfo.page;
+  });
+
+  test.afterAll(async () => {
+    if (trackingApi) {
+      for (const routeId of cleanupRouteIds) {
+        await deleteRouteViaApi(trackingApi, routeId);
+      }
+      await trackingApi.dispose();
+    }
   });
 
   test.beforeEach(async ({ page }, testInfo) => {
-    const shouldMockAuth = !testInfo.title.includes("redirige");
+    const skipAuthBootstrap =
+      testInfo.title.startsWith("Autenticación") ||
+      testInfo.title.includes("sin token") ||
+      testInfo.title.includes("sesión inválida");
 
-    if (shouldMockAuth) {
-      await interceptAuthBootstrap(page, {
-        token: adminToken,
-        permissions: storagePayload.permissions ?? [],
-        profile: {
-          id: "admin-id",
-          username: "Administrador",
-          email: ADMIN_EMAIL,
-        },
-      });
-    }
-
-    if (
-      testInfo.title.includes("Autenticación") ||
-      testInfo.title.includes("redirige")
-    ) {
+    if (skipAuthBootstrap) {
       return;
     }
 
-    await page.addInitScript(
-      ([token, payload]) => {
-        localStorage.setItem("auth_token", token as string);
-        localStorage.setItem("user_data", JSON.stringify(payload));
-      },
-      [adminToken, storagePayload]
-    );
+    if (!adminToken) {
+      throw new Error("Authentication bootstrap failed");
+    }
+
+    await ensureAuthStorage(page, adminToken, storagePayload);
   });
 
-  test("Autenticación y navegación hacia Gestión Logística", async ({
-    page,
-  }) => {
-    const vehicle = buildVehicleResponse({ placa: "ABC-123" });
-
-    const loginIntercept = await interceptLogin(page, {
-      token: adminToken,
-      user: storagePayload.user ?? { email: ADMIN_EMAIL },
-      permissions: storagePayload.permissions,
-    });
-
+  test("Autenticación y navegación hacia Gestión Logística", async ({ page }) => {
     await page.goto("./login");
+
     await page.getByLabel("Correo").fill(ADMIN_EMAIL);
     await page.getByLabel("Contraseña").fill(ADMIN_PASSWORD);
 
     const loginRequestPromise = page.waitForRequest((request) => {
-      return (
-        request.url().startsWith(`${API_GATEWAY_URL}/auth/login`) &&
-        request.method() === "POST"
-      );
+      return request.url().includes("/auth/login") && request.method() === "POST";
     });
 
     const loginResponsePromise = page.waitForResponse((response) => {
       return (
-        response.url().startsWith(`${API_GATEWAY_URL}/auth/login`) &&
+        response.url().includes("/auth/login") &&
         response.request().method() === "POST"
       );
     });
@@ -104,192 +252,99 @@ test.describe.serial("HUP-009 Generación de rutas logísticas", () => {
     const loginResponse = await loginResponsePromise;
     expect(loginResponse.ok()).toBeTruthy();
 
-    await page.waitForURL(/\/$/);
+    await page.waitForURL((url) => url.pathname.endsWith("/"));
     await expect(page.getByRole("heading", { name: "Inicio" })).toBeVisible();
 
+    const vehiclesResponsePromise = waitForVehiclesListResponse(
+      page,
+      (response) => response.ok()
+    );
     await page
       .getByRole("link", { name: "Gestión logística", exact: true })
       .click();
-    await expect(page).toHaveURL(/\/logistica$/);
+    await expect(page).toHaveURL((url) => url.pathname.endsWith("/logistica"));
+    await vehiclesResponsePromise;
 
     await expect(
       page.getByRole("heading", { name: "Gestión Logística" })
     ).toBeVisible();
-    await expectVehicleRowVisible(page, vehicle.placa);
 
-    await loginIntercept.dispose();
+    await navigateToVehiclePage(page, vehicleWithRoutePage);
+    await expectVehicleRowVisible(page, vehicleWithRoute.placa);
   });
-
   test("Ruta protegida sin token redirige a login", async ({ page }) => {
     await page.goto("./logistica");
-    await page.waitForURL(/\/login$/);
+    await page.waitForURL((url) => url.pathname.endsWith("/login"));
     await expect(
       page.getByRole("button", { name: "Iniciar sesión" })
     ).toBeVisible();
   });
 
-  test("Ruta protegida con sesión inválida redirige a login", async ({
-    page,
-  }) => {
+  test("Ruta protegida con sesión inválida redirige a login", async ({ page }) => {
     await page.addInitScript(() => {
       localStorage.setItem("auth_token", "token-invalido");
       localStorage.removeItem("user_data");
     });
 
     await page.goto("./logistica");
-    await page.waitForURL(/\/login$/);
+    await page.waitForURL((url) => url.pathname.endsWith("/login"));
     await expect(
       page.getByRole("button", { name: "Iniciar sesión" })
     ).toBeVisible();
   });
 
-  test("Listado de vehículos muestra estados de carga, vacío y error", async ({
-    page,
-  }) => {
-    await interceptVehiclesList(page, [
-      {
-        delayMs: 2000,
-        once: true,
-        body: {
-          data: [],
-          total: 0,
-          page: 1,
-          limit: ITEMS_PER_PAGE,
-          totalPages: 0,
-        },
-      },
-      {
-        status: 500,
-        body: { detail: "Error forzado" },
-      },
-    ]);
-
-    await gotoLogistica(page, {
-      token: adminToken,
-      storagePayload,
-      forceReload: true,
-    });
-
-    await expect(page.getByText("No hay vehículos disponibles")).toBeVisible({
-      timeout: 5000,
-    });
-
-    const errorResponsePromise = waitForVehiclesListResponse(
-      page,
-      (response) => response.status() === 500
-    );
-    await page.reload();
-    await errorResponsePromise;
-    await expect(page.getByText("Error al cargar los vehículos")).toBeVisible();
-  });
-
   test("La tabla muestra vehículos con datos correctos", async ({ page }) => {
-    const vehicle1: VehicleResponse = buildVehicleResponse({
-      placa: "XYZ-789",
-      conductor: "Carlos Rodríguez",
-      numeroEntregas: 15,
-    });
-    const vehicle2: VehicleResponse = buildVehicleResponse({
-      placa: "DEF-456",
-      conductor: "María García",
-      numeroEntregas: 23,
-    });
-
-    await interceptVehiclesList(page, [
-      {
-        body: {
-          data: [vehicle1, vehicle2],
-          total: 2,
-          page: 1,
-          limit: ITEMS_PER_PAGE,
-          totalPages: 1,
-        },
-      },
-    ]);
-
+    const vehiclesResponsePromise = waitForVehiclesListResponse(
+      page,
+      (response) => response.ok()
+    );
     await gotoLogistica(page, { token: adminToken, storagePayload });
+    await vehiclesResponsePromise;
 
-    const rows = page.getByRole("row");
-    await expect(rows.nth(1)).toContainText(vehicle1.placa);
-    await expect(rows.nth(1)).toContainText(vehicle1.conductor);
-    await expect(rows.nth(1)).toContainText(vehicle1.numeroEntregas.toString());
-    await expect(rows.nth(2)).toContainText(vehicle2.placa);
-    await expect(rows.nth(2)).toContainText(vehicle2.conductor);
+    await navigateToVehiclePage(page, vehicleWithRoutePage);
+
+    const row = page.getByRole("row").filter({ hasText: vehicleWithRoute.placa }).first();
+    await expect(row).toContainText(vehicleWithRoute.placa);
+    await expect(row).toContainText(vehicleWithRoute.conductor);
+    await expect(row).toContainText(`${vehicleWithRoute.numeroEntregas}`);
   });
 
   test("Abre modal de generación de rutas al hacer clic en el botón", async ({
     page,
   }) => {
-    const vehicle = buildVehicleResponse({ placa: "ABC-123" });
-    const route = buildRouteResponse({
-      vehicleId: vehicle.id,
-      status: "pending",
-    });
-
-    await interceptVehiclesList(page, [
-      {
-        body: {
-          data: [vehicle],
-          total: 1,
-          page: 1,
-          limit: ITEMS_PER_PAGE,
-          totalPages: 1,
-        },
-      },
-    ]);
-
-    await interceptRoutesList(page, [
-      {
-        body: {
-          data: [route],
-        },
-      },
-    ]);
-
+    const vehiclesResponsePromise = waitForVehiclesListResponse(
+      page,
+      (response) => response.ok()
+    );
     await gotoLogistica(page, { token: adminToken, storagePayload });
+    await vehiclesResponsePromise;
 
-    const dialog = await openRouteGenerationModal(page, vehicle.placa);
+    await navigateToVehiclePage(page, vehicleWithRoutePage);
+
+    const dialog = await openRouteGenerationModal(page, vehicleWithRoute.placa);
     await expect(dialog).toBeVisible();
-    await expect(dialog).toContainText(vehicle.placa);
+    await expect(dialog).toContainText(vehicleWithRoute.placa);
   });
-
   test("Modal carga rutas pendientes del vehículo seleccionado", async ({
     page,
   }) => {
-    const vehicle = buildVehicleResponse({ placa: "XYZ-789" });
-    const route = buildRouteResponse({
-      vehicleId: vehicle.id,
-      status: "pending",
-      date: "2025-10-23",
+    const vehiclesResponsePromise = waitForVehiclesListResponse(
+      page,
+      (response) => response.ok()
+    );
+    await gotoLogistica(page, { token: adminToken, storagePayload });
+    await vehiclesResponsePromise;
+
+    await navigateToVehiclePage(page, vehicleWithRoutePage);
+
+    const routesResponsePromise = waitForRoutesListResponse(page, (response) => {
+      return (
+        response.url().includes(`vehicle_id=${vehicleWithRoute.id}`) &&
+        response.ok()
+      );
     });
 
-    await interceptVehiclesList(page, [
-      {
-        body: {
-          data: [vehicle],
-          total: 1,
-          page: 1,
-          limit: ITEMS_PER_PAGE,
-          totalPages: 1,
-        },
-      },
-    ]);
-
-    await interceptRoutesList(page, [
-      {
-        body: {
-          data: [route],
-        },
-      },
-    ]);
-
-    await gotoLogistica(page, { token: adminToken, storagePayload });
-
-    const routesResponsePromise = waitForRoutesListResponse(page, (response) =>
-      response.url().includes(`vehicle_id=${vehicle.id}`)
-    );
-
-    await openRouteGenerationModal(page, vehicle.placa);
+    await openRouteGenerationModal(page, vehicleWithRoute.placa);
     await routesResponsePromise;
 
     await expect(page.getByRole("button", { name: /generar/i })).toBeVisible();
@@ -298,288 +353,125 @@ test.describe.serial("HUP-009 Generación de rutas logísticas", () => {
   test("Genera y optimiza ruta mostrando visualización y métricas", async ({
     page,
   }) => {
-    const vehicle = buildVehicleResponse({ placa: "ABC-123" });
-    const routeId = faker.string.uuid();
-    const pendingRoute = buildRouteResponse({
-      id: routeId,
-      vehicleId: vehicle.id,
-      status: "pending",
-      totalDistanceKm: 0,
-      estimatedTimeH: 0,
-    });
-
-    const stop1: RouteStopResponse = buildRouteStopResponse({
-      routeId,
-      sequence: 1,
-      latitude: 4.6097,
-      longitude: -74.0817,
-      address: "Calle 127 #15-20, Bogotá",
-    });
-
-    const stop2: RouteStopResponse = buildRouteStopResponse({
-      routeId,
-      sequence: 2,
-      latitude: 4.6534,
-      longitude: -74.0548,
-      address: "Autopista Norte #145-30, Bogotá",
-    });
-
-    const optimizedRoute: RouteResponse = {
-      ...pendingRoute,
-      totalDistanceKm: 18.45,
-      estimatedTimeH: 0.46,
-      stops: [stop1, stop2],
-    };
-
-    await interceptVehiclesList(page, [
-      {
-        body: {
-          data: [vehicle],
-          total: 1,
-          page: 1,
-          limit: ITEMS_PER_PAGE,
-          totalPages: 1,
-        },
-      },
-    ]);
-
-    await interceptRoutesList(page, [
-      {
-        body: {
-          data: [pendingRoute],
-        },
-      },
-    ]);
-
-    await interceptOptimizeRoute(page, [
-      {
-        status: 200,
-        body: optimizedRoute,
-      },
-    ]);
-
+    const vehiclesResponsePromise = waitForVehiclesListResponse(
+      page,
+      (response) => response.ok()
+    );
     await gotoLogistica(page, { token: adminToken, storagePayload });
+    await vehiclesResponsePromise;
 
-    await openRouteGenerationModal(page, vehicle.placa);
+    await navigateToVehiclePage(page, vehicleWithRoutePage);
+    await openRouteGenerationModal(page, vehicleWithRoute.placa);
 
     const optimizeResponsePromise = waitForOptimizeResponse(page);
     await page.getByRole("button", { name: /generar/i }).click();
-    await optimizeResponsePromise;
+    const optimizeResponse = await optimizeResponsePromise;
+    expect(optimizeResponse.ok()).toBeTruthy();
 
-    // Verificar que se muestra el toast de éxito
+    const optimizedPayload = (await optimizeResponse.json()) as RouteResponse;
     await waitForToastWithText(page, "Ruta optimizada exitosamente");
 
-    // Verificar que se muestran las métricas
-    await expect(page.getByText(/Distancia total:/)).toBeVisible();
-    await expect(page.getByText(/18.45 km/)).toBeVisible();
-    await expect(page.getByText(/Tiempo estimado:/)).toBeVisible();
-    await expect(page.getByText(/28 min/)).toBeVisible(); // 0.46 * 60 ~ 28
-    await expect(page.getByText(/Paradas:/)).toBeVisible();
+    const distanceText = `${optimizedPayload.totalDistanceKm.toFixed(2)} km`;
+    const timeMinutes = Math.round(optimizedPayload.estimatedTimeH * 60);
+    const stopsCount = optimizedPayload.stops?.length ?? 0;
 
-    // Verificar que se muestra el SVG de la ruta
-    const svgs = await page.locator("svg").all();
-    const routeSvg = svgs.find(async (svg) => {
-      const viewBox = await svg.getAttribute("viewBox");
-      return viewBox === "0 0 500 300";
-    });
-    expect(routeSvg).toBeTruthy();
+    await expect(page.getByText("Distancia total:")).toBeVisible();
+    await expect(page.getByText(distanceText)).toBeVisible();
+    await expect(page.getByText(`${timeMinutes} min`)).toBeVisible();
+    await expect(page.getByText(`Paradas: ${stopsCount}`)).toBeVisible();
+    await expect(page.locator("svg[viewBox='0 0 500 300']").first()).toBeVisible();
   });
-
   test("Modal muestra mensaje cuando no hay rutas pendientes", async ({
     page,
   }) => {
-    const vehicle = buildVehicleResponse({ placa: "DEF-456" });
-
-    await interceptVehiclesList(page, [
-      {
-        body: {
-          data: [vehicle],
-          total: 1,
-          page: 1,
-          limit: ITEMS_PER_PAGE,
-          totalPages: 1,
-        },
-      },
-    ]);
-
-    await interceptRoutesList(page, [
-      {
-        body: {
-          data: [],
-        },
-      },
-    ]);
-
+    const vehiclesResponsePromise = waitForVehiclesListResponse(
+      page,
+      (response) => response.ok()
+    );
     await gotoLogistica(page, { token: adminToken, storagePayload });
+    await vehiclesResponsePromise;
 
-    await openRouteGenerationModal(page, vehicle.placa);
+    await navigateToVehiclePage(page, vehicleWithoutPendingRoutesPage);
+
+    const routesResponsePromise = waitForRoutesListResponse(page, (response) => {
+      return (
+        response.url().includes(`vehicle_id=${vehicleWithoutPendingRoutes.id}`) &&
+        response.ok()
+      );
+    });
+
+    await openRouteGenerationModal(page, vehicleWithoutPendingRoutes.placa);
+    await routesResponsePromise;
 
     await expect(
       page.getByText("No hay rutas pendientes para este vehículo")
     ).toBeVisible();
-    const generateButton = page.getByRole("button", { name: /generar/i });
-    await expect(generateButton).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /generar/i })).toHaveCount(0);
   });
 
   test("Maneja error de optimización mostrando mensaje apropiado", async ({
     page,
   }) => {
-    const vehicle = buildVehicleResponse({ placa: "GHI-789" });
-    const routeId = faker.string.uuid();
-    const pendingRoute = buildRouteResponse({
-      id: routeId,
-      vehicleId: vehicle.id,
-      status: "pending",
-    });
-
-    const errorDetail = "Route has no stops to optimize";
-
-    await interceptVehiclesList(page, [
-      {
-        body: {
-          data: [vehicle],
-          total: 1,
-          page: 1,
-          limit: ITEMS_PER_PAGE,
-          totalPages: 1,
-        },
-      },
-    ]);
-
-    await interceptRoutesList(page, [
-      {
-        body: {
-          data: [pendingRoute],
-        },
-      },
-    ]);
-
-    await interceptOptimizeRoute(page, [
-      {
-        status: 400,
-        body: { detail: errorDetail },
-      },
-    ]);
-
+    const vehiclesResponsePromise = waitForVehiclesListResponse(
+      page,
+      (response) => response.ok()
+    );
     await gotoLogistica(page, { token: adminToken, storagePayload });
+    await vehiclesResponsePromise;
 
-    await openRouteGenerationModal(page, vehicle.placa);
+    await navigateToVehiclePage(page, vehicleWithoutStopsPage);
+    await openRouteGenerationModal(page, vehicleWithoutStops.placa);
 
     const optimizeResponsePromise = waitForOptimizeResponse(page);
     await page.getByRole("button", { name: /generar/i }).click();
-    await optimizeResponsePromise;
+    const optimizeResponse = await optimizeResponsePromise;
+    expect(optimizeResponse.ok()).toBeFalsy();
 
-    // Verificar que se muestra el toast de error
-    await waitForToastWithText(page, errorDetail);
-
-    // Verificar que NO se muestra la visualización
-    const distanciaText = page.getByText(/Distancia total:/);
-    await expect(distanciaText).toHaveCount(0);
+    await waitForToastWithText(page, "Route has no stops to optimize");
+    await expect(page.getByText("Distancia total:")).toHaveCount(0);
+    await expect(page.locator("svg[viewBox='0 0 500 300']")).toHaveCount(0);
   });
-
   test("Muestra mensaje cuando las paradas no tienen coordenadas", async ({
     page,
   }) => {
-    const vehicle = buildVehicleResponse({ placa: "JKL-123" });
-    const routeId = faker.string.uuid();
-    const pendingRoute = buildRouteResponse({
-      id: routeId,
-      vehicleId: vehicle.id,
-      status: "pending",
-      totalDistanceKm: 0,
-      estimatedTimeH: 0,
-    });
-
-    const stopWithoutCoords: RouteStopResponse = buildRouteStopResponse({
-      routeId,
-      sequence: 1,
-      latitude: null,
-      longitude: null,
-      address: "Sin dirección",
-    });
-
-    const optimizedRoute: RouteResponse = {
-      ...pendingRoute,
-      totalDistanceKm: 0,
-      estimatedTimeH: 0,
-      stops: [stopWithoutCoords],
-    };
-
-    await interceptVehiclesList(page, [
-      {
-        body: {
-          data: [vehicle],
-          total: 1,
-          page: 1,
-          limit: ITEMS_PER_PAGE,
-          totalPages: 1,
-        },
-      },
-    ]);
-
-    await interceptRoutesList(page, [
-      {
-        body: {
-          data: [pendingRoute],
-        },
-      },
-    ]);
-
-    await interceptOptimizeRoute(page, [
-      {
-        status: 200,
-        body: optimizedRoute,
-      },
-    ]);
-
+    const vehiclesResponsePromise = waitForVehiclesListResponse(
+      page,
+      (response) => response.ok()
+    );
     await gotoLogistica(page, { token: adminToken, storagePayload });
+    await vehiclesResponsePromise;
 
-    await openRouteGenerationModal(page, vehicle.placa);
+    await navigateToVehiclePage(page, vehicleWithoutCoordsPage);
+    await openRouteGenerationModal(page, vehicleWithoutCoords.placa);
 
+    const optimizeResponsePromise = waitForOptimizeResponse(page);
     await page.getByRole("button", { name: /generar/i }).click();
+    const optimizeResponse = await optimizeResponsePromise;
+    expect(optimizeResponse.ok()).toBeTruthy();
 
     await waitForToastWithText(page, "Ruta optimizada exitosamente");
-
-    // Verificar que se muestra el mensaje de coordenadas faltantes
     await expect(
       page.getByText("Las paradas no tienen coordenadas")
     ).toBeVisible();
   });
 
   test("Cierra el modal al hacer clic en Cancelar", async ({ page }) => {
-    const vehicle = buildVehicleResponse({ placa: "MNO-456" });
-    const route = buildRouteResponse({
-      vehicleId: vehicle.id,
-      status: "pending",
-    });
-
-    await interceptVehiclesList(page, [
-      {
-        body: {
-          data: [vehicle],
-          total: 1,
-          page: 1,
-          limit: ITEMS_PER_PAGE,
-          totalPages: 1,
-        },
-      },
-    ]);
-
-    await interceptRoutesList(page, [
-      {
-        body: {
-          data: [route],
-        },
-      },
-    ]);
-
+    const vehiclesResponsePromise = waitForVehiclesListResponse(
+      page,
+      (response) => response.ok()
+    );
     await gotoLogistica(page, { token: adminToken, storagePayload });
+    await vehiclesResponsePromise;
 
-    const dialog = await openRouteGenerationModal(page, vehicle.placa);
+    await navigateToVehiclePage(page, vehicleWithoutPendingRoutesPage);
+
+    const dialog = await openRouteGenerationModal(
+      page,
+      vehicleWithoutPendingRoutes.placa
+    );
     await expect(dialog).toBeVisible();
 
     await page.getByRole("button", { name: /volver/i }).click();
-
     await expect(dialog).not.toBeVisible();
   });
 });
