@@ -1,6 +1,5 @@
 import uuid
 from sqlalchemy import Column, String, Text, TIMESTAMP, func
-from sqlalchemy.orm import relationship
 
 from app.core.database import Base
 
@@ -11,8 +10,6 @@ class InstitutionalClient(Base):
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     nombre_institucion = Column(String(255), nullable=False)
     direccion = Column(String(255), nullable=False)
-    ciudad = Column(String(100), nullable=True)
-    pais = Column(String(100), nullable=True)
     direccion_institucional = Column(String(255), nullable=False)  # email
     identificacion_tributaria = Column(String(50), nullable=False, unique=True)
     representante_legal = Column(String(255), nullable=False)
@@ -21,6 +18,3 @@ class InstitutionalClient(Base):
     certificado_camara = Column(Text, nullable=True)  # base64 or file path
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
-
-    # Relationships
-    orders = relationship("Order", back_populates="institutional_client")

@@ -8,35 +8,37 @@ import httpx
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 
-PREFIX_ROUTES: Dict[str, str] = {
-    "/auth": "http://security_audit:8000",
-    "/proveedores": "http://purchases_suppliers:8001",
-    "/productos": "http://purchases_suppliers:8001",
-    "/planes-venta": "http://salesforce:8004",
-    "/informes-comerciales": "http://salesforce:8004",
-    "/vendedores": "http://salesforce:8004",
-    "/visitas": "http://salesforce:8004",
-    "/institutional-clients": "http://salesforce:8004",
-    "/pedidos": "http://salesforce:8004",
-    "/inventario": "http://warehouse:8003",
-    "/vehiculos": "http://tracking:8002",
-    "/paradas": "http://tracking:8002",
-    "/rutas": "http://tracking:8002",
-    "/bodegas": "http://warehouse:8003",
-}
+PREFIX_ROUTES: Tuple[Tuple[str, str], ...] = (
+    # Order matters: check longer prefixes first to avoid partial matches.
+    ("/institutional-clients", "http://salesforce:8004"),
+    ("/informes-comerciales", "http://salesforce:8004"),
+    ("/planes-venta", "http://salesforce:8004"),
+    ("/vendedores", "http://salesforce:8004"),
+    ("/proveedores", "http://purchases_suppliers:8001"),
+    ("/productos", "http://purchases_suppliers:8001"),
+    ("/pedidos", "http://salesforce:8004"),
+    ("/inventario", "http://warehouse:8003"),
+    ("/vehiculos", "http://tracking:8002"),
+    ("/paradas", "http://tracking:8002"),
+    ("/bodegas", "http://warehouse:8003"),
+    ("/visitas", "http://salesforce:8004"),
+    ("/rutas", "http://tracking:8002"),
+    ("/auth", "http://security_audit:8000"),
+)
 
-REQUEST_HEADER_SKIP = {"host", "content-length"}
-RESPONSE_HEADER_SKIP = {
-    "content-length",
-    "transfer-encoding",
-    "connection",
-    "keep-alive",
-    "proxy-authenticate",
-    "proxy-authorization",
-    "te",
-    "trailers",
-    "upgrade",
-}
+HEALTH_ENDPOINTS: Tuple[Tuple[str, str], ...] = (
+    (
+        "security_audit",
+        "https://security-audit-212820187078.us-central1.run.app/health",
+    ),
+    (
+        "purchases_suppliers",
+        "https://purchases-suppliers-212820187078.us-central1.run.app/health",
+    ),
+    ("salesforce", "https://salesforce-212820187078.us-central1.run.app/health"),
+    # TODO: Update with actual Cloud Run URL after deployment
+    ("tracking", "https://tracking-212820187078.us-central1.run.app/health"),
+)
 
 
 @asynccontextmanager
@@ -67,17 +69,18 @@ async def healthcheck() -> Dict[str, str]:
     return {"status": "ok"}
 
 
+# Headers to skip when proxying requests
+REQUEST_HEADER_SKIP = frozenset(["host", "content-length", "transfer-encoding"])
+RESPONSE_HEADER_SKIP = frozenset(["content-length", "transfer-encoding", "content-encoding"])
+
+
 def _resolve_upstream(path: str) -> Optional[str]:
-    """Return the matching upstream base URL for a given path."""
-    normalized = path if path.startswith("/") else f"/{path}"
-    return next(
-        (
-            base_url
-            for prefix, base_url in PREFIX_ROUTES.items()
-            if normalized == prefix or normalized.startswith(f"{prefix}/")
-        ),
-        None,
-    )
+    """Find the upstream service URL for the given path."""
+    # PREFIX_ROUTES is already sorted with longer prefixes first
+    for prefix, upstream in PREFIX_ROUTES:
+        if path == prefix or path.startswith(f"{prefix}/"):
+            return upstream
+    return None
 
 
 @app.api_route(
@@ -129,7 +132,7 @@ async def proxy(full_path: str, request: Request) -> Response:
         # Rewrite Location header for redirects to use gateway URL instead of internal service URLs
         if key.lower() == "location":
             # Replace internal service URLs with gateway URL
-            for internal_prefix, internal_url in PREFIX_ROUTES.items():
+            for internal_prefix, internal_url in PREFIX_ROUTES:
                 if value.startswith(internal_url):
                     # Replace internal URL with gateway URL (localhost:8080)
                     value = value.replace(internal_url, "http://localhost:8080")

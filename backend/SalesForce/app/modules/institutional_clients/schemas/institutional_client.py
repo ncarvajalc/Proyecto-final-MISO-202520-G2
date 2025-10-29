@@ -7,8 +7,6 @@ from pydantic import BaseModel, ConfigDict, EmailStr
 class InstitutionalClientBase(BaseModel):
     nombre_institucion: str
     direccion: str
-    ciudad: Optional[str] = None
-    pais: Optional[str] = None
     direccion_institucional: EmailStr
     identificacion_tributaria: str
     representante_legal: str
@@ -24,8 +22,6 @@ class InstitutionalClientCreate(InstitutionalClientBase):
 class InstitutionalClientUpdate(BaseModel):
     nombre_institucion: Optional[str] = None
     direccion: Optional[str] = None
-    ciudad: Optional[str] = None
-    pais: Optional[str] = None
     direccion_institucional: Optional[EmailStr] = None
     representante_legal: Optional[str] = None
     telefono: Optional[str] = None
