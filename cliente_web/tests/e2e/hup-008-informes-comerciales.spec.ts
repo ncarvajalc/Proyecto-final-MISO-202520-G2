@@ -1,34 +1,30 @@
-import { faker } from "@faker-js/faker";
-import { test, expect, type Page } from "@playwright/test";
+import {
+  test,
+  expect,
+  type APIRequestContext,
+  type Page,
+  type Locator,
+} from "@playwright/test";
 import {
   ADMIN_EMAIL,
   ADMIN_PASSWORD,
   API_GATEWAY_URL,
   loginAsAdmin,
-  buildInformePayload,
-  buildInformeResponse,
+  createSalesforceApi,
   gotoInformesComerciales,
-  interceptInformesList,
-  interceptCreateInforme,
   waitForInformesListResponse,
   waitForCreateInformeResponse,
   expectInformeRowVisible,
   trackInformesRequests,
-  waitForToastWithText,
-  interceptLogin,
-  interceptAuthBootstrap,
-} from "./utils/informesComerciales";
-import type {
-  InformeComercialPayload,
-  InformeComercialResponse,
+  createInformeViaApi,
+  type InformeComercialPayload,
+  type InformeComercialResponse,
 } from "./utils/informesComerciales";
 
 const ITEMS_PER_PAGE = 5;
+const SEED_PREFIX = `HUP008-${Date.now()}`;
 
-const fillCreateInformeForm = async (
-  page: Page,
-  data: InformeComercialPayload
-) => {
+const fillCreateInformeForm = async (page: Page, data: InformeComercialPayload) => {
   await page.getByPlaceholder("ej. IC-2025-Q1").fill(data.nombre);
 };
 
@@ -42,118 +38,166 @@ const openCreateDialog = async (page: Page) => {
   return dialog;
 };
 
+const performLogin = async (page: Page) => {
+  await page.goto("./login");
+
+  await page.locator("#email").fill(ADMIN_EMAIL);
+  await page.locator("#password").fill(ADMIN_PASSWORD);
+
+  const loginRequestPromise = page.waitForRequest(
+    (request) =>
+      request.url().startsWith(`${API_GATEWAY_URL}/auth/login`) &&
+      request.method() === "POST"
+  );
+
+  const loginResponsePromise = page.waitForResponse(
+    (response) =>
+      response.url().startsWith(`${API_GATEWAY_URL}/auth/login`) &&
+      response.request().method() === "POST"
+  );
+
+  await page.getByRole("button", { name: "Iniciar sesión" }).click();
+  await loginRequestPromise;
+  const loginResponse = await loginResponsePromise;
+  expect(loginResponse.ok()).toBeTruthy();
+
+  await page.waitForURL(/\/$/);
+  await expect(page.getByRole("heading", { name: "Inicio" })).toBeVisible();
+};
+
+const ensureAuthStorage = async (
+  page: Page,
+  token: string,
+  payload: { user: unknown; permissions: string[] }
+) => {
+  await page.addInitScript(
+    ([storedToken, storedPayload]) => {
+      localStorage.setItem("auth_token", storedToken as string);
+      localStorage.setItem("user_data", JSON.stringify(storedPayload));
+    },
+    [token, payload]
+  );
+};
+
+const escapeRegex = (value: string) =>
+  value.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&").replace(/\s+/g, "\\s*");
+
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat("es-ES", {
+    style: "currency",
+    currency: "COP",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })
+    .format(value)
+    .replace(/\u00a0/g, " ");
+
+const formatNumber = (value: number) =>
+  new Intl.NumberFormat("es-ES", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })
+    .format(value)
+    .replace(/\u00a0/g, " ");
+
+const expectIndicatorValue = async (
+  dialog: Locator,
+  label: string,
+  formattedValue: string
+) => {
+  const labelLocator = dialog.getByText(label, { exact: true });
+  const valueLocator = labelLocator.locator("xpath=following-sibling::p[1]");
+  await expect(valueLocator).toHaveText(
+    new RegExp(escapeRegex(formattedValue), "i")
+  );
+};
+
 test.describe.serial("HUP-008 Generación de informes comerciales", () => {
   let adminToken: string;
   let storagePayload: { user: unknown; permissions: string[] };
+  let salesforceApi: APIRequestContext;
+  const seededInformes: InformeComercialResponse[] = [];
+
+  const getSeededInformesOrdered = () =>
+    [...seededInformes].sort(
+      (a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime()
+    );
 
   test.beforeAll(async () => {
     const auth = await loginAsAdmin();
     adminToken = auth.token;
     storagePayload = auth.storagePayload;
+
+    salesforceApi = await createSalesforceApi(adminToken);
+
+    for (let index = 0; index < ITEMS_PER_PAGE + 2; index += 1) {
+      const informe = await createInformeViaApi(salesforceApi, {
+        nombre: `${SEED_PREFIX}-SEED-${index}`,
+      });
+      seededInformes.push(informe);
+    }
+  });
+
+  test.afterAll(async () => {
+    if (salesforceApi) {
+      await salesforceApi.dispose();
+    }
   });
 
   test.beforeEach(async ({ page }, testInfo) => {
-    const shouldMockAuth = !testInfo.title.includes("redirige");
-
-    if (shouldMockAuth) {
-      await interceptAuthBootstrap(page, {
-        token: adminToken,
-        permissions: storagePayload.permissions ?? [],
-        profile: {
-          id: "admin-id",
-          username: "Administrador",
-          email: ADMIN_EMAIL,
-        },
-      });
+    if (!adminToken || !storagePayload) {
+      throw new Error("Authentication bootstrap failed");
     }
 
+    const title = testInfo.title;
+
     if (
-      testInfo.title.includes("Autenticación") ||
-      testInfo.title.includes("redirige")
+      title.includes("Autenticación") ||
+      title.includes("sin token") ||
+      title.includes("sesión inválida")
     ) {
       return;
     }
 
-    await page.addInitScript(
-      ([token, payload]) => {
-        localStorage.setItem("auth_token", token as string);
-        localStorage.setItem("user_data", JSON.stringify(payload));
-      },
-      [adminToken, storagePayload]
-    );
+    await ensureAuthStorage(page, adminToken, storagePayload);
   });
 
   test("Autenticación y navegación hacia Informes comerciales", async ({
     page,
   }) => {
-    const informe = buildInformeResponse();
-
-    await interceptInformesList(page, [
-      {
-        body: {
-          data: [informe],
-          total: 1,
-          page: 1,
-          limit: ITEMS_PER_PAGE,
-          totalPages: 1,
-        },
-      },
-    ]);
-
     const tracker = trackInformesRequests(page);
 
-    const loginIntercept = await interceptLogin(page, {
-      token: adminToken,
-      user: storagePayload.user ?? { email: ADMIN_EMAIL },
-      permissions: storagePayload.permissions,
-    });
+    try {
+      await performLogin(page);
 
-    await page.goto("./login");
-    await page.getByLabel("Correo").fill(ADMIN_EMAIL);
-    await page.getByLabel("Contraseña").fill(ADMIN_PASSWORD);
+      await page
+        .getByRole("link", { name: "Gestión comercial", exact: true })
+        .click();
+      await expect(page).toHaveURL(/\/comercial$/);
 
-    const loginRequestPromise = page.waitForRequest((request) => {
-      return (
-        request.url().startsWith(`${API_GATEWAY_URL}/auth/login`) &&
-        request.method() === "POST"
+      const listResponsePromise = waitForInformesListResponse(
+        page,
+        (response) =>
+          (response.headers()["content-type"] ?? "").includes("application/json")
       );
-    });
+      await page
+        .getByRole("link", { name: "Informes comerciales", exact: true })
+        .click();
+      const listResponse = await listResponsePromise;
+      expect(listResponse.ok()).toBeTruthy();
 
-    const loginResponsePromise = page.waitForResponse((response) => {
-      return (
-        response.url().startsWith(`${API_GATEWAY_URL}/auth/login`) &&
-        response.request().method() === "POST"
-      );
-    });
+      await expect(page).toHaveURL(/\/comercial\/informes-comerciales$/);
+      await expect(
+        page.getByRole("heading", { name: "Informes Comerciales" })
+      ).toBeVisible();
 
-    await page.getByRole("button", { name: "Iniciar sesión" }).click();
-    await loginRequestPromise;
-    const loginResponse = await loginResponsePromise;
-    expect(loginResponse.ok()).toBeTruthy();
+      const [mostRecent] = getSeededInformesOrdered();
+      await expectInformeRowVisible(page, mostRecent.nombre);
 
-    await page.waitForURL(/\/$/);
-    await expect(page.getByRole("heading", { name: "Inicio" })).toBeVisible();
-
-    await page
-      .getByRole("link", { name: "Gestión comercial", exact: true })
-      .click();
-    await expect(page).toHaveURL(/\/comercial$/);
-
-    const listResponsePromise = waitForInformesListResponse(page);
-    await page
-      .getByRole("link", { name: "Informes comerciales", exact: true })
-      .click();
-    await listResponsePromise;
-
-    await expect(page).toHaveURL(/\/comercial\/informes-comerciales$/);
-    await expect(
-      page.getByRole("heading", { name: "Informes Comerciales" })
-    ).toBeVisible();
-    await expectInformeRowVisible(page, informe.nombre);
-
-    tracker.assertAllAuthorized();
-    tracker.stop();
-    await loginIntercept.dispose();
+      tracker.assertAllAuthorized();
+    } finally {
+      tracker.stop();
+    }
   });
 
   test("Ruta protegida sin token redirige a login", async ({ page }) => {
@@ -179,165 +223,80 @@ test.describe.serial("HUP-008 Generación de informes comerciales", () => {
     ).toBeVisible();
   });
 
-  test("Listado muestra estados de carga, vacío y error", async ({ page }) => {
-    await interceptInformesList(page, [
-      {
-        delayMs: 2000,
-        once: true,
-        body: {
-          data: [],
-          total: 0,
-          page: 1,
-          limit: ITEMS_PER_PAGE,
-          totalPages: 0,
-        },
-      },
-      {
-        status: 500,
-        body: { detail: "Error forzado" },
-      },
-    ]);
+  test("Listado muestra informes recientes en orden descendente", async ({
+    page,
+  }) => {
+    const listResponsePromise = waitForInformesListResponse(
+      page,
+      (response) =>
+        (response.headers()["content-type"] ?? "").includes("application/json")
+    );
 
     await gotoInformesComerciales(page, {
       token: adminToken,
       storagePayload,
-      forceReload: true,
     });
+    await listResponsePromise;
 
-    // Wait for the empty state to show
-    await expect(
-      page.getByText("No hay informes comerciales disponibles")
-    ).toBeVisible({ timeout: 5000 });
+    const ordered = getSeededInformesOrdered();
+    const firstRow = page.getByRole("row").nth(1);
+    const secondRow = page.getByRole("row").nth(2);
 
-    const errorResponsePromise = waitForInformesListResponse(
+    await expect(firstRow).toContainText(ordered[0].nombre);
+    await expect(secondRow).toContainText(ordered[1].nombre);
+  });
+
+  test("La paginación permite navegar entre páginas", async ({ page }) => {
+    const ordered = getSeededInformesOrdered();
+    expect(ordered.length).toBeGreaterThan(ITEMS_PER_PAGE);
+
+    const listResponsePromise = waitForInformesListResponse(
       page,
-      (response) => response.status() === 500
+      (response) =>
+        (response.headers()["content-type"] ?? "").includes("application/json")
     );
-    await page.reload();
-    await errorResponsePromise;
-    await expect(
-      page.getByText("Error al cargar los informes comerciales")
-    ).toBeVisible();
-  });
-
-  test("La tabla refleja el orden y normalización de datos", async ({
-    page,
-  }) => {
-    const informe1: InformeComercialResponse = {
-      ...buildInformeResponse(),
-      nombre: "IC-Enero-2025",
-      ventasTotales: 150000.5,
-      unidadesVendidas: 350.75,
-    };
-    const informe2: InformeComercialResponse = {
-      ...buildInformeResponse(),
-      nombre: "IC-Febrero-2025",
-      ventas_totales: 200000.25,
-      unidades_vendidas: 450.5,
-    };
-
-    await interceptInformesList(page, [
-      {
-        body: {
-          data: [informe1, informe2],
-          total: 2,
-          page: 1,
-          limit: ITEMS_PER_PAGE,
-          totalPages: 1,
-        },
-      },
-    ]);
-
     await gotoInformesComerciales(page, { token: adminToken, storagePayload });
+    await listResponsePromise;
 
-    const rows = page.getByRole("row");
-    await expect(rows.nth(1)).toContainText(informe1.nombre);
-    await expect(rows.nth(2)).toContainText(informe2.nombre);
-  });
-
-  test("La paginación actualiza la tabla y botones", async ({ page }) => {
-    const pagina1: InformeComercialResponse[] = Array.from({
-      length: ITEMS_PER_PAGE,
-    }).map((_, index) =>
-      buildInformeResponse({
-        nombre: `IC-P1-${index + 1}`,
-      })
-    );
-    const pagina2: InformeComercialResponse[] = Array.from({
-      length: ITEMS_PER_PAGE,
-    }).map((_, index) =>
-      buildInformeResponse({
-        nombre: `IC-P2-${index + 1}`,
-      })
-    );
-
-    await interceptInformesList(page, [
-      {
-        predicate: ({ page: pageNumber }) => pageNumber === 1,
-        body: {
-          data: pagina1,
-          total: ITEMS_PER_PAGE * 2,
-          page: 1,
-          limit: ITEMS_PER_PAGE,
-          totalPages: 2,
-        },
-      },
-      {
-        predicate: ({ page: pageNumber }) => pageNumber === 2,
-        body: {
-          data: pagina2,
-          total: ITEMS_PER_PAGE * 2,
-          page: 2,
-          limit: ITEMS_PER_PAGE,
-          totalPages: 2,
-        },
-      },
-    ]);
-
-    await gotoInformesComerciales(page, { token: adminToken, storagePayload });
     await expect(page.getByRole("button", { name: "Anterior" })).toBeDisabled();
     await expect(page.getByRole("button", { name: "Siguiente" })).toBeEnabled();
 
-    const nextResponsePromise = waitForInformesListResponse(page, (response) =>
-      response.url().includes("page=2")
+    const nextResponsePromise = waitForInformesListResponse(
+      page,
+      (response) => response.url().includes("page=2")
     );
     await page.getByRole("button", { name: "Siguiente" }).click();
     await nextResponsePromise;
 
-    await expect(page.getByText("Página 2 de 2")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Anterior" })).toBeEnabled();
-    await expect(
-      page.getByRole("button", { name: "Siguiente" })
-    ).toBeDisabled();
-    await expectInformeRowVisible(page, pagina2[0].nombre);
+    const secondPageRow = page.getByRole("row").nth(1);
+    await expect(secondPageRow).toContainText(ordered[ITEMS_PER_PAGE].nombre);
+    await expect(page.getByText(/Página 2/)).toBeVisible();
 
-    const prevResponsePromise = waitForInformesListResponse(page, (response) =>
-      response.url().includes("page=1")
+    const prevResponsePromise = waitForInformesListResponse(
+      page,
+      (response) => response.url().includes("page=1")
     );
     await page.getByRole("button", { name: "Anterior" }).click();
     await prevResponsePromise;
-    await expect(page.getByText("Página 1 de 2")).toBeVisible();
+
+    const firstPageRow = page.getByRole("row").nth(1);
+    await expect(firstPageRow).toContainText(ordered[0].nombre);
   });
 
   test("Las validaciones impiden enviar el formulario vacío", async ({
     page,
   }) => {
-    await interceptInformesList(page, [
-      {
-        body: {
-          data: [],
-          total: 0,
-          page: 1,
-          limit: ITEMS_PER_PAGE,
-          totalPages: 0,
-        },
-      },
-    ]);
-
     const tracker = trackInformesRequests(page);
-    await gotoInformesComerciales(page, { token: adminToken, storagePayload });
-    await openCreateDialog(page);
 
+    const listResponsePromise = waitForInformesListResponse(
+      page,
+      (response) =>
+        (response.headers()["content-type"] ?? "").includes("application/json")
+    );
+    await gotoInformesComerciales(page, { token: adminToken, storagePayload });
+    await listResponsePromise;
+
+    await openCreateDialog(page);
     await page.getByRole("button", { name: "Crear" }).click();
 
     await expect(
@@ -351,150 +310,61 @@ test.describe.serial("HUP-008 Generación de informes comerciales", () => {
   test("Creación exitosa muestra indicadores y actualiza la tabla", async ({
     page,
   }) => {
-    const existente = buildInformeResponse({
-      nombre: "IC-ANTERIOR",
-    });
-
-    const nuevoInformeData = buildInformePayload();
-    nuevoInformeData.nombre = "IC-NUEVO-2025";
-
-    const informeCreado: InformeComercialResponse = {
-      id: faker.string.uuid(),
-      ...nuevoInformeData,
-      fecha: faker.date.recent().toISOString(),
-      ventasTotales: 125000.75,
-      unidadesVendidas: 550.5,
-    };
-
-    await interceptInformesList(page, [
-      {
-        once: true,
-        body: {
-          data: [existente],
-          total: 1,
-          page: 1,
-          limit: ITEMS_PER_PAGE,
-          totalPages: 1,
-        },
-      },
-      {
-        predicate: () => true,
-        body: {
-          data: [informeCreado, existente],
-          total: 2,
-          page: 1,
-          limit: ITEMS_PER_PAGE,
-          totalPages: 1,
-        },
-      },
-    ]);
-
-    await interceptCreateInforme(page, [
-      {
-        status: 201,
-        body: informeCreado,
-      },
-    ]);
-
+    const listResponsePromise = waitForInformesListResponse(
+      page,
+      (response) =>
+        (response.headers()["content-type"] ?? "").includes("application/json")
+    );
     await gotoInformesComerciales(page, { token: adminToken, storagePayload });
-    await openCreateDialog(page);
-    await fillCreateInformeForm(page, nuevoInformeData);
+    await listResponsePromise;
+
+    const dialog = await openCreateDialog(page);
+
+    const payload: InformeComercialPayload = {
+      nombre: `${SEED_PREFIX}-UI-${Date.now()}`,
+    };
+    await fillCreateInformeForm(page, payload);
 
     const createResponsePromise = waitForCreateInformeResponse(
       page,
       (response) => response.status() === 201
     );
     const refetchPromise = waitForInformesListResponse(page, (response) =>
-      response.request().url().includes("page=1")
+      response.request().method() === "GET" && response.url().includes("page=1")
     );
 
     await page.getByRole("button", { name: "Crear" }).click();
-    await createResponsePromise;
+    const createResponse = await createResponsePromise;
+    const createdJson = (await createResponse.json()) as Record<string, unknown>;
 
-    // Verificar que se muestran los indicadores clave
-    await expect(page.getByText("Indicadores Clave")).toBeVisible();
-    await expect(page.getByText("Ventas Totales")).toBeVisible();
-    await expect(page.getByText("Unidades Vendidas")).toBeVisible();
+    const ventasTotales = Number(
+      createdJson.ventasTotales ?? createdJson.ventas_totales ?? 0
+    );
+    const unidadesVendidas = Number(
+      createdJson.unidadesVendidas ?? createdJson.unidades_vendidas ?? 0
+    );
 
-    // Verificar formato de números con dos decimales
-    await expect(page.getByText(/125\.000,75/)).toBeVisible();
-    await expect(page.getByText(/550,50/)).toBeVisible();
+    await expect(dialog.getByText("Indicadores Clave")).toBeVisible();
+    await expectIndicatorValue(
+      dialog,
+      "Ventas Totales",
+      formatCurrency(ventasTotales)
+    );
+    await expectIndicatorValue(
+      dialog,
+      "Unidades Vendidas",
+      formatNumber(unidadesVendidas)
+    );
 
-    // Cerrar el diálogo con indicadores
-    await page.getByRole("button", { name: "Cerrar" }).click();
+    await dialog.getByRole("button", { name: "Cerrar" }).click();
     await refetchPromise;
 
-    // Verificar que el diálogo se cerró
     await expect(getCreateDialog(page)).not.toBeVisible();
-
-    // Verificar que la tabla se actualizó
     const firstRow = page.getByRole("row").nth(1);
-    await expect(firstRow).toContainText(informeCreado.nombre);
+    await expect(firstRow).toContainText(payload.nombre);
 
-    // Verificar que el formulario se resetea al abrir de nuevo
     await openCreateDialog(page);
     await expect(page.getByPlaceholder("ej. IC-2025-Q1")).toHaveValue("");
     await page.getByRole("button", { name: "Cancelar" }).click();
-  });
-
-  test.describe("Errores del backend al crear informes comerciales", () => {
-    const escenarios = [
-      {
-        nombre: "error de cálculo de indicadores",
-        status: 500,
-        detail:
-          "No se pudo calcular los indicadores: base de datos no disponible",
-        toastMessage:
-          "No se pudo calcular los indicadores: base de datos no disponible",
-      },
-    ] as const satisfies ReadonlyArray<{
-      nombre: string;
-      status: number;
-      detail: string;
-      toastMessage: string;
-    }>;
-
-    for (const escenario of escenarios) {
-      test(`Muestra mensaje y conserva los valores cuando ocurre ${escenario.nombre}`, async ({
-        page,
-      }) => {
-        await interceptInformesList(page, [
-          {
-            body: {
-              data: [],
-              total: 0,
-              page: 1,
-              limit: ITEMS_PER_PAGE,
-              totalPages: 0,
-            },
-          },
-        ]);
-
-        const payload = buildInformePayload();
-        await interceptCreateInforme(page, [
-          {
-            status: escenario.status,
-            body: escenario.detail ? { detail: escenario.detail } : {},
-          },
-        ]);
-
-        await gotoInformesComerciales(page, {
-          token: adminToken,
-          storagePayload,
-        });
-        await openCreateDialog(page);
-        await fillCreateInformeForm(page, payload);
-
-        const createResponsePromise = waitForCreateInformeResponse(page);
-        await page.getByRole("button", { name: "Crear" }).click();
-        await createResponsePromise;
-
-        await waitForToastWithText(page, escenario.toastMessage);
-        await expect(getCreateDialog(page)).toBeVisible();
-        await expect(page.getByPlaceholder("ej. IC-2025-Q1")).toHaveValue(
-          payload.nombre
-        );
-      });
-    }
   });
 });

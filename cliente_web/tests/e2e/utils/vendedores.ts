@@ -17,6 +17,7 @@ export {
   createSalesforceApi,
   createVendedorViaApi,
   seedVendedor,
+  seedPlanVenta,
   buildVendedorPayload,
   interceptVendedoresList,
   waitForVendorListRequest,
@@ -34,6 +35,10 @@ export type VendedorPlanDetalle = {
   periodo: string;
   meta: number;
   unidadesVendidas: number;
+};
+
+export type VendedorDetalle = VendedorResponse & {
+  planDeVenta: VendedorPlanDetalle | null;
 };
 
 export type VendedorDetalleMock = VendedorResponse & {
@@ -146,6 +151,92 @@ export const interceptVendedorDetalle = async (
   };
 };
 
+export const mapBackendVendedor = (raw: unknown): VendedorResponse => {
+  const record = raw as Record<string, unknown>;
+  const id = record.id;
+  const nombre =
+    (record.full_name as string | undefined) ??
+    (record.nombre as string | undefined);
+  const correo =
+    (record.email as string | undefined) ??
+    (record.correo as string | undefined);
+  const fechaContratacion =
+    (record.hire_date as string | undefined) ??
+    (record.fechaContratacion as string | undefined) ??
+    new Date().toISOString().split("T")[0];
+
+  if (!id || typeof id !== "string") {
+    throw new Error("Backend vendor response is missing an id");
+  }
+  if (!nombre || typeof nombre !== "string") {
+    throw new Error("Backend vendor response is missing a name");
+  }
+  if (!correo || typeof correo !== "string") {
+    throw new Error("Backend vendor response is missing an email");
+  }
+
+  return {
+    id,
+    nombre,
+    correo,
+    fechaContratacion,
+  };
+};
+
+const mapBackendPlan = (raw: unknown): VendedorPlanDetalle | null => {
+  if (!raw || typeof raw !== "object") {
+    return null;
+  }
+
+  const record = raw as Record<string, unknown>;
+
+  const identificador = record.identificador ?? record.identifier;
+  const nombre = record.nombre ?? record.name;
+  const descripcion = record.descripcion ?? record.description ?? "";
+  const periodo = record.periodo ?? record.period ?? "";
+  const metaValue = record.meta ?? record.goal;
+  const unidadesValue =
+    record.unidades_vendidas ?? record.unidadesVendidas ?? record.units;
+
+  if (
+    typeof identificador !== "string" ||
+    typeof nombre !== "string" ||
+    typeof periodo !== "string"
+  ) {
+    return null;
+  }
+
+  return {
+    identificador,
+    nombre,
+    descripcion: typeof descripcion === "string" ? descripcion : "",
+    periodo,
+    meta: typeof metaValue === "number" ? metaValue : Number(metaValue ?? 0),
+    unidadesVendidas:
+      typeof unidadesValue === "number"
+        ? unidadesValue
+        : Number(unidadesValue ?? 0),
+  };
+};
+
+export const mapBackendVendedorDetalle = (raw: unknown): VendedorDetalle => {
+  const record = raw as Record<string, unknown>;
+  const base = mapBackendVendedor(record);
+
+  const plans = Array.isArray(record.sales_plans)
+    ? record.sales_plans
+    : Array.isArray(record.salesPlans)
+      ? record.salesPlans
+      : [];
+
+  const plan = plans.length > 0 ? mapBackendPlan(plans[0]) : null;
+
+  return {
+    ...base,
+    planDeVenta: plan,
+  };
+};
+
 export const waitForVendedorDetalleResponse = (
   page: Page,
   vendedorId: string,
@@ -189,6 +280,79 @@ export const listVendedores = async (
   params: { page: number; limit: number }
 ) => {
   return api.get("/vendedores/", { params });
+};
+
+export type VendedoresPage = {
+  data: VendedorResponse[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+};
+
+export const fetchVendedoresPage = async (
+  api: APIRequestContext,
+  params: { page: number; limit: number }
+): Promise<VendedoresPage> => {
+  const response = await listVendedores(api, params);
+  expect(response.ok()).toBeTruthy();
+
+  const json = (await response.json()) as {
+    data: unknown[];
+    total: number;
+    page: number;
+    limit: number;
+    total_pages?: number;
+    totalPages?: number;
+  };
+
+  const totalPages = Number(
+    json.total_pages ?? json.totalPages ?? Math.ceil(json.total / json.limit)
+  );
+
+  return {
+    data: json.data.map(mapBackendVendedor),
+    total: json.total,
+    page: json.page,
+    limit: json.limit,
+    totalPages: Number.isFinite(totalPages) && totalPages > 0 ? totalPages : 1,
+  };
+};
+
+export const findVendorPageViaApi = async (
+  api: APIRequestContext,
+  vendorId: string,
+  params: { limit: number }
+): Promise<{ page: number; totalPages: number }> => {
+  const limit = params.limit;
+  let currentPage = 1;
+  let totalPages = 1;
+
+  do {
+    const pageData = await fetchVendedoresPage(api, {
+      page: currentPage,
+      limit,
+    });
+
+    if (pageData.data.some((entry) => entry.id === vendorId)) {
+      return { page: currentPage, totalPages: pageData.totalPages };
+    }
+
+    totalPages = pageData.totalPages;
+    currentPage += 1;
+  } while (currentPage <= totalPages);
+
+  throw new Error(`Vendor ${vendorId} not found within ${totalPages} pages`);
+};
+
+export const getVendedorDetalleViaApi = async (
+  api: APIRequestContext,
+  id: string
+): Promise<VendedorDetalle> => {
+  const response = await api.get(`/vendedores/${id}`);
+  expect(response.ok()).toBeTruthy();
+  const json = await response.json();
+  return mapBackendVendedorDetalle(json);
 };
 
 export const gotoVendedores = async (page: Page) => {

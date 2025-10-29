@@ -130,22 +130,20 @@ export const loginAsAdmin = async (): Promise<AuthBootstrap> => {
       data: { email: ADMIN_EMAIL, password: ADMIN_PASSWORD },
     });
 
-    expect(loginResponse.ok()).toBeTruthy();
+    if (!loginResponse.ok()) {
+      const body = await loginResponse.text();
+      throw new Error(
+        `Admin login failed with status ${loginResponse.status()}: ${body}`
+      );
+    }
+
     const loginJson = await loginResponse.json();
 
     return {
-      token: (loginJson.token as string) ?? "test-token",
+      token: loginJson.token as string,
       storagePayload: {
         user: loginJson.user ?? { email: ADMIN_EMAIL },
         permissions: loginJson.permissions ?? fallbackPermissions,
-      },
-    };
-  } catch {
-    return {
-      token: "test-token",
-      storagePayload: {
-        user: { email: ADMIN_EMAIL },
-        permissions: fallbackPermissions,
       },
     };
   } finally {

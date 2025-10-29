@@ -1,171 +1,235 @@
-import { faker } from "@faker-js/faker";
-import { test, expect } from "@playwright/test";
 import {
-  ADMIN_EMAIL,
+  test,
+  expect,
+  type APIRequestContext,
+  type Locator,
+  type Page,
+} from "@playwright/test";
+
+import {
   loginAsAdmin,
-  buildVendedorPayload,
-  interceptAuthBootstrap,
-  interceptVendedoresList,
-  waitForVendorListResponse,
+  createSalesforceApi,
   gotoVendedores,
-  trackVendedoresRequests,
-  waitForToastWithText,
-  interceptVendedorDetalle,
+  waitForVendorListResponse,
   waitForVendedorDetalleResponse,
+  waitForToastWithText,
+  trackVendedoresRequests,
+  seedVendedor,
+  seedPlanVenta,
+  deleteVendedorViaApi,
+  findVendorPageViaApi,
+  getVendedorDetalleViaApi,
+  mapBackendVendedorDetalle,
   type VendedorResponse,
-  type VendedorDetalleMock,
-  type VendedorPlanDetalle,
+  type VendedorDetalle,
 } from "./utils/vendedores";
 
-const buildVendedorRespuesta = (
-  overrides: Partial<VendedorResponse> = {}
-): VendedorResponse => ({
-  id: overrides.id ?? faker.string.uuid(),
-  ...buildVendedorPayload("HUP007", overrides),
-  fechaContratacion:
-    overrides.fechaContratacion ?? new Date().toISOString().split("T")[0],
-});
+const ITEMS_PER_PAGE = 5;
+const SEED_PREFIX = `HUP007-${Date.now()}`;
+
+const ensureAuthStorage = async (
+  page: Page,
+  token: string,
+  payload: { user: unknown; permissions: string[] }
+) => {
+  await page.addInitScript(
+    ([storedToken, storedPayload]) => {
+      localStorage.setItem("auth_token", storedToken as string);
+      localStorage.setItem("user_data", JSON.stringify(storedPayload));
+    },
+    [token, payload]
+  );
+};
+
+const escapeRegex = (value: string) =>
+  value.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&");
+
+const locateVendorRow = (page: Page, vendor: VendedorResponse) =>
+  page
+    .getByRole("row")
+    .filter({ hasText: new RegExp(escapeRegex(vendor.correo), "i") })
+    .first();
+
+const navigateToVendorPage = async (
+  page: Page,
+  targetPage: number
+) => {
+  if (targetPage <= 1) {
+    return;
+  }
+
+  let currentPage = 1;
+  while (currentPage < targetPage) {
+    const responsePromise = waitForVendorListResponse(
+      page,
+      (response) =>
+        (response.headers()["content-type"] ?? "").includes("application/json")
+    );
+    await page.getByRole("button", { name: "Siguiente" }).click();
+    await responsePromise;
+    currentPage += 1;
+  }
+};
+
+const openReporteModal = async (
+  page: Page,
+  vendor: VendedorResponse,
+  vendorPage: number
+): Promise<{ modal: Locator; detail: VendedorDetalle }> => {
+  await navigateToVendorPage(page, vendorPage);
+
+  const row = locateVendorRow(page, vendor);
+  await expect(row).toBeVisible();
+
+  const detailResponsePromise = waitForVendedorDetalleResponse(page, vendor.id);
+  await row.getByRole("button", { name: /Ver asignaciones/i }).click();
+  const detailResponse = await detailResponsePromise;
+  expect(detailResponse.ok()).toBeTruthy();
+
+  const detailPayload = mapBackendVendedorDetalle(await detailResponse.json());
+  const modal = page.getByRole("dialog", { name: /Reporte Vendedor/i });
+  await expect(modal).toBeVisible();
+
+  return { modal, detail: detailPayload };
+};
 
 test.describe.serial("HUP-007 Consulta de reportes de vendedor", () => {
   let adminToken: string;
   let storagePayload: { user: unknown; permissions: string[] };
-  const authMocks: { dispose: () => Promise<void> }[] = [];
+  let salesforceApi: APIRequestContext;
+  let vendorWithPlan: VendedorResponse;
+  let vendorWithPlanPage = 1;
+  let vendorWithoutPlan: VendedorResponse;
+  let vendorWithoutPlanPage = 1;
+  const vendorsToCleanup: string[] = [];
+
+  const ensureVendorPage = async (vendor: VendedorResponse) => {
+    const { page: vendorPage } = await findVendorPageViaApi(salesforceApi, vendor.id, {
+      limit: ITEMS_PER_PAGE,
+    });
+    return vendorPage;
+  };
 
   test.beforeAll(async () => {
     const auth = await loginAsAdmin();
     adminToken = auth.token;
     storagePayload = auth.storagePayload;
-  });
 
-  test.beforeEach(async ({ page }) => {
-    const authMock = await interceptAuthBootstrap(page, {
-      token: adminToken,
-      permissions: storagePayload.permissions ?? [],
-      profile: {
-        id: "admin-id",
-        username: "Administrador",
-        email: ADMIN_EMAIL,
-      },
+    salesforceApi = await createSalesforceApi(adminToken);
+
+    vendorWithPlan = await seedVendedor(salesforceApi, `${SEED_PREFIX}-PLAN`);
+    vendorsToCleanup.push(vendorWithPlan.id);
+
+    await seedPlanVenta(salesforceApi, {
+      vendedorId: vendorWithPlan.id,
+      identificador: `${SEED_PREFIX}-PLAN-001`,
+      nombre: "Plan trimestral HUP-007",
+      descripcion: "Plan de ventas para pruebas e2e",
+      periodo: `${new Date().getFullYear()}-Q1`,
+      meta: 150,
     });
-    authMocks.push(authMock);
 
-    await page.addInitScript(
-      ([token, payload]) => {
-        localStorage.setItem("auth_token", token as string);
-        localStorage.setItem("user_data", JSON.stringify(payload));
-      },
-      [adminToken, storagePayload]
+    const detail = await getVendedorDetalleViaApi(salesforceApi, vendorWithPlan.id);
+    expect(detail.planDeVenta).not.toBeNull();
+
+    vendorWithoutPlan = await seedVendedor(
+      salesforceApi,
+      `${SEED_PREFIX}-SIN-PLAN`
     );
+    vendorsToCleanup.push(vendorWithoutPlan.id);
+
+    vendorWithPlanPage = await ensureVendorPage(vendorWithPlan);
+    vendorWithoutPlanPage = await ensureVendorPage(vendorWithoutPlan);
   });
 
-  test.afterEach(async () => {
-    while (authMocks.length > 0) {
-      const mock = authMocks.pop();
-      if (mock) {
-        await mock.dispose();
+  test.afterAll(async () => {
+    if (salesforceApi) {
+      for (const vendorId of vendorsToCleanup) {
+        await deleteVendedorViaApi(salesforceApi, vendorId);
       }
+      await salesforceApi.dispose();
     }
   });
 
-  test("Muestra el detalle del plan de venta con indicadores y cumplimiento", async ({ page }) => {
-    const vendedor = buildVendedorRespuesta({ nombre: "Camila Duarte" });
-    const plan: VendedorPlanDetalle = {
-      identificador: "PV-2025-Q1",
-      nombre: "Plan Q1",
-      descripcion: "Plan trimestral",
-      periodo: "2025-Q1",
-      meta: 150,
-      unidadesVendidas: 120,
-    };
-    const detalle: VendedorDetalleMock = {
-      ...vendedor,
-      planDeVenta: plan,
-    };
+  test.beforeEach(async ({ page }) => {
+    if (!adminToken) {
+      throw new Error("Authentication bootstrap failed");
+    }
 
+    await ensureAuthStorage(page, adminToken, storagePayload);
+  });
+
+  test("Muestra el detalle del plan de venta con indicadores y cumplimiento", async ({ page }) => {
     const tracker = trackVendedoresRequests(page);
-    const listadoIntercept = await interceptVendedoresList(page, [vendedor]);
-    const detalleIntercept = await interceptVendedorDetalle(page, {
-      id: vendedor.id,
-      detail: detalle,
-    });
 
     try {
-      const listadoResponsePromise = waitForVendorListResponse(page);
-      await gotoVendedores(page);
-      await listadoResponsePromise;
-
-      const fila = page
-        .getByRole("row")
-        .filter({ hasText: new RegExp(vendedor.correo, "i") })
-        .first();
-
-      const detalleResponsePromise = waitForVendedorDetalleResponse(
+      const listResponsePromise = waitForVendorListResponse(
         page,
-        vendedor.id
+        (response) =>
+          (response.headers()["content-type"] ?? "").includes("application/json")
       );
-      await fila.getByRole("button", { name: /Ver asignaciones/i }).click();
-      const detalleResponse = await detalleResponsePromise;
-      expect(detalleResponse.ok()).toBeTruthy();
+      await gotoVendedores(page);
+      await listResponsePromise;
 
-      const modal = page.getByRole("dialog", { name: /Reporte Vendedor/i });
-      await expect(modal).toBeVisible();
-      await expect(modal.getByText(vendedor.id)).toBeVisible();
-      await expect(modal.getByText(vendedor.nombre)).toBeVisible();
-      await expect(modal.getByText(vendedor.correo)).toBeVisible();
+      const { modal, detail } = await openReporteModal(
+        page,
+        vendorWithPlan,
+        vendorWithPlanPage
+      );
+
+      await expect(modal.getByText(vendorWithPlan.id)).toBeVisible();
+      await expect(modal.getByText(vendorWithPlan.nombre)).toBeVisible();
+      await expect(modal.getByText(vendorWithPlan.correo)).toBeVisible();
+
+      expect(detail.planDeVenta).not.toBeNull();
+      const plan = detail.planDeVenta!;
+
       await expect(modal.getByText(plan.identificador)).toBeVisible();
       await expect(
-        modal
-          .locator('label:has-text("Unidades Vendidas") + p')
-          .first()
-      ).toHaveText(String(plan.unidadesVendidas));
+        modal.locator('label:has-text("Unidades Vendidas") + p').first()
+      ).toHaveText(String(plan.unidadesVendidas ?? 0));
       await expect(
         modal.locator('label:has-text("Meta") + p').first()
       ).toHaveText(String(plan.meta));
 
-      const cumplimiento = ((plan.unidadesVendidas / plan.meta) * 100).toFixed(2);
+      const cumplimiento = plan.meta
+        ? ((plan.unidadesVendidas ?? 0) / plan.meta) * 100
+        : 0;
       await expect(
         modal.locator('label:has-text("Cumplimiento de plan") + p').first()
-      ).toHaveText(new RegExp(`${cumplimiento}\\s*%`));
+      ).toHaveText(new RegExp(`${cumplimiento.toFixed(2)}\\s*%`));
 
       tracker.assertAllAuthorized();
     } finally {
       tracker.stop();
-      await detalleIntercept.dispose();
-      await listadoIntercept.dispose();
     }
   });
 
   test("Muestra mensaje cuando el vendedor no tiene plan de venta asignado", async ({ page }) => {
-    const vendedor = buildVendedorRespuesta({ nombre: "Santiago Núñez" });
-    const detalle: VendedorDetalleMock = {
-      ...vendedor,
-      planDeVenta: null,
-    };
-
     const tracker = trackVendedoresRequests(page);
-    const listadoIntercept = await interceptVendedoresList(page, [vendedor]);
-    const detalleIntercept = await interceptVendedorDetalle(page, {
-      id: vendedor.id,
-      detail: detalle,
-    });
 
     try {
-      const listadoResponsePromise = waitForVendorListResponse(page);
-      await gotoVendedores(page);
-      await listadoResponsePromise;
-
-      const fila = page
-        .getByRole("row")
-        .filter({ hasText: new RegExp(vendedor.correo, "i") })
-        .first();
-
-      const detalleResponsePromise = waitForVendedorDetalleResponse(
+      const listResponsePromise = waitForVendorListResponse(
         page,
-        vendedor.id
+        (response) =>
+          (response.headers()["content-type"] ?? "").includes("application/json")
       );
-      await fila.getByRole("button", { name: /Ver asignaciones/i }).click();
-      const detalleResponse = await detalleResponsePromise;
-      expect(detalleResponse.ok()).toBeTruthy();
+      await gotoVendedores(page);
+      await listResponsePromise;
+
+      await navigateToVendorPage(page, vendorWithoutPlanPage);
+
+      const row = locateVendorRow(page, vendorWithoutPlan);
+      await expect(row).toBeVisible();
+
+      const detailResponsePromise = waitForVendedorDetalleResponse(
+        page,
+        vendorWithoutPlan.id
+      );
+      await row.getByRole("button", { name: /Ver asignaciones/i }).click();
+      const detailResponse = await detailResponsePromise;
+      expect(detailResponse.ok()).toBeTruthy();
+      const detail = mapBackendVendedorDetalle(await detailResponse.json());
 
       const modal = page.getByRole("dialog", { name: /Reporte Vendedor/i });
       await expect(modal).toBeVisible();
@@ -174,59 +238,38 @@ test.describe.serial("HUP-007 Consulta de reportes de vendedor", () => {
       ).toBeVisible();
       await expect(modal.locator("text=Indicadores Clave")).toHaveCount(0);
 
+      expect(detail.planDeVenta).toBeNull();
+
       tracker.assertAllAuthorized();
     } finally {
       tracker.stop();
-      await detalleIntercept.dispose();
-      await listadoIntercept.dispose();
     }
   });
 
   test("Calcula cumplimiento en 0% cuando no hay unidades vendidas", async ({ page }) => {
-    const vendedor = buildVendedorRespuesta({ nombre: "Valeria Pineda" });
-    const plan: VendedorPlanDetalle = {
-      identificador: "PV-2025-Q2",
-      nombre: "Plan Q2",
-      descripcion: "Plan trimestral",
-      periodo: "2025-Q2",
-      meta: 90,
-      unidadesVendidas: 0,
-    };
-    const detalle: VendedorDetalleMock = {
-      ...vendedor,
-      planDeVenta: plan,
-    };
-
     const tracker = trackVendedoresRequests(page);
-    const listadoIntercept = await interceptVendedoresList(page, [vendedor]);
-    const detalleIntercept = await interceptVendedorDetalle(page, {
-      id: vendedor.id,
-      detail: detalle,
-    });
 
     try {
-      const listadoResponsePromise = waitForVendorListResponse(page);
-      await gotoVendedores(page);
-      await listadoResponsePromise;
-
-      const fila = page
-        .getByRole("row")
-        .filter({ hasText: new RegExp(vendedor.correo, "i") })
-        .first();
-
-      const detalleResponsePromise = waitForVendedorDetalleResponse(
+      const listResponsePromise = waitForVendorListResponse(
         page,
-        vendedor.id
+        (response) =>
+          (response.headers()["content-type"] ?? "").includes("application/json")
       );
-      await fila.getByRole("button", { name: /Ver asignaciones/i }).click();
-      const detalleResponse = await detalleResponsePromise;
-      expect(detalleResponse.ok()).toBeTruthy();
+      await gotoVendedores(page);
+      await listResponsePromise;
 
-      const modal = page.getByRole("dialog", { name: /Reporte Vendedor/i });
-      await expect(modal).toBeVisible();
+      const { modal, detail } = await openReporteModal(
+        page,
+        vendorWithPlan,
+        vendorWithPlanPage
+      );
+
+      const plan = detail.planDeVenta;
+      expect(plan).not.toBeNull();
+
       await expect(
         modal.locator('label:has-text("Unidades Vendidas") + p').first()
-      ).toHaveText("0");
+      ).toHaveText(String(plan!.unidadesVendidas ?? 0));
       await expect(
         modal.locator('label:has-text("Cumplimiento de plan") + p').first()
       ).toHaveText(/0\.00\s*%/);
@@ -234,56 +277,49 @@ test.describe.serial("HUP-007 Consulta de reportes de vendedor", () => {
       tracker.assertAllAuthorized();
     } finally {
       tracker.stop();
-      await detalleIntercept.dispose();
-      await listadoIntercept.dispose();
     }
   });
 
   test("Muestra notificación de error cuando falla la consulta del reporte", async ({ page }) => {
-    const vendedor = buildVendedorRespuesta({ nombre: "Andrés Lozano" });
+    const vendor = await seedVendedor(salesforceApi, `${SEED_PREFIX}-ERROR`);
 
-    const tracker = trackVendedoresRequests(page);
-    const listadoIntercept = await interceptVendedoresList(page, [vendedor]);
-    const detalleIntercept = await interceptVendedorDetalle(page, {
-      id: vendedor.id,
-      status: 500,
-      body: { detail: "Server error" },
+    const { page: vendorPage } = await findVendorPageViaApi(salesforceApi, vendor.id, {
+      limit: ITEMS_PER_PAGE,
     });
 
+    const tracker = trackVendedoresRequests(page);
+
     try {
-      const listadoResponsePromise = waitForVendorListResponse(page);
-      await gotoVendedores(page);
-      await listadoResponsePromise;
-
-      const fila = page
-        .getByRole("row")
-        .filter({ hasText: new RegExp(vendedor.correo, "i") })
-        .first();
-
-      const detalleResponsePromise = waitForVendedorDetalleResponse(
+      const listResponsePromise = waitForVendorListResponse(
         page,
-        vendedor.id
+        (response) =>
+          (response.headers()["content-type"] ?? "").includes("application/json")
       );
-      await fila.getByRole("button", { name: /Ver asignaciones/i }).click();
-      const detalleResponse = await detalleResponsePromise;
-      expect(detalleResponse.ok()).toBeFalsy();
+      await gotoVendedores(page);
+      await listResponsePromise;
+
+      await navigateToVendorPage(page, vendorPage);
+      const row = locateVendorRow(page, vendor);
+      await expect(row).toBeVisible();
+
+      await deleteVendedorViaApi(salesforceApi, vendor.id);
+
+      const detailResponsePromise = waitForVendedorDetalleResponse(page, vendor.id);
+      await row.getByRole("button", { name: /Ver asignaciones/i }).click();
+      const detailResponse = await detailResponsePromise;
+      expect(detailResponse.ok()).toBeFalsy();
+      expect(detailResponse.status()).toBe(404);
 
       await waitForToastWithText(
         page,
         "No se pudo cargar la información del vendedor"
       );
-      await expect(
-        page.getByRole("dialog", { name: /Reporte Vendedor/i })
-      ).toHaveCount(0);
-      await expect(
-        fila.getByRole("button", { name: /Ver asignaciones/i })
-      ).toBeEnabled();
+      await expect(page.getByRole("dialog", { name: /Reporte Vendedor/i })).toHaveCount(0);
+      await expect(row.getByRole("button", { name: /Ver asignaciones/i })).toBeEnabled();
 
       tracker.assertAllAuthorized();
     } finally {
       tracker.stop();
-      await detalleIntercept.dispose();
-      await listadoIntercept.dispose();
     }
   });
 });
