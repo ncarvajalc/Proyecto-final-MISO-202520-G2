@@ -9,6 +9,7 @@ echo "=================================="
 max_retries=30
 retry_interval=2
 
+
 echo "Waiting for database..."
 for i in $(seq 1 $max_retries); do
     if python - <<END

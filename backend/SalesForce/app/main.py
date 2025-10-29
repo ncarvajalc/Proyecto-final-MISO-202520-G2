@@ -7,10 +7,9 @@ from app.core.database import SessionLocal, engine, Base
 from app.modules.salespeople.routes import salespeople
 from app.modules.sales.routes import sales_plans_router
 from app.modules.reports.routes import router as informes_comerciales_router
-from app.modules.institutional_clients.routes.vendor_router import vendedor_router
-from app.modules.institutional_clients.routes.client_router import router_cliente
 from app.modules.visits.routes import router as visits_router
 from app.modules.institutional_clients.routes import router as institutional_clients_router
+from app.modules.territories.routes import territories_routes
 
 app = FastAPI()
 
@@ -44,7 +43,6 @@ def read_root():
 app.include_router(salespeople.router)
 app.include_router(sales_plans_router)
 app.include_router(informes_comerciales_router)
-app.include_router(router_cliente)
-app.include_router(vendedor_router)
 app.include_router(visits_router)
 app.include_router(institutional_clients_router)
+app.include_router(territories_routes.router)

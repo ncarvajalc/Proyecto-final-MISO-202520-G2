@@ -24,8 +24,7 @@ PREFIX_ROUTES: Tuple[Tuple[str, str], ...] = (
     ("/visitas", "http://salesforce:8004"),
     ("/rutas", "http://tracking:8002"),
     ("/auth", "http://security_audit:8000"),
-    ("/cliente": "http://salesforce:8004"),
-    ("/vendedor": "http://salesforce:8004"),
+    ("/territorios", "http://salesforce:8004"),
 )
 
 HEALTH_ENDPOINTS: Tuple[Tuple[str, str], ...] = (
