@@ -82,13 +82,14 @@ export const TabNavigator: React.FC = () => {
       />
       <Tab.Screen
         name="Pedidos"
-        component={PedidosScreen}
+        component={PedidosStackNavigator}
         options={{
           title: "Pedidos",
           tabBarLabel: "Pedidos",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="document-text" size={size} color={color} />
           ),
+          headerShown: false,
         }}
       />
       <Tab.Screen

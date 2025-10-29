@@ -1,166 +1,26 @@
 import { faker } from "@faker-js/faker";
-import { test, expect, type Page, type Route } from "@playwright/test";
+import { test, expect, type APIRequestContext, type Page } from "@playwright/test";
 import {
   ADMIN_EMAIL,
   ADMIN_PASSWORD,
   API_GATEWAY_URL,
+  loginAsAdmin,
+  createSalesforceApi,
+  gotoVendedores,
+  listVendedores,
+  seedVendedor,
+  trackVendedoresRequests,
+  waitForVendorListResponse,
   waitForCreateVendorRequest,
   waitForCreateVendorResponse,
   waitForToastWithText,
   expectVendorRowVisible,
+  deleteVendedorViaApi,
   type VendedorResponse,
 } from "./utils/vendedores";
 
 const ITEMS_PER_PAGE = 5;
 const SEED_PREFIX = `HUP005-${Date.now()}`;
-const MOCK_ADMIN_TOKEN = "mock-admin-token";
-const MOCK_ADMIN_USER = {
-  id: "admin-user-id",
-  email: ADMIN_EMAIL,
-  name: "Administrador Mock",
-  profileName: "Administrador Mock",
-};
-const MOCK_ADMIN_PERMISSIONS = [
-  "comercial:vendedores:read",
-  "comercial:vendedores:write",
-  "comercial:planes-venta:read",
-  "comercial:planes-venta:write",
-];
-
-const buildMockVendedor = (
-  overrides: Partial<VendedorResponse> = {}
-): VendedorResponse => ({
-  id: overrides.id ?? faker.string.uuid(),
-  nombre: overrides.nombre ?? faker.person.fullName(),
-  correo:
-    overrides.correo ??
-    faker.internet
-      .email({ firstName: "vendedor", lastName: faker.string.alpha(5) })
-      .toLowerCase(),
-  fechaContratacion:
-    overrides.fechaContratacion ?? new Date().toISOString().split("T")[0],
-});
-
-const setupMockVendedoresApi = async (
-  page: Page,
-  initialVendors: VendedorResponse[] = []
-) => {
-  const state = {
-    vendors: [...initialVendors],
-  };
-
-  const handler = async (route: Route) => {
-    const request = route.request();
-    const requestUrl = request.url();
-    const url = new URL(requestUrl);
-    if (!url.pathname.startsWith("/vendedores")) {
-      await route.fallback();
-      return;
-    }
-    if (request.method() === "GET") {
-      const pageParam = Number.parseInt(url.searchParams.get("page") ?? "1", 10);
-      const limitParam = Number.parseInt(
-        url.searchParams.get("limit") ?? `${ITEMS_PER_PAGE}`,
-        10
-      );
-      const responseData = state.vendors.map((vendor) => ({
-        id: vendor.id,
-        full_name: vendor.nombre,
-        email: vendor.correo,
-        hire_date:
-          vendor.fechaContratacion ?? new Date().toISOString().split("T")[0],
-        status: "active",
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      }));
-
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          data: responseData,
-          total: responseData.length,
-          page: pageParam,
-          limit: limitParam,
-          totalPages: 1,
-        }),
-      });
-      return;
-    }
-
-    if (request.method() === "POST") {
-      const body = (request.postDataJSON() ?? {}) as {
-        full_name?: string;
-        email?: string;
-        hire_date?: string;
-        status?: string;
-      };
-
-      const newVendor = buildMockVendedor({
-        nombre: body.full_name,
-        correo: body.email,
-        fechaContratacion: body.hire_date,
-      });
-
-      state.vendors.push(newVendor);
-
-      await route.fulfill({
-        status: 201,
-        contentType: "application/json",
-        body: JSON.stringify({
-          id: newVendor.id,
-          full_name: newVendor.nombre,
-          email: newVendor.correo,
-          hire_date: newVendor.fechaContratacion,
-          status: body.status ?? "active",
-        }),
-      });
-      return;
-    }
-
-    await route.fallback();
-  };
-
-  await page.route("**/vendedores**", handler);
-
-  return {
-    getVendors: () => [...state.vendors],
-    setVendors: (vendors: VendedorResponse[]) => {
-      state.vendors = [...vendors];
-    },
-    dispose: async () => {
-      await page.unroute("**/vendedores**", handler);
-    },
-  };
-};
-
-const setupMockLoginApi = async (page: Page) => {
-  const handler = async (route: Route) => {
-    const request = route.request();
-    if (request.method() !== "POST") {
-      await route.fallback();
-      return;
-    }
-
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        token: MOCK_ADMIN_TOKEN,
-        user: MOCK_ADMIN_USER,
-        permissions: MOCK_ADMIN_PERMISSIONS,
-      }),
-    });
-  };
-
-  await page.route("**/auth/login", handler);
-
-  return {
-    dispose: async () => {
-      await page.unroute("**/auth/login", handler);
-    },
-  };
-};
 
 const performLogin = async (page: Page) => {
   await page.goto("./login");
@@ -192,17 +52,91 @@ const performLogin = async (page: Page) => {
 test.describe.serial("HUP-005 Registro de vendedor", () => {
   let adminToken: string;
   let storagePayload: { user: unknown; permissions: string[] };
+  let salesforceApi: APIRequestContext;
+  const vendorIdsToCleanup: string[] = [];
 
-  test.beforeAll(() => {
-    adminToken = MOCK_ADMIN_TOKEN;
-    storagePayload = {
-      user: MOCK_ADMIN_USER,
-      permissions: MOCK_ADMIN_PERMISSIONS,
+  const mapBackendVendedor = (raw: unknown): VendedorResponse => {
+    const record = raw as Record<string, unknown>;
+    const id = record.id;
+    const nombre =
+      (record.full_name as string | undefined) ??
+      (record.nombre as string | undefined);
+    const correo =
+      (record.email as string | undefined) ??
+      (record.correo as string | undefined);
+    const fechaContratacion =
+      (record.hire_date as string | undefined) ??
+      (record.fechaContratacion as string | undefined) ??
+      new Date().toISOString().split("T")[0];
+
+    if (!id || typeof id !== "string") {
+      throw new Error("Backend vendor response is missing an id");
+    }
+    if (!nombre || typeof nombre !== "string") {
+      throw new Error("Backend vendor response is missing a name");
+    }
+    if (!correo || typeof correo !== "string") {
+      throw new Error("Backend vendor response is missing an email");
+    }
+
+    return {
+      id,
+      nombre,
+      correo,
+      fechaContratacion,
     };
+  };
+
+  const ensureFirstPageVendors = async (minCount: number) => {
+    if (!salesforceApi) {
+      throw new Error("Salesforce API context is not available");
+    }
+
+    // Limit the number of attempts to avoid infinite loops if pagination changes.
+    for (let attempts = 0; attempts < minCount + 3; attempts += 1) {
+      const response = await listVendedores(salesforceApi, {
+        page: 1,
+        limit: ITEMS_PER_PAGE,
+      });
+      expect(response.ok()).toBeTruthy();
+
+      const json = (await response.json()) as {
+        data: unknown[];
+      };
+
+      if (json.data.length >= minCount) {
+        return json.data;
+      }
+
+      const seeded = await seedVendedor(salesforceApi, `${SEED_PREFIX}-SEED-${attempts}`);
+      vendorIdsToCleanup.push(seeded.id);
+    }
+
+    const finalResponse = await listVendedores(salesforceApi, {
+      page: 1,
+      limit: ITEMS_PER_PAGE,
+    });
+    expect(finalResponse.ok()).toBeTruthy();
+    const finalJson = (await finalResponse.json()) as { data: unknown[] };
+    expect(finalJson.data.length).toBeGreaterThanOrEqual(minCount);
+    return finalJson.data;
+  };
+
+  test.beforeAll(async () => {
+    const auth = await loginAsAdmin();
+    adminToken = auth.token;
+    storagePayload = auth.storagePayload;
+
+    salesforceApi = await createSalesforceApi(adminToken);
   });
 
   test.afterAll(async () => {
-    // No cleanup required when mocking the vendedores API.
+    if (salesforceApi) {
+      for (const vendorId of vendorIdsToCleanup) {
+        await deleteVendedorViaApi(salesforceApi, vendorId);
+      }
+      await salesforceApi.dispose();
+    }
   });
 
   test.beforeEach(async ({ page }, testInfo) => {
@@ -224,137 +158,122 @@ test.describe.serial("HUP-005 Registro de vendedor", () => {
   });
 
   test("Autenticación y navegación hasta la lista de vendedores", async ({ page }) => {
-    const loginMock = await setupMockLoginApi(page);
-    const mockApi = await setupMockVendedoresApi(page, [buildMockVendedor()]);
-    try {
-      await performLogin(page);
+    const vendors = await ensureFirstPageVendors(1);
+    const tracker = trackVendedoresRequests(page);
 
-      await page
-        .getByRole("link", { name: "Gestión comercial", exact: true })
-        .click();
-      await expect(page).toHaveURL(/\/comercial$/);
+    await performLogin(page);
 
-      await page
-        .getByRole("link", { name: "Vendedores", exact: true })
-        .click();
+    await page
+      .getByRole("link", { name: "Gestión comercial", exact: true })
+      .click();
+    await expect(page).toHaveURL(/\/comercial$/);
 
-      await expect(page).toHaveURL(/\/comercial\/vendedores$/);
-      await expect(page.getByRole("heading", { name: /vendedores/i })).toBeVisible();
+    const listResponsePromise = waitForVendorListResponse(
+      page,
+      (response) =>
+        (response.headers()["content-type"] ?? "").includes("application/json")
+    );
+    await page
+      .getByRole("link", { name: "Vendedores", exact: true })
+      .click();
+    const listResponse = await listResponsePromise;
+    expect(listResponse.ok()).toBeTruthy();
 
-      const seededVendor = mockApi.getVendors()[0];
-      await expectVendorRowVisible(page, seededVendor);
-    } finally {
-      await loginMock.dispose();
-      await mockApi.dispose();
-    }
+    await expect(page).toHaveURL(/\/comercial\/vendedores$/);
+    await expect(page.getByRole("heading", { name: /vendedores/i })).toBeVisible();
+
+    const vendor = mapBackendVendedor(vendors[0]);
+    await expectVendorRowVisible(page, vendor);
+
+    tracker.assertAllAuthorized();
+    tracker.stop();
   });
 
   test("Lista vendedores existentes mostrando los campos mínimos", async ({ page }) => {
-    const seeded: VendedorResponse[] = [];
-    for (let index = 0; index < 2; index += 1) {
-      seeded.push(
-        buildMockVendedor({
-          nombre: `${SEED_PREFIX} ${index}`,
-        })
-      );
-    }
+    await ensureFirstPageVendors(2);
 
-    const loginMock = await setupMockLoginApi(page);
-    const mockApi = await setupMockVendedoresApi(page, seeded);
-    try {
-      await performLogin(page);
+    const listResponsePromise = waitForVendorListResponse(
+      page,
+      (response) =>
+        (response.headers()["content-type"] ?? "").includes("application/json")
+    );
+    await gotoVendedores(page);
+    const listResponse = await listResponsePromise;
+    expect(listResponse.ok()).toBeTruthy();
 
-      await page
-        .getByRole("link", { name: "Gestión comercial", exact: true })
-        .click();
-      await expect(page).toHaveURL(/\/comercial$/);
+    const listJson = (await listResponse.json()) as {
+      data: unknown[];
+    };
+    expect(listJson.data.length).toBeGreaterThan(0);
 
-      await page
-        .getByRole("link", { name: "Vendedores", exact: true })
-        .click();
-
-      await expect(page).toHaveURL(/\/comercial\/vendedores$/);
-      await expect(page.getByRole("heading", { name: /vendedores/i })).toBeVisible();
-
-      for (const vendedor of seeded) {
-        await expectVendorRowVisible(page, vendedor);
-      }
-    } finally {
-      await loginMock.dispose();
-      await mockApi.dispose();
+    for (const rawVendor of listJson.data) {
+      const vendor = mapBackendVendedor(rawVendor);
+      await expectVendorRowVisible(page, vendor);
     }
   });
 
   test("Permite registrar un vendedor asignando fecha de contratación por defecto", async ({ page }) => {
-    const loginMock = await setupMockLoginApi(page);
-    const mockApi = await setupMockVendedoresApi(page);
-    try {
-      await performLogin(page);
+    const listResponsePromise = waitForVendorListResponse(page);
+    await gotoVendedores(page);
+    await listResponsePromise;
 
-      await page
-        .getByRole("link", { name: "Gestión comercial", exact: true })
-        .click();
-      await expect(page).toHaveURL(/\/comercial$/);
+    await page.getByRole("button", { name: "Nuevo vendedor" }).click();
+    const dialog = page.getByRole("dialog", { name: /crear vendedor/i });
+    await expect(dialog).toBeVisible();
 
-      await page
-        .getByRole("link", { name: "Vendedores", exact: true })
-        .click();
-      await expect(page).toHaveURL(/\/comercial\/vendedores$/);
-      await expect(page.getByRole("heading", { name: /vendedores/i })).toBeVisible();
+    const payload = {
+      nombre: `HUP005 ${faker.person.fullName()}`,
+      correo: faker.internet
+        .email({ firstName: "hup", lastName: faker.string.alpha(5) })
+        .toLowerCase(),
+    };
 
-      await page.getByRole("button", { name: "Nuevo vendedor" }).click();
-      const dialog = page.getByRole("dialog", { name: /crear vendedor/i });
-      await expect(dialog).toBeVisible();
+    await dialog.getByLabel("Nombre").fill(payload.nombre);
+    await dialog.getByLabel("Email").fill(payload.correo);
 
-      const payload = {
-        nombre: `HUP005 ${faker.person.fullName()}`,
-        correo: faker.internet
-          .email({ firstName: "hup", lastName: faker.string.alpha(5) })
-          .toLowerCase(),
-      };
+    const createRequestPromise = waitForCreateVendorRequest(page);
+    const createResponsePromise = waitForCreateVendorResponse(page, (response) =>
+      response.ok()
+    );
+    const listRefreshPromise = waitForVendorListResponse(
+      page,
+      (response) =>
+        (response.headers()["content-type"] ?? "").includes("application/json")
+    );
 
-      await dialog.getByLabel("Nombre").fill(payload.nombre);
-      await dialog.getByLabel("Email").fill(payload.correo);
+    await dialog.getByRole("button", { name: "Crear" }).click();
 
-      const createRequestPromise = waitForCreateVendorRequest(page);
-      const createResponsePromise = waitForCreateVendorResponse(
-        page,
-        (response) => response.ok()
-      );
+    const createRequest = await createRequestPromise;
+    const requestBody = createRequest.postDataJSON() as {
+      full_name: string;
+      email: string;
+      hire_date: string;
+      status: string;
+    };
 
-      await dialog.getByRole("button", { name: "Crear" }).click();
+    const today = new Date().toISOString().split("T")[0];
+    expect(requestBody.full_name).toBe(payload.nombre);
+    expect(requestBody.email).toBe(payload.correo);
+    expect(requestBody.hire_date).toBe(today);
+    expect(requestBody.status).toBe("active");
 
-      const createRequest = await createRequestPromise;
-      const requestBody = createRequest.postDataJSON() as {
-        full_name: string;
-        email: string;
-        hire_date: string;
-        status: string;
-      };
+    const createResponse = await createResponsePromise;
+    expect(createResponse.ok()).toBeTruthy();
+    const created = await createResponse.json();
+    const createdId = (created.id as string) ?? "";
+    expect(createdId).not.toHaveLength(0);
+    vendorIdsToCleanup.push(createdId);
+    expect(created.full_name ?? created.nombre).toBe(payload.nombre);
+    expect(created.email).toBe(payload.correo);
+    expect(created.hire_date ?? created.fechaContratacion).toBe(today);
 
-      const today = new Date().toISOString().split("T")[0];
-      expect(requestBody.full_name).toBe(payload.nombre);
-      expect(requestBody.email).toBe(payload.correo);
-      expect(requestBody.hire_date).toBe(today);
-      expect(requestBody.status).toBe("active");
+    await listRefreshPromise;
+    await waitForToastWithText(page, "Vendedor creado exitosamente");
 
-      const createResponse = await createResponsePromise;
-      expect(createResponse.ok()).toBeTruthy();
-      const created = await createResponse.json();
-      expect(created.full_name ?? created.nombre).toBe(payload.nombre);
-      expect(created.email).toBe(payload.correo);
-      expect(created.hire_date ?? created.fechaContratacion).toBe(today);
-
-      await waitForToastWithText(page, "Vendedor creado exitosamente");
-
-      await expectVendorRowVisible(page, {
-        id: (created.id as string) ?? "",
-        nombre: payload.nombre,
-        correo: payload.correo,
-      });
-    } finally {
-      await loginMock.dispose();
-      await mockApi.dispose();
-    }
+    await expectVendorRowVisible(page, {
+      id: createdId,
+      nombre: payload.nombre,
+      correo: payload.correo,
+    });
   });
 });

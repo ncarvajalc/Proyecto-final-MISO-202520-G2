@@ -1,12 +1,19 @@
-import type { Page, Response } from "@playwright/test";
 import { faker } from "@faker-js/faker";
+import {
+  expect,
+  type APIRequestContext,
+  type Page,
+  type Request,
+  type Response,
+} from "@playwright/test";
 
-export const ADMIN_EMAIL =
-  process.env.E2E_ADMIN_EMAIL ?? "admin@example.com";
-export const ADMIN_PASSWORD =
-  process.env.E2E_ADMIN_PASSWORD ?? "admin123";
-export const API_GATEWAY_URL =
-  process.env.API_GATEWAY_URL ?? "http://localhost:8080";
+export {
+  ADMIN_EMAIL,
+  ADMIN_PASSWORD,
+  API_GATEWAY_URL,
+  loginAsAdmin,
+  createSalesforceApi,
+} from "./planesVenta";
 
 export interface InformeComercialPayload {
   nombre: string;
@@ -17,99 +24,120 @@ export interface InformeComercialResponse {
   nombre: string;
   fecha: string;
   ventasTotales: number;
-  ventas_totales?: number;
   unidadesVendidas: number;
-  unidades_vendidas?: number;
 }
 
-export const buildInformePayload = (): InformeComercialPayload => ({
-  nombre: `IC-${faker.date.month()}-${faker.number.int({ min: 1, max: 12 })}`,
+export const buildInformePayload = (
+  overrides: Partial<InformeComercialPayload> = {}
+): InformeComercialPayload => ({
+  nombre:
+    overrides.nombre ??
+    `IC-${faker.date.month()}-${faker.number.int({ min: 1, max: 99 })}`,
 });
 
-export const buildInformeResponse = (
-  overrides: Partial<InformeComercialResponse> = {}
-): InformeComercialResponse => ({
-  id: faker.string.uuid(),
-  nombre: `IC-${faker.date.month()}-${faker.number.int({ min: 1, max: 12 })}`,
-  fecha: faker.date.recent().toISOString(),
-  ventasTotales: faker.number.float({
-    min: 10000,
-    max: 100000,
-    fractionDigits: 2,
-  }),
-  unidadesVendidas: faker.number.float({
-    min: 100,
-    max: 1000,
-    fractionDigits: 2,
-  }),
-  ...overrides,
-});
+const mapBackendInforme = (raw: unknown): InformeComercialResponse => {
+  const record = raw as Record<string, unknown>;
+  const id = record.id;
+  const nombre = record.nombre;
+  const fecha = record.fecha;
+  const ventasTotales = Number(
+    (record.ventasTotales as number | string | undefined) ??
+      (record.ventas_totales as number | string | undefined) ??
+      0
+  );
+  const unidadesVendidas = Number(
+    (record.unidadesVendidas as number | string | undefined) ??
+      (record.unidades_vendidas as number | string | undefined) ??
+      0
+  );
 
-export const loginAsAdmin = async () => {
-  const response = await fetch(`${API_GATEWAY_URL}/auth/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email: ADMIN_EMAIL, password: ADMIN_PASSWORD }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Login failed: ${response.statusText}`);
+  if (!id || typeof id !== "string") {
+    throw new Error("Informe response is missing an id");
   }
 
-  const { token, permissions } = await response.json();
-  const storagePayload = {
-    user: { email: ADMIN_EMAIL },
-    permissions: permissions ?? [],
-  };
-
-  return { token, storagePayload };
-};
-
-export const interceptAuthBootstrap = async (
-  page: Page,
-  authData: {
-    token: string;
-    permissions: string[];
-    profile: { id: string; username: string; email: string };
+  if (!nombre || typeof nombre !== "string") {
+    throw new Error("Informe response is missing a nombre");
   }
-) => {
-  return await page.route(`${API_GATEWAY_URL}/auth/bootstrap`, (route) => {
-    route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        profile: authData.profile,
-        permissions: authData.permissions,
-      }),
-    });
-  });
-};
 
-export const interceptLogin = async (
-  page: Page,
-  loginData: {
-    token: string;
-    user: unknown;
-    permissions: string[];
+  if (!fecha || typeof fecha !== "string") {
+    throw new Error("Informe response is missing a fecha");
   }
-) => {
-  await page.route(`${API_GATEWAY_URL}/auth/login`, (route) => {
-    route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        token: loginData.token,
-        user: loginData.user,
-        permissions: loginData.permissions,
-      }),
-    });
-  });
 
   return {
-    dispose: async () => {
-      await page.unroute(`${API_GATEWAY_URL}/auth/login`);
-    },
+    id,
+    nombre,
+    fecha,
+    ventasTotales: Number.isFinite(ventasTotales) ? ventasTotales : 0,
+    unidadesVendidas: Number.isFinite(unidadesVendidas) ? unidadesVendidas : 0,
   };
+};
+
+export const createInformeViaApi = async (
+  api: APIRequestContext,
+  payload: InformeComercialPayload
+): Promise<InformeComercialResponse> => {
+  const response = await api.post("/informes-comerciales/", { data: payload });
+  expect(response.ok()).toBeTruthy();
+
+  const json = await response.json();
+  return mapBackendInforme(json);
+};
+
+export const listInformes = async (
+  api: APIRequestContext,
+  params: { page: number; limit: number }
+) => {
+  return api.get("/informes-comerciales/", { params });
+};
+
+export type InformesPage = {
+  data: InformeComercialResponse[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+};
+
+export const fetchInformesPage = async (
+  api: APIRequestContext,
+  params: { page: number; limit: number }
+): Promise<InformesPage> => {
+  const response = await listInformes(api, params);
+  expect(response.ok()).toBeTruthy();
+
+  const json = (await response.json()) as {
+    data: unknown[];
+    total: number;
+    page: number;
+    limit: number;
+    total_pages?: number;
+    totalPages?: number;
+  };
+
+  const totalPages = Number(
+    json.total_pages ?? json.totalPages ?? Math.ceil(json.total / json.limit)
+  );
+
+  return {
+    data: json.data.map(mapBackendInforme),
+    total: json.total,
+    page: json.page,
+    limit: json.limit,
+    totalPages: Number.isFinite(totalPages) && totalPages > 0 ? totalPages : 1,
+  };
+};
+
+export const seedInforme = async (
+  api: APIRequestContext,
+  prefix: string,
+  overrides: Partial<InformeComercialPayload> = {}
+): Promise<InformeComercialResponse> => {
+  const payload = buildInformePayload({
+    nombre: `${prefix}-${faker.string.alphanumeric({ length: 6 }).toUpperCase()}`,
+    ...overrides,
+  });
+
+  return createInformeViaApi(api, payload);
 };
 
 export const gotoInformesComerciales = async (
@@ -117,114 +145,18 @@ export const gotoInformesComerciales = async (
   options: {
     token: string;
     storagePayload: { user: unknown; permissions: string[] };
-    forceReload?: boolean;
   }
 ) => {
-  if (!options.forceReload) {
-    await page.addInitScript(
-      ([token, payload]) => {
-        localStorage.setItem("auth_token", token as string);
-        localStorage.setItem("user_data", JSON.stringify(payload));
-      },
-      [options.token, options.storagePayload]
-    );
-  }
+  await page.addInitScript(
+    ([token, payload]) => {
+      localStorage.setItem("auth_token", token as string);
+      localStorage.setItem("user_data", JSON.stringify(payload));
+    },
+    [options.token, options.storagePayload]
+  );
 
   await page.goto("./comercial/informes-comerciales");
   await page.waitForLoadState("networkidle");
-};
-
-interface InterceptConfig {
-  status?: number;
-  body: unknown;
-  delayMs?: number;
-  once?: boolean;
-  predicate?: (params: Record<string, unknown>) => boolean;
-}
-
-export const interceptInformesList = async (
-  page: Page,
-  configs: InterceptConfig[]
-) => {
-  let currentIndex = 0;
-
-  return await page.route(
-    `${API_GATEWAY_URL}/informes-comerciales/**`,
-    (route) => {
-      const url = new URL(route.request().url());
-
-      if (route.request().method() !== "GET") {
-        return route.continue();
-      }
-
-      const searchParams = Object.fromEntries(url.searchParams.entries());
-      const params = {
-        page: parseInt(searchParams.page ?? "1", 10),
-        limit: parseInt(searchParams.limit ?? "10", 10),
-      };
-
-      let config = configs[currentIndex];
-      if (!config) {
-        return route.continue();
-      }
-
-      if (config.predicate && !config.predicate(params)) {
-        for (let i = currentIndex + 1; i < configs.length; i++) {
-          const candidate = configs[i];
-          if (!candidate.predicate || candidate.predicate(params)) {
-            config = candidate;
-            currentIndex = i;
-            break;
-          }
-        }
-      }
-
-      if (config.once && currentIndex < configs.length - 1) {
-        currentIndex++;
-      }
-
-      setTimeout(() => {
-        route.fulfill({
-          status: config.status ?? 200,
-          contentType: "application/json",
-          body: JSON.stringify(config.body),
-        });
-      }, config.delayMs ?? 0);
-    }
-  );
-};
-
-export const interceptCreateInforme = async (
-  page: Page,
-  configs: InterceptConfig[]
-) => {
-  let currentIndex = 0;
-
-  return await page.route(
-    `${API_GATEWAY_URL}/informes-comerciales/`,
-    (route) => {
-      if (route.request().method() !== "POST") {
-        return route.continue();
-      }
-
-      const config = configs[currentIndex];
-      if (!config) {
-        return route.continue();
-      }
-
-      if (config.once && currentIndex < configs.length - 1) {
-        currentIndex++;
-      }
-
-      setTimeout(() => {
-        route.fulfill({
-          status: config.status ?? 201,
-          contentType: "application/json",
-          body: JSON.stringify(config.body),
-        });
-      }, config.delayMs ?? 0);
-    }
-  );
 };
 
 export const waitForInformesListResponse = (
@@ -232,20 +164,14 @@ export const waitForInformesListResponse = (
   predicate?: (response: Response) => boolean
 ) => {
   return page.waitForResponse((response) => {
-    const isInformesUrl = response
-      .url()
-      .includes(`${API_GATEWAY_URL}/informes-comerciales/`);
+    const isInformesUrl = response.url().includes("/informes-comerciales/");
     const isGet = response.request().method() === "GET";
 
     if (!isInformesUrl || !isGet) {
       return false;
     }
 
-    if (predicate) {
-      return predicate(response);
-    }
-
-    return true;
+    return predicate ? predicate(response) : true;
   });
 };
 
@@ -254,21 +180,46 @@ export const waitForCreateInformeResponse = (
   predicate?: (response: Response) => boolean
 ) => {
   return page.waitForResponse((response) => {
-    const isInformesUrl = response
-      .url()
-      .includes(`${API_GATEWAY_URL}/informes-comerciales/`);
+    const isInformesUrl = response.url().includes("/informes-comerciales/");
     const isPost = response.request().method() === "POST";
 
     if (!isInformesUrl || !isPost) {
       return false;
     }
 
-    if (predicate) {
-      return predicate(response);
-    }
-
-    return true;
+    return predicate ? predicate(response) : true;
   });
+};
+
+export type CreateInformeErrorOutcome =
+  | { type: "response"; response: Response }
+  | { type: "failure"; request: Request };
+
+export const waitForCreateInformeError = (
+  page: Page
+): Promise<CreateInformeErrorOutcome> => {
+  const responsePromise = waitForCreateInformeResponse(
+    page,
+    (response) => !response.ok()
+  );
+
+  const failurePromise = page.waitForEvent("requestfailed", (request) => {
+    const isInformesUrl = request.url().includes("/informes-comerciales/");
+    const isPost = request.method() === "POST";
+
+    return isInformesUrl && isPost;
+  });
+
+  return Promise.race([
+    responsePromise.then((response): CreateInformeErrorOutcome => ({
+      type: "response",
+      response,
+    })),
+    failurePromise.then((request): CreateInformeErrorOutcome => ({
+      type: "failure",
+      request,
+    })),
+  ]);
 };
 
 export const expectInformeRowVisible = async (page: Page, nombre: string) => {
@@ -279,7 +230,7 @@ export const expectInformeRowVisible = async (page: Page, nombre: string) => {
 export const trackInformesRequests = (page: Page) => {
   const requests: { method: string; url: string; authorized: boolean }[] = [];
 
-  page.on("request", (request) => {
+  const handler = (request: Request) => {
     const url = request.url();
     if (url.includes("/informes-comerciales")) {
       const headers = request.headers();
@@ -290,7 +241,9 @@ export const trackInformesRequests = (page: Page) => {
         authorized: hasToken,
       });
     }
-  });
+  };
+
+  page.on("request", handler);
 
   return {
     getCount(method: string) {
@@ -307,7 +260,7 @@ export const trackInformesRequests = (page: Page) => {
       }
     },
     stop() {
-      page.removeAllListeners("request");
+      page.off("request", handler);
     },
   };
 };

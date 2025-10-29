@@ -41,7 +41,9 @@ export type PlanVentaPayload = {
 export type PlanVentaResponse = PlanVentaPayload & {
   id: string;
   vendedorNombre?: string | null;
+  vendedor_nombre?: string | null;
   unidadesVendidas: number;
+  unidades_vendidas?: number;
 };
 
 export type PlanVentaListResponse = {
@@ -49,7 +51,8 @@ export type PlanVentaListResponse = {
   total: number;
   page: number;
   limit: number;
-  totalPages: number;
+  totalPages?: number;
+  total_pages?: number;
 };
 
 export const buildVendedorPayload = (

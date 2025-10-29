@@ -172,11 +172,15 @@ services:
     environment:
       PORT: "8004"
       DATABASE_URL: postgresql://salesforce_user:salesforce_password@salesforce-db:5432/salesforce_schema
+      PRODUCT_SERVICE_URL: http://warehouse:8003
     depends_on:
       salesforce-db:
         condition: service_healthy
     profiles: [todo, backend, salesforce]
-    networks: [salesforce_net]
+    networks:
+      - salesforce_net
+      - warehouse_net
+      - purchases_net
 
   api_gateway:
     <<: *http-health
