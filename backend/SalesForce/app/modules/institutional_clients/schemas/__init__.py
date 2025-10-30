@@ -3,6 +3,7 @@ from .institutional_client import (
     InstitutionalClientCreate,
     InstitutionalClientUpdate,
     InstitutionalClientsResponse,
+    TerritoriesQuery,
 )
 
 __all__ = [
@@ -10,4 +11,5 @@ __all__ = [
     "InstitutionalClientCreate",
     "InstitutionalClientUpdate",
     "InstitutionalClientsResponse",
+    "TerritoriesQuery",
 ]

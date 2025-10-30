@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import List, Optional
 
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
@@ -11,6 +11,7 @@ from app.modules.institutional_clients.crud import (
     get_institutional_client_by_nit,
     list_institutional_clients_paginated,
     update_institutional_client,
+    list_clients_by_territories_paginated,
 )
 from app.modules.institutional_clients.schemas import (
     InstitutionalClient,
@@ -83,3 +84,19 @@ def delete(db: Session, client_id: str) -> InstitutionalClient:
             status_code=404, detail=f"Institutional client {client_id} not found"
         )
     return InstitutionalClient.model_validate(deleted)
+
+def list_clients_by_territories(
+    db: Session, territories: List[str], page: int = 1, limit: int = 100
+) -> InstitutionalClientsResponse:
+    """List clients by territory IDs with pagination."""
+    skip = get_pagination_offset(page, limit)
+    result = list_clients_by_territories_paginated(
+        db, territories=territories, skip=skip, limit=limit
+    )
+
+    total = result["total"]
+    clients = [InstitutionalClient.model_validate(item) for item in result["items"]]
+
+    metadata = build_pagination_metadata(total=total, page=page, limit=limit)
+
+    return InstitutionalClientsResponse(data=clients, **metadata)

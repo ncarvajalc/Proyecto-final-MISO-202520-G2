@@ -5,6 +5,7 @@ from .crud_institutional_client import (
     get_institutional_client_by_nit,
     list_institutional_clients_paginated,
     update_institutional_client,
+    list_clients_by_territories_paginated,
 )
 
 __all__ = [
@@ -14,4 +15,5 @@ __all__ = [
     "get_institutional_client_by_nit",
     "list_institutional_clients_paginated",
     "update_institutional_client",
+    "list_clients_by_territories_paginated",
 ]

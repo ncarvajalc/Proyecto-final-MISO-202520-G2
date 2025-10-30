@@ -9,6 +9,7 @@ from app.modules.institutional_clients.schemas import (
     InstitutionalClientCreate,
     InstitutionalClientsResponse,
     InstitutionalClientUpdate,
+    TerritoriesQuery,
 )
 from app.modules.institutional_clients.services import (
     create,
@@ -16,6 +17,7 @@ from app.modules.institutional_clients.services import (
     get_client,
     list_clients,
     update,
+    list_clients_by_territories,
 )
 
 router = APIRouter(prefix="/institutional-clients", tags=["institutional-clients"])
@@ -60,3 +62,17 @@ def update_institutional_client_endpoint(
 def delete_institutional_client_endpoint(client_id: str, db: Session = Depends(get_db)):
     """Delete an institutional client."""
     return delete(db, client_id)
+
+@router.post("/by-territories", response_model=InstitutionalClientsResponse)
+def list_clients_by_territories_endpoint(
+    payload: TerritoriesQuery,
+    page: int = 1,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+):
+    """
+    List institutional clients by a list of territory IDs, with pagination.
+    """
+    return list_clients_by_territories(
+        db, territories=payload.territories, page=page, limit=limit
+    )
