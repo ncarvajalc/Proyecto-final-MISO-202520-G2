@@ -31,12 +31,8 @@ export const VisitFormScreen: React.FC = () => {
     setSubmitting(true);
     try {
       await visitService.createVisit(visit);
-      Alert.alert("Éxito", "Visita creada correctamente", [
-        {
-          text: "OK",
-          onPress: () => navigation.navigate("VisitList"),
-        },
-      ]);
+      // Navigate immediately to VisitList after successful save
+      navigation.navigate("VisitList");
     } catch (error) {
       Alert.alert("Error", "No se pudo crear la visita");
       console.error(error);
