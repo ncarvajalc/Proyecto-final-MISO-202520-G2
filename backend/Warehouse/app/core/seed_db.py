@@ -47,12 +47,18 @@ def seed_warehouses():
                 created_warehouses.append(existing)
 
         db.commit()
+        # Refresh to get the generated IDs
+        for wh in created_warehouses:
+            db.refresh(wh)
+
         if created_warehouses:
             print(f"Created/found {len(created_warehouses)} warehouses")
         return created_warehouses
     except Exception as e:
         db.rollback()
         print(f"Error seeding warehouses: {e}")
+        import traceback
+        traceback.print_exc()
         return []
     finally:
         db.close()
