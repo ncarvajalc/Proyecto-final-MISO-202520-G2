@@ -23,5 +23,5 @@ class Order(Base):
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
 
     # Relationships
-    institutional_client = relationship("InstitutionalClient", back_populates="orders")
+    institutional_client = relationship("InstitutionalClient")
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")

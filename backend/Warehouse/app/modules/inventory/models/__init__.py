@@ -1,6 +1,5 @@
 """Inventory models."""
 
-from app.modules.inventory.models.warehouse import Warehouse
-from app.modules.inventory.models.inventory import Inventory
-
-__all__ = ["Warehouse", "Inventory"]
+# Models are imported explicitly where needed to avoid
+# registration conflicts with warehouse module models
+__all__ = []
