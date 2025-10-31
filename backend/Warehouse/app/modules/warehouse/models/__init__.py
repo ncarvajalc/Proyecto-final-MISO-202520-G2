@@ -1,3 +1,5 @@
-from .warehouse_model import Warehouse
+"""Warehouse models."""
 
-__all__ = ["Warehouse"]
+# Models are imported explicitly where needed to avoid
+# registration conflicts with inventory module models
+__all__ = []

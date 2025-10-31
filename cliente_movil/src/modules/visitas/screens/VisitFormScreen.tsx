@@ -12,7 +12,9 @@ type VisitFormScreenRouteProp = RouteProp<
   "VisitForm"
 >;
 
-type VisitFormScreenNavigationProp = StackNavigationProp<any>;
+type VisitFormScreenNavigationProp = StackNavigationProp<{
+  VisitList: undefined;
+}>;
 
 export const VisitFormScreen: React.FC = () => {
   const route = useRoute<VisitFormScreenRouteProp>();
@@ -29,12 +31,8 @@ export const VisitFormScreen: React.FC = () => {
     setSubmitting(true);
     try {
       await visitService.createVisit(visit);
-      Alert.alert("Éxito", "Visita creada correctamente", [
-        {
-          text: "OK",
-          onPress: () => navigation.goBack(),
-        },
-      ]);
+      // Navigate immediately to VisitList after successful save
+      navigation.navigate("VisitList");
     } catch (error) {
       Alert.alert("Error", "No se pudo crear la visita");
       console.error(error);
