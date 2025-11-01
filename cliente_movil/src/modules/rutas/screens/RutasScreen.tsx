@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity } from "react-native
 import { Ruta } from "../../../types/route";
 import routesService from "../../../services/routesService";
 import { useAuth } from "../../../contexts/auth-hooks";
+import * as Location from 'expo-location';
 
 /**
  * Componente para mostrar la lista de Rutas del día.
@@ -25,12 +26,48 @@ export const RutasScreen: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
+        // --- INICIO: Lógica de Ubicación (NUEVO) ---
+
+        // 1. Solicitar permiso para acceder a la ubicación
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        
+        if (status !== 'granted') {
+          // El usuario denegó el permiso
+          const errorMsg = "El permiso de ubicación es necesario para calcular las rutas.";
+          console.warn(errorMsg);
+          if (mounted) setError(errorMsg);
+          return; // Detiene la ejecución de load
+        }
+
+        // 2. Obtener la ubicación actual
+        // Usamos una precisión 'Balanced' para un buen equilibrio entre velocidad y precisión.
+        // Cambia a Location.Accuracy.High si necesitas precisión GPS (es más lento).
+        const location = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced, 
+        });
+
+        const { latitude, longitude } = location.coords;
+        console.log(`Ubicación obtenida: ${latitude}, ${longitude}`);
+
+        // --- FIN: Lógica de Ubicación ---
+
+        // 3. Llamar al servicio con la ubicación
         const salespersonId = user?.id ?? "";
-        const data = await routesService.getRoutesBySalesperson(salespersonId);
+        
+        // Asumimos que tu servicio AHORA acepta latitud y longitud
+        const data = await routesService.getRoutesBySalesperson(
+          salespersonId,
+          latitude,
+          longitude
+        );
+        
         if (mounted) setRoutes(data);
+
       } catch (err) {
-        console.warn("RutasScreen: failed to load routes", err);
-        if (mounted) setError("Error al cargar rutas");
+        // Este catch ahora captura errores de ubicación O del servicio
+        console.warn("RutasScreen: failed to load", err);
+        const errorMsg = (err instanceof Error) ? err.message : "Error al cargar rutas";
+        if (mounted) setError(errorMsg);
       } finally {
         if (mounted) setLoading(false);
       }

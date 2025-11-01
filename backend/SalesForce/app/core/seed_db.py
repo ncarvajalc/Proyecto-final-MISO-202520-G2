@@ -13,6 +13,7 @@ import logging
 import enum
 from app.core.database import SessionLocal
 from sqlalchemy.orm import Session
+from datetime import date
 
 # Importaciones de modelos (como las tienes en tu script)
 try:
@@ -32,6 +33,7 @@ except ImportError:
         CITY = "CITY"
 
 from app.modules.institutional_clients.models import InstitutionalClient
+from app.modules.salespeople.models.salespeople_model import Salespeople, Route
 
     
 logging.basicConfig(level=logging.INFO)
@@ -246,21 +248,191 @@ def seed_institutional_clients(db: Session, city_map: dict):
         traceback.print_exc()
 
 
+# --- Datos de Vendedores (Salespeople) --- (NUEVO)
+SALESPEOPLE_DATA = [
+    {"full_name": "Ana García", "email": "ana.garcia@company.com", "hire_date": "2023-01-15", "status": "Active", "territory_name": "Bogotá"}, # Ciudad 
+    {"full_name": "Luis Pérez", "email": "luis.perez@company.com", "hire_date": "2022-11-10", "status": "Active", "territory_name": "Medellín"}, # Ciudad
+    {"full_name": "Carla Ruiz", "email": "carla.ruiz@company.com", "hire_date": "2023-05-20", "status": "Active", "territory_name": "Lima"}, # Ciudad 
+    {"full_name": "Miguel Soto (Ecuador)", "email": "miguel.soto@company.com", "hire_date": "2023-02-01", "status": "Active", "territory_name": "Quito"}, # Ciudad 
+    {"full_name": "Javier Torres", "email": "javier.torres@company.com", "hire_date": "2022-09-05", "status": "Active", "territory_name": "Guadalajara"}, # Ciudad (Antes Jalisco)
+    {"full_name": "Maria Rodriguez (Bogotá)", "email": "maria.r@company.com", "hire_date": "2022-01-01", "status": "Active", "territory_name": "Bogotá"}, # Ciudad 
+]
+
+def seed_salespeople(db: Session, city_map: dict) -> dict:
+    """Crea Vendedores (salespeople) y devuelve un mapa de email -> id."""
+    log.info("Sembrando salespeople (vendedores)...")
+
+    salespeople_map = {} # Este mapa SÍ se llenará
+
+    if not hasattr(Salespeople, '__tablename__'):
+        log.error("Clase 'Salespeople' no válida. Saltando...")
+        return salespeople_map
+
+    # 1. Construir mapa de territorios (Esto está bien)
+    territory_id_map = {}
+    for pais_nombre, pais_data in TERRITORIOS_DATA.items():
+        territory_id_map[pais_nombre] = pais_data["id"]
+        for estado_nombre, estado_data in pais_data["states"].items():
+            territory_id_map[estado_nombre] = estado_data["id"]
+    territory_id_map.update(city_map)
+
+    try:
+        created_count = 0
+        
+        # --- LÓGICA CORREGIDA ---
+        # No podemos leer los emails encriptados de la BD.
+        # Debemos iterar sobre nuestros datos y PREGUNTAR a la BD si existen.
+        
+        for data in SALESPEOPLE_DATA:
+            email = data["email"]
+            
+            # 1. PREGUNTAR a la BD si este email (de texto simple) ya existe.
+            # SQLAlchemy sabe cómo manejar la encriptación en el WHERE.
+            existing = db.query(Salespeople).filter(Salespeople.email == email).first()
+            
+            if existing:
+                # Si ya existe, solo lo añadimos al mapa y continuamos
+                salespeople_map[email] = str(existing.id)
+                continue
+                
+            # 2. Si no existe, lo CREAMOS
+            territory_name = data["territory_name"]
+            territory_id = territory_id_map.get(territory_name)
+            
+            if not territory_id:
+                log.warning(f"No se encontró ID para territorio: {territory_name}. Vendedor '{data['full_name']}' se creará sin territory_id.")
+                
+            hire_date_obj = date.fromisoformat(data["hire_date"])
+            
+            salesperson = Salespeople(
+                full_name=data["full_name"],
+                email=email,
+                hire_date=hire_date_obj,
+                status=data["status"],
+                territory_id=territory_id,
+                user_id=None
+            )
+            db.add(salesperson)
+            created_count += 1
+            
+        db.commit() # Commit de todos los nuevos vendedores
+        
+        if created_count > 0:
+            log.info(f"Creados {created_count} salespeople.")
+            
+            # 3. ACTUALIZAR el mapa con los IDs de los recién creados
+            # (Re-consultamos para obtener los IDs generados por la BD)
+            for data in SALESPEOPLE_DATA:
+                email = data["email"]
+                if email not in salespeople_map: # Si no lo encontramos antes
+                    new_sp = db.query(Salespeople).filter(Salespeople.email == email).first()
+                    if new_sp:
+                        salespeople_map[email] = str(new_sp.id)
+        else:
+            log.info("Salespeople ya existen.")
+            
+        return salespeople_map # <-- Devuelve el mapa poblado
+        
+    except Exception as e:
+        db.rollback()
+        log.error(f"Error sembrando salespeople: {e}")
+        import traceback
+        traceback.print_exc()
+        return {}
+
+ROUTES_DATA = [
+    # Rutas para Ana García (Bogotá)
+    {"salesperson_email": "ana.garcia@company.com", "day": "2025-10-27", "done": 0}, # Lunes (hecha)
+    {"salesperson_email": "ana.garcia@company.com", "day": "2025-10-28", "done": 0}, # Martes (pendiente)
+    
+    # Rutas para Luis Pérez (Medellín)
+    {"salesperson_email": "luis.perez@company.com", "day": "2025-10-27", "done": 0}, # Lunes
+    
+    # Rutas para Carla Ruiz (Lima)
+    {"salesperson_email": "carla.ruiz@company.com", "day": "2025-10-29", "done": 0}, # Miércoles (pendiente)
+
+    # Rutas para Javier Torres (Guadalajara)
+    {"salesperson_email": "javier.torres@company.com", "day": "2025-10-27", "done": 0},
+    {"salesperson_email": "javier.torres@company.com", "day": "2025-10-28", "done": 0},
+    {"salesperson_email": "javier.torres@company.com", "day": "2025-10-29", "done": 0},
+]
+
+def seed_routes(db: Session, salespeople_map: dict):
+    """Crea las Rutas (routes) diarias para los vendedores."""
+    log.info("Sembrando routes (rutas)...")
+    
+    if not salespeople_map:
+        log.error("No se proporcionó mapa de salespeople. No se pueden sembrar rutas.")
+        return
+
+    if not hasattr(Route, '__tablename__'):
+        log.error("Clase 'Route' no válida. Saltando siembra de rutas.")
+        return
+
+    try:
+        created_count = 0
+        for route_data in ROUTES_DATA:
+            email_vendedor = route_data["salesperson_email"]
+            salesperson_id = salespeople_map.get(email_vendedor)
+            
+            if not salesperson_id:
+                log.warning(f"No se encontró ID para el vendedor: {email_vendedor}. Saltando ruta.")
+                continue
+                
+            day_obj = date.fromisoformat(route_data["day"])
+            
+            existing = db.query(Route).filter(
+                Route.salespeople_id == salesperson_id,
+                Route.day == day_obj
+            ).first()
+            
+            if existing:
+                continue
+                
+            route = Route(
+                salespeople_id=salesperson_id,
+                day=day_obj,
+                done=route_data["done"]
+            )
+            db.add(route)
+            created_count += 1
+        
+        # --- CORRECCIÓN DE RENDIMIENTO ---
+        # El commit AHORA ESTÁ FUERA del bucle
+        db.commit() 
+            
+        if created_count > 0:
+            log.info(f"Creadas {created_count} rutas.")
+        else:
+            log.info("Rutas ya existen.")
+
+    except Exception as e:
+        db.rollback()
+        log.error(f"Error sembrando routes: {e}")
+        import traceback
+        traceback.print_exc()
+
 def seed_all():
     """Ejecuta todas las funciones de siembra en el orden correcto"""
     
     db = SessionLocal()
     
     try:
-        log.info("\n🌱 Iniciando siembra de base de datos...\n")
+        log.info("Iniciando siembra de base de datos...\n")
         
         # 1. Crear territorios y obtener el mapa de ciudades
         city_id_map = seed_territorios(db)
         
         # 2. Crear clientes usando el mapa de ciudades
         seed_institutional_clients(db, city_id_map)
+
+        # 3. Crear Vendedores
+        salespeople_id_map = seed_salespeople(db, city_id_map)
         
-        log.info("\n✅ Siembra de base de datos completada!\n")
+        # 4. Crear Rutas
+        seed_routes(db, salespeople_id_map)
+        
+        log.info("Siembra de base de datos completada!\n")
         
     except Exception as e:
         log.error(f"Error durante la siembra total: {e}")

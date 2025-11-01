@@ -57,13 +57,13 @@ export const SAMPLE_ROUTES: Ruta[] = [
  * Returns parsed JSON as Ruta[] on success. On network or parsing error,
  * returns SAMPLE_ROUTES as a graceful fallback.
  */
-export const getRoutesBySalesperson = async (id: string): Promise<RoutesResponse> => {
+export const getRoutesBySalesperson = async (id: string, latitude: number, longitude:number): Promise<RoutesResponse> => {
   if (!id) {
     // If no id provided, return sample data immediately
     return SAMPLE_ROUTES;
   }
 
-  const url = `${apiBase}/daily-routes/salesperson/${encodeURIComponent(id)}`;
+  const url = `${apiBase}/daily-routes/salesperson?salespeople_id=${encodeURIComponent(id)}&latitude=${latitude}&longitude=${longitude}`;
 
   try {
     const res = await fetch(url, {

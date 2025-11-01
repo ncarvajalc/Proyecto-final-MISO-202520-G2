@@ -9,6 +9,8 @@ class SalespeopleBase(BaseModel):
     email: EmailStr
     hire_date: date
     status: str
+    territory_id: Optional[str] = None
+    user_id: Optional[str] = None
 
 
 class SalespeopleCreate(SalespeopleBase):
@@ -20,6 +22,8 @@ class SalespeopleUpdate(BaseModel):
     email: Optional[EmailStr] = None
     hire_date: Optional[date] = None
     status: Optional[str] = None
+    territory_id: Optional[str] = None
+    user_id: Optional[str] = None
 
 
 class Salespeople(SalespeopleBase):
@@ -36,6 +40,20 @@ class SalespersonPaginated(BaseModel):
     page: int
     limit: int
     total_pages: int
+
+
+class Route(BaseModel):
+    id: str
+    salespeople_id: Optional[str] = None
+    day: date
+    done: int = 0
+
+class RouteSalesPeople(Route):
+    distance: Optional[str] = None
+    duration: Optional[str] = None
+    country: Optional[str] = None
+    state: Optional[str] = None
+    city: Optional[str] = None
 
 
 # Esquemas para incluir información de planes de ventas
