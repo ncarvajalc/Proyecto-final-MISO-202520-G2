@@ -10,6 +10,7 @@
 
 import { getApiBaseUrl } from "@/config/api";
 import { ApiClient } from "@/lib/api-client";
+import { uploadCsvFile } from "@/services/utils/upload";
 import type {
   BulkUploadResponse,
   Proveedor,
@@ -150,19 +151,6 @@ export const createProveedor = async (
  */
 export const bulkUploadProveedores = async (
   file: File
-): Promise<BulkUploadResponse> => {
-  const apiClient = new ApiClient(getApiBaseUrl());
-  const formData = new FormData();
-  formData.append("file", file);
-
-  return apiClient.post<BulkUploadResponse>(
-    "/proveedores/bulk-upload",
-    formData,
-    {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    }
-  );
-};
+): Promise<BulkUploadResponse> =>
+  uploadCsvFile<BulkUploadResponse>("/proveedores/bulk-upload", file);
 

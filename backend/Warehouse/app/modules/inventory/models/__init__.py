@@ -1,3 +1,5 @@
-from .product_inventory_model import ProductInventory
+"""Inventory models."""
 
-__all__ = ["ProductInventory"]
+# Models are imported explicitly where needed to avoid
+# registration conflicts with warehouse module models
+__all__ = []

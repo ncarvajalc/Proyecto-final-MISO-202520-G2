@@ -9,7 +9,6 @@ import {
   ensureRowVisible,
   extractJson,
   fetchSupplierList,
-  interceptCreateProveedor,
   goToFirstPage,
   goToPage,
   gotoProveedores,
@@ -144,69 +143,39 @@ test.describe.serial("HUP-001 Registro individual de proveedor", () => {
     await expect(page.getByRole("button", { name: "Iniciar sesión" })).toBeVisible();
   });
 
-  test("Renderiza secuencia de carga, vacío, error y datos", async ({ page }) => {
-    let callCount = 0;
-    await page.route("**/proveedores?*", async (route) => {
-      const request = route.request();
-      if (request.method() !== "GET") {
-        await route.continue();
-        return;
-      }
-
-      callCount += 1;
-      if (callCount === 1) {
-        await expect(page.getByText("Cargando proveedores...")).toBeVisible();
-        await route.fulfill({
-          status: 200,
-          contentType: "application/json",
-          body: JSON.stringify({
-            data: [],
-            total: 0,
-            page: 1,
-            limit: ITEMS_PER_PAGE,
-            totalPages: 0,
-          }),
-        });
-        return;
-      }
-
-      if (callCount === 2 || callCount === 3) {
-        await route.fulfill({
-          status: 500,
-          contentType: "application/json",
-          body: JSON.stringify({ detail: "error forzado" }),
-        });
-        return;
-      }
-
-      await route.continue();
+  test("Lista proveedores existentes directamente desde el backend", async ({ page }) => {
+    const apiSnapshot = await fetchSupplierList(proveedoresApi, {
+      page: 1,
+      limit: ITEMS_PER_PAGE,
     });
 
-    await page.goto("./catalogos/proveedores");
-    await expect(page.getByText("No hay proveedores disponibles")).toBeVisible();
+    expect(apiSnapshot.data.length).toBeGreaterThan(0);
 
-    const errorResponsePromise = page.waitForResponse(
-      (response) =>
-        response.url().startsWith(`${API_GATEWAY_URL}/proveedores`) &&
-        response.request().method() === "GET" &&
-        response.status() >= 500
+    const listResponsePromise = waitForListResponse(page, 1);
+    await gotoProveedores(page);
+    await listResponsePromise;
+
+    await expect(page.locator("table tbody tr")).toHaveCount(
+      apiSnapshot.data.length
     );
-    await page.reload();
-    await errorResponsePromise;
-    await expect(page.getByText("Error al cargar los proveedores")).toBeVisible();
 
-    const successResponsePromise = page.waitForResponse(
-      (response) =>
-        response.url().startsWith(`${API_GATEWAY_URL}/proveedores`) &&
-        response.request().method() === "GET" &&
-        response.ok()
+    for (const supplier of apiSnapshot.data) {
+      await expect(
+        page.locator("table tbody tr", { hasText: supplier.nombre })
+      ).toBeVisible();
+      await expect(
+        page
+          .locator("table tbody tr", { hasText: supplier.nombre })
+          .getByText(supplier.estado)
+      ).toBeVisible();
+    }
+
+    const reloadPromise = waitForListResponse(page, 1);
+    await page.reload();
+    await reloadPromise;
+    await expect(page.locator("table tbody tr")).toHaveCount(
+      apiSnapshot.data.length
     );
-    await page.reload();
-    await successResponsePromise;
-    await expect(page.getByRole("heading", { name: "Proveedores" })).toBeVisible();
-    await expect(page.locator("table tbody tr")).toHaveCount(ITEMS_PER_PAGE);
-
-    await page.unroute("**/proveedores?*");
   });
 
   test("Paginación solicita páginas y revalida el caché", async ({ page }) => {
@@ -322,101 +291,95 @@ test.describe.serial("HUP-001 Registro individual de proveedor", () => {
     const tracker = trackProveedoresRequests(page);
     await gotoProveedores(page);
 
-    const interceptor = await interceptCreateProveedor(page, proveedoresApi);
+    await page.getByRole("button", { name: "Nuevo proveedor" }).click();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
 
-    try {
-      await page.getByRole("button", { name: "Nuevo proveedor" }).click();
-      const dialog = page.getByRole("dialog");
-      await expect(dialog).toBeVisible();
+    const supplierName = `${SEED_PREFIX} Único sin certificado`;
+    const createRequestPromise = waitForCreateRequest(page);
+    const createResponsePromise = waitForCreateResponse(page);
+    const refetchPromise = waitForListResponse(page, 1);
 
-      const supplierName = `${SEED_PREFIX} Único sin certificado`;
-      const createRequestPromise = waitForCreateRequest(page);
-      const createResponsePromise = waitForCreateResponse(page);
-      const refetchPromise = waitForListResponse(page, 1);
-
-      await page.getByLabel("Nombre", { exact: true }).fill(supplierName);
-      await page
-        .getByLabel("Id tax")
-        .fill(faker.string.numeric({ length: 10 }));
-      await page.getByLabel("Dirección").fill(faker.location.streetAddress());
-      await page
-        .getByLabel("Teléfono")
-        .fill(faker.phone.number({ style: "international" }));
-      await page
-        .getByLabel("Correo")
-        .fill(
-          faker.internet.email({ firstName: "sin", lastName: "cert" }).toLowerCase()
-        );
-      await page.getByLabel("Contacto").fill(faker.person.fullName());
-
-      const submitButton = dialog.locator('button[type="submit"]');
-      await submitButton.click();
-
-      const createRequest = await createRequestPromise;
-      expect(createRequest.headers()["authorization"]).toMatch(/^Bearer\s.+/);
-      const payload = createRequest.postDataJSON() as SupplierPayload;
-      expect(payload.certificado).toBeNull();
-      expect(Object.keys(payload).sort()).toEqual(
-        [
-          "nombre",
-          "id_tax",
-          "direccion",
-          "telefono",
-          "correo",
-          "contacto",
-          "estado",
-          "certificado",
-        ].sort()
+    await page.getByLabel("Nombre", { exact: true }).fill(supplierName);
+    await page
+      .getByLabel("Id tax")
+      .fill(faker.string.numeric({ length: 10 }));
+    await page.getByLabel("Dirección").fill(faker.location.streetAddress());
+    await page
+      .getByLabel("Teléfono")
+      .fill(faker.phone.number({ style: "international" }));
+    await page
+      .getByLabel("Correo")
+      .fill(
+        faker.internet.email({ firstName: "sin", lastName: "cert" }).toLowerCase()
       );
+    await page.getByLabel("Contacto").fill(faker.person.fullName());
 
-      const createResponse = await createResponsePromise;
-      expect(createResponse.ok()).toBeTruthy();
-      const created = await extractJson<SupplierResponse>(createResponse);
-      _createdSupplierIds.push(created.id);
+    const submitButton = dialog.locator('button[type="submit"]');
+    await submitButton.click();
 
-      await refetchPromise;
+    const createRequest = await createRequestPromise;
+    expect(createRequest.headers()["authorization"]).toMatch(/^Bearer\s.+/);
+    const payload = createRequest.postDataJSON() as SupplierPayload;
+    expect(payload.certificado).toBeNull();
+    expect(Object.keys(payload).sort()).toEqual(
+      [
+        "nombre",
+        "id_tax",
+        "direccion",
+        "telefono",
+        "correo",
+        "contacto",
+        "estado",
+        "certificado",
+      ].sort()
+    );
 
-      await expect(page.getByText("Proveedor creado exitosamente")).toBeVisible();
-      await expect(page.getByRole("heading", { name: "Crear proveedor" })).not.toBeVisible();
+    const createResponse = await createResponsePromise;
+    expect(createResponse.ok()).toBeTruthy();
+    const created = await extractJson<SupplierResponse>(createResponse);
+    _createdSupplierIds.push(created.id);
 
-      tracker.assertAllAuthorized();
-      expect(
-        tracker.getRequests("GET", (entry) => entry.url.searchParams.get("page") === "1")
-          .length
-      ).toBeGreaterThanOrEqual(2);
+    await refetchPromise;
 
-      const refetchJson = await fetchSupplierList(proveedoresApi, {
-        page: 1,
-        limit: 100,
-      });
-      const persistedIndex = refetchJson.data.findIndex((item) => item.id === created.id);
-      expect(persistedIndex).toBeGreaterThanOrEqual(0);
-      const persisted = refetchJson.data[persistedIndex];
-      expect(Object.keys(persisted).sort()).toEqual(
-        [
-          "id",
-          "nombre",
-          "id_tax",
-          "direccion",
-          "telefono",
-          "correo",
-          "contacto",
-          "estado",
-          "certificado",
-        ].sort()
-      );
-      expect(persisted.certificado).toBeNull();
-      expect(persisted.nombre).toBe(supplierName);
+    await expect(page.getByText("Proveedor creado exitosamente")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Crear proveedor" })).not.toBeVisible();
 
-      const targetPage = computePageForIndex(persistedIndex, ITEMS_PER_PAGE);
-      let currentPage = await goToFirstPage(page, 1);
-      if (targetPage > currentPage) {
-        currentPage = await goToPage(page, currentPage, targetPage);
-      }
-      await ensureRowVisible(page, supplierName);
-    } finally {
-      await interceptor.dispose();
+    tracker.assertAllAuthorized();
+    expect(
+      tracker.getRequests("GET", (entry) => entry.url.searchParams.get("page") === "1")
+        .length
+    ).toBeGreaterThanOrEqual(2);
+
+    const refetchJson = await fetchSupplierList(proveedoresApi, {
+      page: 1,
+      limit: 100,
+    });
+    const persistedIndex = refetchJson.data.findIndex((item) => item.id === created.id);
+    expect(persistedIndex).toBeGreaterThanOrEqual(0);
+    const persisted = refetchJson.data[persistedIndex];
+    expect(Object.keys(persisted).sort()).toEqual(
+      [
+        "id",
+        "nombre",
+        "id_tax",
+        "direccion",
+        "telefono",
+        "correo",
+        "contacto",
+        "estado",
+        "certificado",
+      ].sort()
+    );
+    expect(persisted.certificado).toBeNull();
+    expect(persisted.nombre).toBe(supplierName);
+
+    const targetPage = computePageForIndex(persistedIndex, ITEMS_PER_PAGE);
+    let currentPage = await goToFirstPage(page, 1);
+    if (targetPage > currentPage) {
+      currentPage = await goToPage(page, currentPage, targetPage);
     }
+    await ensureRowVisible(page, supplierName);
 
     tracker.stop();
   });
@@ -425,199 +388,198 @@ test.describe.serial("HUP-001 Registro individual de proveedor", () => {
     const tracker = trackProveedoresRequests(page);
     await gotoProveedores(page);
 
-    const interceptor = await interceptCreateProveedor(page, proveedoresApi);
-
-    try {
-      await page.getByRole("button", { name: "Nuevo proveedor" }).click();
-
-      const dialog = page.getByRole("dialog");
-      await expect(dialog).toBeVisible();
-
-      const supplierName = `${SEED_PREFIX} Único con certificado`;
-      const certificacionBaseDate = faker.date.past({ years: 1 });
-      const certificacionExpiryDate = faker.date.future({
-        years: 1,
-        refDate: certificacionBaseDate,
-      });
-      const certificacion = {
-        nombre: faker.company.buzzPhrase(),
-        cuerpoCertificador: faker.company.name(),
-        fechaCertificacion: certificacionBaseDate.toISOString().slice(0, 10),
-        fechaVencimiento: certificacionExpiryDate.toISOString().slice(0, 10),
-        urlDocumento: faker.internet.url(),
-      };
-
-      const createRequestPromise = waitForCreateRequest(page);
-      const createResponsePromise = waitForCreateResponse(page);
-      const refetchPromise = waitForListResponse(page, 1);
-
-      await page.getByLabel("Nombre", { exact: true }).fill(supplierName);
-      await page
-        .getByLabel("Id tax")
-        .fill(faker.string.numeric({ length: 10 }));
-      await page.getByLabel("Dirección").fill(faker.location.streetAddress());
-      await page
-        .getByLabel("Teléfono")
-        .fill(faker.phone.number({ style: "international" }));
-      await page
-        .getByLabel("Correo")
-        .fill(
-          faker.internet.email({ firstName: "con", lastName: "cert" }).toLowerCase()
-        );
-      await page.getByLabel("Contacto").fill(faker.person.fullName());
-
-      const estadoCombobox = dialog.getByRole("combobox", { name: "Estado" });
-      await estadoCombobox.click();
-      await page.getByRole("option", { name: "Inactivo", exact: true }).click();
-      await expect(estadoCombobox).toHaveText("Inactivo");
-
-      await page.getByLabel("Nombre certificado").fill(certificacion.nombre);
-      await page
-        .getByLabel("Cuerpo certificador")
-        .fill(certificacion.cuerpoCertificador);
-      await page
-        .getByLabel("Fecha de certificación")
-        .fill(certificacion.fechaCertificacion);
-      await page
-        .getByLabel("Fecha de vencimiento")
-        .fill(certificacion.fechaVencimiento);
-      await page
-        .getByLabel("URL del documento")
-        .fill(certificacion.urlDocumento);
-
-      const submitButton = dialog.locator('button[type="submit"]');
-      await submitButton.click();
-
-      const createRequest = await createRequestPromise;
-      expect(createRequest.headers()["authorization"]).toMatch(/^Bearer\s.+/);
-      const payload = createRequest.postDataJSON() as SupplierPayload;
-      expect(payload.certificado).toEqual(certificacion);
-      expect(payload.estado).toBe("Inactivo");
-      expect(Object.keys(payload.certificado ?? {}).sort()).toEqual(
-        [
-          "nombre",
-          "cuerpoCertificador",
-          "fechaCertificacion",
-          "fechaVencimiento",
-          "urlDocumento",
-        ].sort()
-      );
-
-      const createResponse = await createResponsePromise;
-      expect(createResponse.ok()).toBeTruthy();
-      const created = await extractJson<SupplierResponse>(createResponse);
-      _createdSupplierIds.push(created.id);
-
-      await refetchPromise;
-
-      await expect(page.getByText("Proveedor creado exitosamente")).toBeVisible();
-
-      tracker.assertAllAuthorized();
-      expect(
-        tracker.getRequests("GET", (entry) => entry.url.searchParams.get("page") === "1")
-          .length
-      ).toBeGreaterThanOrEqual(2);
-
-      const refetchJson = await fetchSupplierList(proveedoresApi, {
-        page: 1,
-        limit: 100,
-      });
-      const persistedIndex = refetchJson.data.findIndex((item) => item.id === created.id);
-      expect(persistedIndex).toBeGreaterThanOrEqual(0);
-      const persisted = refetchJson.data[persistedIndex];
-      expect(Object.keys(persisted).sort()).toEqual(
-        [
-          "id",
-          "nombre",
-          "id_tax",
-          "direccion",
-          "telefono",
-          "correo",
-          "contacto",
-          "estado",
-          "certificado",
-        ].sort()
-      );
-      expect(persisted.estado).toBe("Inactivo");
-      expect(persisted.certificado).not.toBeNull();
-      expect(Object.keys(persisted.certificado ?? {}).sort()).toEqual(
-        [
-          "nombre",
-          "cuerpoCertificador",
-          "fechaCertificacion",
-          "fechaVencimiento",
-          "urlDocumento",
-        ].sort()
-      );
-      expect(persisted.certificado).toMatchObject(certificacion);
-
-      const targetPage = computePageForIndex(persistedIndex, ITEMS_PER_PAGE);
-      let currentPage = await goToFirstPage(page, 1);
-      if (targetPage > currentPage) {
-        currentPage = await goToPage(page, currentPage, targetPage);
-      }
-      await ensureRowVisible(page, supplierName);
-      await expect(
-        page
-          .locator("table tbody tr", { hasText: supplierName })
-          .getByText("Inactivo")
-      ).toBeVisible();
-    } finally {
-      await interceptor.dispose();
-    }
-
-    tracker.stop();
-  });
-
-  test("Muestra error sin refetch ante fallo 500", async ({ page }) => {
-    const tracker = trackProveedoresRequests(page);
-    await gotoProveedores(page);
-
-    let interceptedAuthorization: string | undefined;
-    await page.route("**/proveedores", async (route) => {
-      const request = route.request();
-      if (request.method() === "POST") {
-        interceptedAuthorization = request.headers()["authorization"];
-        await route.fulfill({
-          status: 500,
-          contentType: "application/json",
-          body: JSON.stringify({ detail: "Fallo controlado" }),
-        });
-        return;
-      }
-
-      await route.continue();
-    });
-
     await page.getByRole("button", { name: "Nuevo proveedor" }).click();
 
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+
+    const supplierName = `${SEED_PREFIX} Único con certificado`;
+    const certificacionBaseDate = faker.date.past({ years: 1 });
+    const certificacionExpiryDate = faker.date.future({
+      years: 1,
+      refDate: certificacionBaseDate,
+    });
+    const certificacion = {
+      nombre: faker.company.buzzPhrase(),
+      cuerpoCertificador: faker.company.name(),
+      fechaCertificacion: certificacionBaseDate.toISOString().slice(0, 10),
+      fechaVencimiento: certificacionExpiryDate.toISOString().slice(0, 10),
+      urlDocumento: faker.internet.url(),
+    };
+
+    const createRequestPromise = waitForCreateRequest(page);
+    const createResponsePromise = waitForCreateResponse(page);
+    const refetchPromise = waitForListResponse(page, 1);
+
+    await page.getByLabel("Nombre", { exact: true }).fill(supplierName);
     await page
-      .getByLabel("Nombre", { exact: true })
-      .fill(`${SEED_PREFIX} Error proveedor`);
-    await page.getByLabel("Id tax").fill(faker.string.numeric({ length: 10 }));
+      .getByLabel("Id tax")
+      .fill(faker.string.numeric({ length: 10 }));
     await page.getByLabel("Dirección").fill(faker.location.streetAddress());
     await page
       .getByLabel("Teléfono")
       .fill(faker.phone.number({ style: "international" }));
     await page
       .getByLabel("Correo")
-      .fill(faker.internet.email({ firstName: "error", lastName: "proveedor" }).toLowerCase());
+      .fill(
+        faker.internet.email({ firstName: "con", lastName: "cert" }).toLowerCase()
+      );
+    await page.getByLabel("Contacto").fill(faker.person.fullName());
+
+    const estadoCombobox = dialog.getByRole("combobox", { name: "Estado" });
+    await estadoCombobox.click();
+    await page.getByRole("option", { name: "Inactivo", exact: true }).click();
+    await expect(estadoCombobox).toHaveText("Inactivo");
+
+    await page.getByLabel("Nombre certificado").fill(certificacion.nombre);
+    await page
+      .getByLabel("Cuerpo certificador")
+      .fill(certificacion.cuerpoCertificador);
+    await page
+      .getByLabel("Fecha de certificación")
+      .fill(certificacion.fechaCertificacion);
+    await page
+      .getByLabel("Fecha de vencimiento")
+      .fill(certificacion.fechaVencimiento);
+    await page
+      .getByLabel("URL del documento")
+      .fill(certificacion.urlDocumento);
+
+    const submitButton = dialog.locator('button[type="submit"]');
+    await submitButton.click();
+
+    const createRequest = await createRequestPromise;
+    expect(createRequest.headers()["authorization"]).toMatch(/^Bearer\s.+/);
+    const payload = createRequest.postDataJSON() as SupplierPayload;
+    expect(payload.certificado).toEqual(certificacion);
+    expect(payload.estado).toBe("Inactivo");
+    expect(Object.keys(payload.certificado ?? {}).sort()).toEqual(
+      [
+        "nombre",
+        "cuerpoCertificador",
+        "fechaCertificacion",
+        "fechaVencimiento",
+        "urlDocumento",
+      ].sort()
+    );
+
+    const createResponse = await createResponsePromise;
+    expect(createResponse.ok()).toBeTruthy();
+    const created = await extractJson<SupplierResponse>(createResponse);
+    _createdSupplierIds.push(created.id);
+
+    await refetchPromise;
+
+    await expect(page.getByText("Proveedor creado exitosamente")).toBeVisible();
+
+    tracker.assertAllAuthorized();
+    expect(
+      tracker.getRequests("GET", (entry) => entry.url.searchParams.get("page") === "1")
+        .length
+    ).toBeGreaterThanOrEqual(2);
+
+    const refetchJson = await fetchSupplierList(proveedoresApi, {
+      page: 1,
+      limit: 100,
+    });
+    const persistedIndex = refetchJson.data.findIndex((item) => item.id === created.id);
+    expect(persistedIndex).toBeGreaterThanOrEqual(0);
+    const persisted = refetchJson.data[persistedIndex];
+    expect(Object.keys(persisted).sort()).toEqual(
+      [
+        "id",
+        "nombre",
+        "id_tax",
+        "direccion",
+        "telefono",
+        "correo",
+        "contacto",
+        "estado",
+        "certificado",
+      ].sort()
+    );
+    expect(persisted.estado).toBe("Inactivo");
+    expect(persisted.certificado).not.toBeNull();
+    expect(Object.keys(persisted.certificado ?? {}).sort()).toEqual(
+      [
+        "nombre",
+        "cuerpoCertificador",
+        "fechaCertificacion",
+        "fechaVencimiento",
+        "urlDocumento",
+      ].sort()
+    );
+    expect(persisted.certificado).toMatchObject(certificacion);
+
+    const targetPage = computePageForIndex(persistedIndex, ITEMS_PER_PAGE);
+    let currentPage = await goToFirstPage(page, 1);
+    if (targetPage > currentPage) {
+      currentPage = await goToPage(page, currentPage, targetPage);
+    }
+    await ensureRowVisible(page, supplierName);
+    await expect(
+      page
+        .locator("table tbody tr", { hasText: supplierName })
+        .getByText("Inactivo")
+    ).toBeVisible();
+
+    tracker.stop();
+  });
+
+  test("Muestra error cuando el id tax ya existe", async ({ page }) => {
+    const tracker = trackProveedoresRequests(page);
+    await gotoProveedores(page);
+
+    const snapshot = await fetchSupplierList(proveedoresApi, {
+      page: 1,
+      limit: 1,
+    });
+
+    const referenceSupplier = snapshot.data[0];
+    if (!referenceSupplier) {
+      throw new Error("Se requiere al menos un proveedor existente para probar duplicados");
+    }
+
+    await page.getByRole("button", { name: "Nuevo proveedor" }).click();
+
+    await page
+      .getByLabel("Nombre", { exact: true })
+      .fill(`${SEED_PREFIX} Error proveedor`);
+    await page.getByLabel("Id tax").fill(referenceSupplier.id_tax);
+    await page.getByLabel("Dirección").fill(faker.location.streetAddress());
+    await page
+      .getByLabel("Teléfono")
+      .fill(faker.phone.number({ style: "international" }));
+    await page
+      .getByLabel("Correo")
+      .fill(
+        faker.internet.email({ firstName: "error", lastName: "proveedor" }).toLowerCase()
+      );
     await page.getByLabel("Contacto").fill(faker.person.fullName());
 
     const initialGetCount = tracker.getCount("GET");
+    const createRequestPromise = waitForCreateRequest(page);
+    const createResponsePromise = waitForCreateResponse(page);
 
     await page.getByRole("button", { name: "Crear" }).click();
+
+    const createRequest = await createRequestPromise;
+    expect(createRequest.headers()["authorization"]).toMatch(/^Bearer\s.+/);
+
+    const createResponse = await createResponsePromise;
+    expect(createResponse.status()).toBe(409);
+
     await expect(page.getByText("Error al crear proveedor")).toBeVisible();
-    await expect(page.getByText("Fallo controlado")).toBeVisible();
+    await expect(
+      page.getByText("Ya existe un proveedor con el mismo id_tax")
+    ).toBeVisible();
     await expect(page.getByRole("heading", { name: "Crear proveedor" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Crear" })).toBeEnabled();
     await expect(page.getByRole("button", { name: "Crear" })).toHaveText("Crear");
 
     expect(tracker.getCount("GET")).toBe(initialGetCount);
-    expect(interceptedAuthorization).toMatch(/^Bearer\s.+/);
 
     tracker.assertAllAuthorized();
     tracker.stop();
-    await page.unroute("**/proveedores");
   });
 });

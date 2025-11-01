@@ -30,7 +30,7 @@ export const CarteraScreen: React.FC = () => {
   const loadEntities = async () => {
     try {
       setIsLoading(true);
-      const response = await institutionalClientService.getInstitutionalClients(
+      const response = await institutionalClientService.getInstitutionalClientsCartera(
         page,
         10,
         searchQuery
@@ -59,9 +59,11 @@ export const CarteraScreen: React.FC = () => {
       <View style={styles.entityHeader}>
         <Text style={styles.entityName}>{item.nombre_institucion}</Text>
       </View>
+      <Text style={styles.entityDetail}>{item.country || "No especificada - en trabajo" }</Text>
+      <Text style={styles.entityDetail}>{item.city || "No especificada - en trabajo"}</Text>
       <Text style={styles.entityDetail}>{item.direccion}</Text>
-      <Text style={styles.entityDetail}>NIT: {item.identificacion_tributaria}</Text>
-      <Text style={styles.entityDetail}>{item.telefono}</Text>
+      {/* <Text style={styles.entityDetail}>NIT: {item.identificacion_tributaria}</Text>
+      <Text style={styles.entityDetail}>{item.telefono}</Text>*/}
     </TouchableOpacity>
   );
 
@@ -78,7 +80,7 @@ export const CarteraScreen: React.FC = () => {
   if (isLoading && entities.length === 0) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0369A1" />
+        <ActivityIndicator size="large" color="#024A77" />
         <Text style={styles.loadingText}>Cargando instituciones...</Text>
       </View>
     );
@@ -236,7 +238,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 6,
-    backgroundColor: "#0369A1",
+    backgroundColor: "#024A77",
   },
   paginationButtonDisabled: {
     backgroundColor: "#e2e8f0",

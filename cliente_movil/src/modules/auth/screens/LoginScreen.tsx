@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   button: {
-    backgroundColor: "#0369A1", // brand-700 primary
+    backgroundColor: "#024A77", // brand-700 primary
     height: 36, // h-9
     borderRadius: 6, // rounded-md
     justifyContent: "center",
@@ -225,13 +225,13 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: "#0369A1",
+    borderColor: "#024A77",
     justifyContent: "center",
     alignItems: "center",
     marginTop: 12,
   },
   secondaryButtonText: {
-    color: "#0369A1",
+    color: "#024A77",
     fontSize: 14,
     fontWeight: "500",
   },

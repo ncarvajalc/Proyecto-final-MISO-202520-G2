@@ -1,4 +1,4 @@
-import type { ReactElement, ReactNode } from "react";
+import type { ReactNode } from "react";
 
 import { Pagination } from "@/components/ui/pagination";
 import {
@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-interface ColumnDefinition {
+export interface ColumnDefinition {
   key: string;
   header: ReactNode;
   className?: string;
@@ -19,7 +19,7 @@ interface ColumnDefinition {
 interface PaginatedTableProps<T> {
   columns: ColumnDefinition[];
   data?: T[];
-  renderRow: (item: T) => ReactElement;
+  renderRow: (item: T, index: number) => ReactNode;
   emptyMessage: string;
   emptyColSpan?: number;
 }
@@ -55,7 +55,7 @@ export const PaginatedTable = <T,>({
             </TableCell>
           </TableRow>
         ) : (
-          data.map((item) => renderRow(item))
+          data.map((item, index) => renderRow(item, index))
         )}
       </TableBody>
     </Table>

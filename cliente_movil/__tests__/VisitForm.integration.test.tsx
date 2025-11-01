@@ -37,7 +37,7 @@ describe("VisitForm", () => {
     const onSubmit = jest.fn();
 
     const { getByPlaceholderText, getByText } = render(
-      <VisitForm onSubmit={onSubmit} initialClientName="Cliente Demo" />
+      <VisitForm onSubmit={onSubmit} onCancel={jest.fn()} initialClientName="Cliente Demo" />
     );
 
     fireEvent.changeText(
@@ -48,7 +48,6 @@ describe("VisitForm", () => {
       getByPlaceholderText("Ingrese dirección"),
       "Av. Siempre Viva 123"
     );
-    fireEvent.press(getByText("Realizada"));
     fireEvent.changeText(
       getByPlaceholderText("Ingrese minutos de desplazamiento"),
       "45"
@@ -59,13 +58,18 @@ describe("VisitForm", () => {
       "Confirmar asistencia"
     );
 
-    fireEvent.press(getByText("Guardar Visita"));
+    // Click the Guardar button to open modal
+    fireEvent.press(getByText("Guardar"));
+
+    // Confirm in the modal
+    const confirmButtons = getByText("Guardar", { exact: false });
+    fireEvent.press(confirmButtons);
 
     const expectedPayload: VisitCreate = {
       nombre_institucion: "Colegio Central",
       direccion: "Av. Siempre Viva 123",
       hora: fixedNow.toISOString(),
-      estado: "Realizada",
+      estado: "Programada",
       desplazamiento_minutos: 45,
       hora_salida: mockSelectedExitDate.toISOString(),
       observacion: "Confirmar asistencia",

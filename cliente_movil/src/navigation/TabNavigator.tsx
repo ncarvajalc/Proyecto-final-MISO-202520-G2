@@ -4,8 +4,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { CarteraScreen } from "../modules/cartera/screens/CarteraScreen";
 import { RutasScreen } from "../modules/rutas/screens/RutasScreen";
 import { VisitStackNavigator } from "../modules/visitas/navigation/VisitStackNavigator";
-import { ProductosScreen } from "../modules/productos/screens/ProductosScreen";
-import { PedidosScreen } from "../modules/pedidos/screens/PedidosScreen";
+import { ProductStackNavigator } from "../modules/productos/navigation/ProductStackNavigator";
+import { PedidosStackNavigator } from "../modules/pedidos/navigation/PedidosStackNavigator";
 import { EntregasScreen } from "../modules/entregas/screens/EntregasScreen";
 
 const Tab = createBottomTabNavigator();
@@ -70,24 +70,26 @@ export const TabNavigator: React.FC = () => {
       />
       <Tab.Screen
         name="Productos"
-        component={ProductosScreen}
+        component={ProductStackNavigator}
         options={{
           title: "Productos",
           tabBarLabel: "Productos",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="cart" size={size} color={color} />
           ),
+          headerShown: false,
         }}
       />
       <Tab.Screen
         name="Pedidos"
-        component={PedidosScreen}
+        component={PedidosStackNavigator}
         options={{
           title: "Pedidos",
           tabBarLabel: "Pedidos",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="document-text" size={size} color={color} />
           ),
+          headerShown: false,
         }}
       />
       <Tab.Screen

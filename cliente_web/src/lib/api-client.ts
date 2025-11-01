@@ -84,74 +84,54 @@ export class ApiClient {
     );
   }
 
-  /**
-   * GET request
-   */
-  async get<T>(endpoint: string, config?: AxiosRequestConfig): Promise<T> {
-    const response: AxiosResponse<T> = await this.axiosInstance.get(
-      endpoint,
-      config
-    );
+  private async request<T>(
+    method: "get" | "post" | "put" | "patch" | "delete",
+    endpoint: string,
+    options?: {
+      data?: unknown;
+      config?: AxiosRequestConfig;
+    }
+  ): Promise<T> {
+    const { data, config } = options ?? {};
+    const response: AxiosResponse<T> = await this.axiosInstance.request({
+      url: endpoint,
+      method,
+      data,
+      ...(config ?? {}),
+    });
     return response.data;
   }
 
-  /**
-   * POST request
-   */
+  async get<T>(endpoint: string, config?: AxiosRequestConfig): Promise<T> {
+    return this.request("get", endpoint, { config });
+  }
+
   async post<T>(
     endpoint: string,
     data?: unknown,
     config?: AxiosRequestConfig
   ): Promise<T> {
-    const response: AxiosResponse<T> = await this.axiosInstance.post(
-      endpoint,
-      data,
-      config
-    );
-    return response.data;
+    return this.request("post", endpoint, { data, config });
   }
 
-  /**
-   * PUT request
-   */
   async put<T>(
     endpoint: string,
     data?: unknown,
     config?: AxiosRequestConfig
   ): Promise<T> {
-    const response: AxiosResponse<T> = await this.axiosInstance.put(
-      endpoint,
-      data,
-      config
-    );
-    return response.data;
+    return this.request("put", endpoint, { data, config });
   }
 
-  /**
-   * PATCH request
-   */
   async patch<T>(
     endpoint: string,
     data?: unknown,
     config?: AxiosRequestConfig
   ): Promise<T> {
-    const response: AxiosResponse<T> = await this.axiosInstance.patch(
-      endpoint,
-      data,
-      config
-    );
-    return response.data;
+    return this.request("patch", endpoint, { data, config });
   }
 
-  /**
-   * DELETE request
-   */
   async delete<T>(endpoint: string, config?: AxiosRequestConfig): Promise<T> {
-    const response: AxiosResponse<T> = await this.axiosInstance.delete(
-      endpoint,
-      config
-    );
-    return response.data;
+    return this.request("delete", endpoint, { config });
   }
 
   /**

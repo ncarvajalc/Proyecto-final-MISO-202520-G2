@@ -1,15 +1,33 @@
-import { useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { useMemo } from "react";
 import { getProductLocation } from "@/services/warehouse.service";
 import type { ProductLocation } from "@/types/warehouse";
 import { toast } from "sonner";
-import { useProductSkus } from "@/hooks/useProductSkus";
-import { LocationResultCard, SkuSelect, WarehouseDialogActions } from "./shared";
+import { useWarehouseProductSearch } from "@/hooks/useWarehouseProductSearch";
+import { WarehouseDialogLayout } from "./WarehouseDialogLayout";
+import * as LocationDialog from "./dialogUtils";
+
+type ProductLocationLayoutOptions = Parameters<
+  typeof LocationDialog.useWarehouseDialogLayoutProps<ProductLocation>
+>[0];
+
+const useProductLocationDialogLayout = ({
+  open,
+  onOpenChange,
+  steps,
+  result,
+  renderResult,
+  actions,
+}: Omit<ProductLocationLayoutOptions, "title" | "description">) =>
+  LocationDialog.useWarehouseDialogLayoutProps({
+    open,
+    onOpenChange,
+    title: "Disponibilidad en bodega",
+    description: "Seleccione el producto que quiere consultar",
+    steps,
+    result,
+    renderResult,
+    actions,
+  });
 
 interface ProductLocationFormProps {
   open: boolean;
@@ -20,104 +38,78 @@ export function ProductLocationForm({
   open,
   onOpenChange,
 }: ProductLocationFormProps) {
-  const [selectedSku, setSelectedSku] = useState<string>("");
-  const [locationResult, setLocationResult] = useState<ProductLocation | null>(
-    null
+  const {
+    selectedSku,
+    setSelectedSku,
+    productosData,
+    isLoadingProductos,
+    locationResult,
+    setLocationResult,
+    isLocating,
+    setIsLocating,
+    reset,
+  } = useWarehouseProductSearch(open);
+  const { handleDialogChange, handleCancel } = LocationDialog.useWarehouseDialogControls(
+    reset,
+    onOpenChange
   );
-  const [isLocating, setIsLocating] = useState(false);
+  const skuSelectionStep = LocationDialog.createSkuSelectionStep({
+    value: selectedSku,
+    onValueChange: setSelectedSku,
+    isLoading: isLoadingProductos,
+    options: productosData?.data,
+  });
+  const steps = [skuSelectionStep];
 
-  // Fetch all products (with large limit to get all SKUs)
-  const { data: productosData, isLoading: isLoadingProductos } =
-    useProductSkus(open);
+  const notifyProductNotFound = () =>
+    toast.warning("Producto no localizado en ninguna bodega");
+  const reportLocationError = (error: unknown) => {
+    console.error("Error locating product:", error);
+    toast.error("Error al consultar la ubicación del producto");
+  };
 
   const handleLocalizar = async () => {
     if (!selectedSku) {
       toast.error("Por favor seleccione un producto");
       return;
     }
-
-    setIsLocating(true);
-    setLocationResult(null);
-
-    try {
-      const result = await getProductLocation({
+    await LocationDialog.runLocationRequest<ProductLocation>({
+      locate: () => getProductLocation({
         sku: selectedSku,
-      });
-      setLocationResult(result);
-
-      if (result.encontrado) {
+      }),
+      setIsLocating,
+      setLocationResult,
+      onFound: (result) =>
         toast.success(
           `Producto localizado en ${result.bodega}, zona ${result.zona}`
-        );
-      } else {
-        toast.warning("Producto no localizado en ninguna bodega");
-      }
-    } catch (error) {
-      console.error("Error locating product:", error);
-      toast.error("Error al consultar la ubicación del producto");
-    } finally {
-      setIsLocating(false);
-    }
-  };
-
-  const handleCancel = () => {
-    setSelectedSku("");
-    setLocationResult(null);
-    onOpenChange(false);
+        ),
+      onNotFound: notifyProductNotFound,
+      onError: reportLocationError,
+    });
   };
 
   const canLocalizar = !!selectedSku && !isLocating;
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="text-2xl">
-            Disponibilidad en bodega
-          </DialogTitle>
-          <p className="text-sm text-muted-foreground">
-            Seleccione el producto que quiere consultar
-          </p>
-        </DialogHeader>
-
-        <div className="space-y-4 py-4">
-          {/* Step indicator */}
-          <div className="mb-4">
-            <p className="text-sm font-medium">1. Seleccionar producto</p>
-          </div>
-
-          {/* SKU Select */}
-          <SkuSelect
-            value={selectedSku}
-            onValueChange={setSelectedSku}
-            isLoading={isLoadingProductos}
-            options={productosData?.data}
-          />
-
-          {/* Location Result */}
-          {locationResult && (
-            <LocationResultCard
-              found={locationResult.encontrado}
-              successMessage="Su producto se encuentra en la bodega:"
-              notFoundMessage="Producto no localizado en ninguna bodega"
-            >
-              <p className="mt-2 text-lg font-semibold text-green-700">
-                {locationResult.bodega}
-              </p>
-              <p className="mt-1 text-2xl font-bold">{locationResult.zona}</p>
-            </LocationResultCard>
-          )}
-        </div>
-
-        <WarehouseDialogActions
-          onCancel={handleCancel}
-          onConfirm={handleLocalizar}
-          canConfirm={canLocalizar}
-          isLoading={isLocating}
-          confirmLabel="Consultar"
-          loadingLabel="Consultando..."
-        />
-      </DialogContent>
-    </Dialog>
+  const locationDialogActionConfig = useMemo(
+    () => ({
+      onCancel: handleCancel,
+      onConfirm: handleLocalizar,
+      canConfirm: canLocalizar,
+      isLoading: isLocating,
+      labels: {
+        confirm: "Consultar",
+        loading: "Consultando...",
+      },
+    }),
+    [canLocalizar, handleCancel, handleLocalizar, isLocating]
   );
+  const productLocationDialogLayoutProps = useProductLocationDialogLayout({
+    open,
+    onOpenChange: handleDialogChange,
+    steps,
+    result: locationResult,
+    renderResult: LocationDialog.renderAvailabilityResult,
+    actions: locationDialogActionConfig,
+  });
+
+  return <WarehouseDialogLayout {...productLocationDialogLayoutProps} />;
 }

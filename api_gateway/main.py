@@ -1,5 +1,6 @@
 """Simple FastAPI-based API gateway for routing frontend traffic."""
 
+import asyncio
 from contextlib import asynccontextmanager
 from typing import Dict, Optional, Tuple
 
@@ -9,17 +10,22 @@ from fastapi.middleware.cors import CORSMiddleware
 
 PREFIX_ROUTES: Tuple[Tuple[str, str], ...] = (
     # Order matters: check longer prefixes first to avoid partial matches.
+    ("/institutional-clients", "http://salesforce:8004"),
     ("/informes-comerciales", "http://salesforce:8004"),
     ("/planes-venta", "http://salesforce:8004"),
     ("/daily-routes", "http://salesforce:8004"),
     ("/vendedores", "http://salesforce:8004"),
     ("/proveedores", "http://purchases_suppliers:8001"),
     ("/productos", "http://purchases_suppliers:8001"),
+    ("/pedidos", "http://salesforce:8004"),
+    ("/inventario", "http://warehouse:8003"),
     ("/vehiculos", "http://tracking:8002"),
     ("/paradas", "http://tracking:8002"),
-    ("/rutas", "http://tracking:8002"),
     ("/bodegas", "http://warehouse:8003"),
+    ("/visitas", "http://salesforce:8004"),
+    ("/rutas", "http://tracking:8002"),
     ("/auth", "http://security_audit:8000"),
+    ("/territorios", "http://salesforce:8004"),
 )
 
 HEALTH_ENDPOINTS: Tuple[Tuple[str, str], ...] = (
@@ -35,19 +41,6 @@ HEALTH_ENDPOINTS: Tuple[Tuple[str, str], ...] = (
     # TODO: Update with actual Cloud Run URL after deployment
     ("tracking", "https://tracking-212820187078.us-central1.run.app/health"),
 )
-
-REQUEST_HEADER_SKIP = {"host", "content-length"}
-RESPONSE_HEADER_SKIP = {
-    "content-length",
-    "transfer-encoding",
-    "connection",
-    "keep-alive",
-    "proxy-authenticate",
-    "proxy-authorization",
-    "te",
-    "trailers",
-    "upgrade",
-}
 
 
 @asynccontextmanager
@@ -73,48 +66,23 @@ async def root() -> Dict[str, str]:
 
 
 @app.get("/health")
-async def healthcheck() -> Dict[str, object]:
-    """Aggregate the health of upstream services."""
-    client: httpx.AsyncClient = app.state.client
-    services: Dict[str, Dict[str, object]] = {}
-    all_ok = True
+async def healthcheck() -> Dict[str, str]:
+    """Simple health check that only verifies the gateway itself is running."""
+    return {"status": "ok"}
 
-    for name, url in HEALTH_ENDPOINTS:
-        try:
-            response = await client.get(url)
-            try:
-                payload: object = response.json()
-            except ValueError:
-                payload = response.text
 
-            healthy = response.is_success
-            services[name] = {
-                "status": "ok" if healthy else "error",
-                "http_status": response.status_code,
-                "detail": payload,
-            }
-            all_ok &= healthy
-        except httpx.RequestError as exc:  # pragma: no cover - network failure path
-            services[name] = {
-                "status": "unreachable",
-                "error": str(exc),
-            }
-            all_ok = False
-
-    return {"status": "ok" if all_ok else "degraded", "services": services}
+# Headers to skip when proxying requests
+REQUEST_HEADER_SKIP = frozenset(["host", "content-length", "transfer-encoding"])
+RESPONSE_HEADER_SKIP = frozenset(["content-length", "transfer-encoding", "content-encoding"])
 
 
 def _resolve_upstream(path: str) -> Optional[str]:
-    """Return the matching upstream base URL for a given path."""
-    normalized = path if path.startswith("/") else f"/{path}"
-    return next(
-        (
-            base_url
-            for prefix, base_url in PREFIX_ROUTES
-            if normalized == prefix or normalized.startswith(f"{prefix}/")
-        ),
-        None,
-    )
+    """Find the upstream service URL for the given path."""
+    # PREFIX_ROUTES is already sorted with longer prefixes first
+    for prefix, upstream in PREFIX_ROUTES:
+        if path == prefix or path.startswith(f"{prefix}/"):
+            return upstream
+    return None
 
 
 @app.api_route(
@@ -148,6 +116,7 @@ async def proxy(full_path: str, request: Request) -> Response:
             target_url,
             content=body,
             headers=headers,
+            follow_redirects=False,
         )
     except httpx.RequestError as exc:  # pragma: no cover - network failure path
         raise HTTPException(
@@ -162,6 +131,14 @@ async def proxy(full_path: str, request: Request) -> Response:
     for key, value in upstream_response.headers.multi_items():
         if key.lower() in RESPONSE_HEADER_SKIP:
             continue
+        # Rewrite Location header for redirects to use gateway URL instead of internal service URLs
+        if key.lower() == "location":
+            # Replace internal service URLs with gateway URL
+            for internal_prefix, internal_url in PREFIX_ROUTES:
+                if value.startswith(internal_url):
+                    # Replace internal URL with gateway URL (localhost:8080)
+                    value = value.replace(internal_url, "http://localhost:8080")
+                    break
         proxied_response.headers.append(key, value)
 
     return proxied_response

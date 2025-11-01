@@ -262,8 +262,6 @@ const fillVisitForm = (screen: RenderAPI) => {
     "Av. Principal 123",
   );
 
-  fireEvent.press(screen.getByText("En progreso"));
-
   fireEvent.changeText(
     screen.getByPlaceholderText("Ingrese minutos de desplazamiento"),
     "25",
@@ -296,8 +294,15 @@ describe("E2E - Registro de visita", () => {
 
     fillVisitForm(screen);
 
+    // Click the Guardar button to open modal
     await act(async () => {
-      fireEvent.press(screen.getByText("Guardar Visita"));
+      fireEvent.press(screen.getAllByText("Guardar")[0]);
+    });
+
+    // Click the Guardar button in the modal to confirm
+    await act(async () => {
+      const guardarButtons = screen.getAllByText("Guardar");
+      fireEvent.press(guardarButtons[guardarButtons.length - 1]);
     });
 
     await waitFor(() => {
@@ -325,7 +330,7 @@ describe("E2E - Registro de visita", () => {
     expect(visit).toMatchObject({
       nombre_institucion: "Colegio Central",
       direccion: "Av. Principal 123",
-      estado: "En progreso",
+      estado: "Programada",
       desplazamiento_minutos: 25,
       observacion: "Confirmar agenda con coordinación",
     });
@@ -370,8 +375,15 @@ describe("E2E - Registro de visita", () => {
       "Av. Principal 123",
     );
 
+    // Click the Guardar button to open modal
     await act(async () => {
-      fireEvent.press(screen.getByText("Guardar Visita"));
+      fireEvent.press(screen.getAllByText("Guardar")[0]);
+    });
+
+    // Click the Guardar button in the modal to confirm
+    await act(async () => {
+      const guardarButtons = screen.getAllByText("Guardar");
+      fireEvent.press(guardarButtons[guardarButtons.length - 1]);
     });
 
     await waitFor(() => {

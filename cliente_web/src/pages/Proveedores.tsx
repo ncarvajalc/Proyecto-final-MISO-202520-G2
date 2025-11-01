@@ -2,15 +2,12 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { getProveedores } from "@/services/proveedores.service";
+import type { Proveedor } from "@/types/proveedor";
 import { Paperclip, Plus } from "lucide-react";
 import { CreateProveedorForm } from "@/components/proveedor/CreateProveedorForm";
 import { BulkUploadProveedoresForm } from "@/components/proveedor/BulkUploadProveedoresForm";
-import { PageHeader, PageStateMessage } from "@/components/common/PageLayout";
+import { ResourcePageLayout } from "@/components/common/ResourcePageLayout";
 import { usePaginatedResource } from "@/hooks/usePaginatedResource";
-import {
-  PaginatedTable,
-  PaginationControls,
-} from "@/components/common/PaginatedTable";
 
 const ITEMS_PER_PAGE = 5;
 
@@ -36,40 +33,26 @@ export default function Proveedores() {
     setIsBulkUploadDialogOpen(true);
   };
 
-  if (isLoading) {
-    return <PageStateMessage message="Cargando proveedores..." />;
-  }
-
-  if (isError) {
-    return (
-      <PageStateMessage
-        message="Error al cargar los proveedores"
-        variant="error"
-      />
-    );
-  }
-
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <PageHeader
-        title="Proveedores"
-        actions={
-          <>
-            <Button onClick={handleNuevoProveedor}>
-              <Plus className="h-4 w-4" />
-              Nuevo proveedor
-            </Button>
-            <Button onClick={handleCargaMasiva} variant="darker">
-              <Paperclip className="h-4 w-4" />
-              Carga masiva
-            </Button>
-          </>
-        }
-      />
-
-      <PaginatedTable
-        columns={[
+    <ResourcePageLayout<Proveedor>
+      title="Proveedores"
+      actions={
+        <>
+          <Button onClick={handleNuevoProveedor}>
+            <Plus className="h-4 w-4" />
+            Nuevo proveedor
+          </Button>
+          <Button onClick={handleCargaMasiva} variant="darker">
+            <Paperclip className="h-4 w-4" />
+            Carga masiva
+          </Button>
+        </>
+      }
+      loadingMessage="Cargando proveedores..."
+      errorMessage="Error al cargar los proveedores"
+      state={{ isLoading, isError }}
+      table={{
+        columns: [
           { key: "nombre", header: "Nombre" },
           { key: "idTax", header: "Id Tax" },
           { key: "direccion", header: "Dirección" },
@@ -77,10 +60,10 @@ export default function Proveedores() {
           { key: "correo", header: "Correo" },
           { key: "contacto", header: "Contacto" },
           { key: "estado", header: "Estado" },
-        ]}
-        data={data?.data}
-        emptyMessage="No hay proveedores disponibles"
-        renderRow={(proveedor) => (
+        ],
+        data: data?.data,
+        emptyMessage: "No hay proveedores disponibles",
+        renderRow: (proveedor) => (
           <TableRow key={proveedor.id}>
             <TableCell className="font-medium">{proveedor.nombre}</TableCell>
             <TableCell>{proveedor.id_tax}</TableCell>
@@ -90,26 +73,23 @@ export default function Proveedores() {
             <TableCell>{proveedor.contacto}</TableCell>
             <TableCell>{proveedor.estado || "Inactivo"}</TableCell>
           </TableRow>
-        )}
-      />
-
-      <PaginationControls
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={setCurrentPage}
-      />
-
-      {/* Create Proveedor Dialog */}
+        ),
+      }}
+      pagination={{
+        currentPage,
+        totalPages,
+        onPageChange: setCurrentPage,
+      }}
+    >
       <CreateProveedorForm
         open={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
       />
 
-      {/* Bulk Upload Proveedores Dialog */}
       <BulkUploadProveedoresForm
         open={isBulkUploadDialogOpen}
         onOpenChange={setIsBulkUploadDialogOpen}
       />
-    </div>
+    </ResourcePageLayout>
   );
 }

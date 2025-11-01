@@ -1,3 +1,5 @@
-from .product_inventory import ProductInventory, ProductInventoryCreate, ProductInventoryUpdate
+"""Inventory schemas."""
 
-__all__ = ["ProductInventory", "ProductInventoryCreate", "ProductInventoryUpdate"]
+# product_inventory schemas are not imported to avoid conflicts
+# Only simple inventory schemas are used
+__all__ = []
