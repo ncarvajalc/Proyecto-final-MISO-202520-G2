@@ -18,6 +18,11 @@ web-build/
 .expo/
 .expo-shared/
 
+# Environment variables
+.env
+.env.local
+.env.*.local
+
 # Misc
 .DS_Store
 .idea/

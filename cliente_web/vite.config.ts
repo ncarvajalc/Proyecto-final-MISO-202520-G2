@@ -26,6 +26,8 @@ export default defineConfig(({ mode }) => {
     globals: true,
     environment: "jsdom",
     setupFiles: "./src/tests/setupTests.ts",
+    testTimeout: 15000,
+    hookTimeout: 15000,
     coverage: {
       provider: "v8",
       reporter: ["text", "lcov"],

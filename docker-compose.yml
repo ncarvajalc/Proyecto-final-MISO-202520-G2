@@ -13,8 +13,8 @@ x-http-health: &http-health
   healthcheck:
     test: ["CMD", "python", "-c", "import os,urllib.request; urllib.request.urlopen('http://localhost:'+os.getenv('PORT','8000')+'/health')"]
     interval: 5s
-    timeout: 5s
-    retries: 5
+    timeout: 10s
+    retries: 20
 
 x-fastapi-base: &fastapi-base
   <<: *http-health
@@ -83,11 +83,14 @@ services:
     environment:
       PORT: "8001"
       DATABASE_URL: postgresql://purchases_suppliers_user:purchases_suppliers_password@purchases_suppliers-db:5432/purchases_suppliers_schema
+      INVENTORY_SERVICE_URL: "http://warehouse:8003/inventario/" 
+    ports:
+      - "8001:8001"  
     depends_on:
       purchases_suppliers-db:
         condition: service_healthy
     profiles: [todo, backend, purchases_suppliers]
-    networks: [purchases_net]
+    networks: [purchases_net,  backend_net ]
 
   tracking-db:
     <<: *postgres-base
@@ -128,7 +131,7 @@ services:
     volumes:
       - warehouse_data:/var/lib/postgresql/data
     profiles: [todo, backend, warehouse]
-    networks: [warehouse_net]
+    networks: [warehouse_net,   backend_net ]
 
   warehouse:
     <<: *fastapi-base
@@ -139,11 +142,13 @@ services:
     environment:
       PORT: "8003"
       DATABASE_URL: postgresql://warehouse_user:warehouse_password@warehouse-db:5432/warehouse_schema
+    ports:
+      - "8003:8003"  
     depends_on:
       warehouse-db:
         condition: service_healthy
     profiles: [todo, backend, warehouse]
-    networks: [warehouse_net]
+    networks: [warehouse_net,backend_net ]
 
   salesforce-db:
     <<: *postgres-base
@@ -167,11 +172,15 @@ services:
     environment:
       PORT: "8004"
       DATABASE_URL: postgresql://salesforce_user:salesforce_password@salesforce-db:5432/salesforce_schema
+      PRODUCT_SERVICE_URL: http://warehouse:8003
     depends_on:
       salesforce-db:
         condition: service_healthy
     profiles: [todo, backend, salesforce]
-    networks: [salesforce_net]
+    networks:
+      - salesforce_net
+      - warehouse_net
+      - purchases_net
 
   api_gateway:
     <<: *http-health
@@ -200,7 +209,7 @@ services:
       - "3000:3000"
     environment:
       NODE_ENV: development
-      VITE_API_URL: http://api_gateway:8080
+      VITE_API_URL: http://localhost:8080
       VITE_BASE: /
     depends_on:
       api_gateway:
@@ -223,3 +232,4 @@ networks:
   tracking_net:
   warehouse_net:
   salesforce_net:
+  backend_net: 

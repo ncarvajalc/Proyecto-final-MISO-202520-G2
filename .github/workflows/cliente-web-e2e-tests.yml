@@ -49,8 +49,12 @@ jobs:
           pnpm exec playwright install --with-deps
           pnpm run build
 
-      - name: Start backend services
-        run: docker compose --profile backend up -d --wait api_gateway
+      - name: Clean Docker and start backend services
+        run: |
+          docker compose down --volumes --rmi all || true
+          docker system prune -af || true
+          docker compose --profile backend build --no-cache
+          docker compose --profile backend up -d --wait api_gateway
 
       - name: Run E2E tests
         working-directory: cliente_web
@@ -65,6 +69,18 @@ jobs:
             http-get://127.0.0.1:5173 \
             http-get://127.0.0.1:8080/health
           pnpm run test:e2e
+
+      - name: Show backend logs on failure
+        if: failure()
+        run: |
+          echo "=== Security Audit Service Logs ==="
+          docker compose logs security_audit --tail=100
+          echo ""
+          echo "=== Purchases Suppliers Service Logs ==="
+          docker compose logs purchases_suppliers --tail=100
+          echo ""
+          echo "=== API Gateway Logs ==="
+          docker compose logs api_gateway --tail=100
 
       - name: Upload Playwright artifacts
         if: always()
