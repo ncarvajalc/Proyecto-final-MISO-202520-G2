@@ -16,5 +16,6 @@ class InstitutionalClient(Base):
     telefono = Column(String(50), nullable=False)
     justificacion_acceso = Column(Text, nullable=True)
     certificado_camara = Column(Text, nullable=True)  # base64 or file path
+    territory_id = Column(String(36), nullable=True, index=True)
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())

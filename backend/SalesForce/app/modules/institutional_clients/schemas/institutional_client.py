@@ -13,6 +13,7 @@ class InstitutionalClientBase(BaseModel):
     telefono: str
     justificacion_acceso: Optional[str] = None
     certificado_camara: Optional[str] = None  # base64 encoded or file path
+    territory_id: Optional[str] = None
 
 
 class InstitutionalClientCreate(InstitutionalClientBase):
@@ -27,6 +28,7 @@ class InstitutionalClientUpdate(BaseModel):
     telefono: Optional[str] = None
     justificacion_acceso: Optional[str] = None
     certificado_camara: Optional[str] = None
+    territory_id: Optional[str] = None
 
 
 class InstitutionalClient(InstitutionalClientBase):
@@ -39,6 +41,21 @@ class InstitutionalClient(InstitutionalClientBase):
 
 class InstitutionalClientsResponse(BaseModel):
     data: List[InstitutionalClient]
+    total: int
+    page: int
+    limit: int
+    total_pages: int
+
+class TerritoriesQuery(BaseModel):
+    territories: List[str]
+
+class InstitutionalContactClient(InstitutionalClient):
+    country: Optional[str] = None
+    state: Optional[str] = None
+    city: Optional[str] = None
+
+class InstitutionalContactClientResponse(BaseModel):
+    data: List[InstitutionalContactClient]
     total: int
     page: int
     limit: int

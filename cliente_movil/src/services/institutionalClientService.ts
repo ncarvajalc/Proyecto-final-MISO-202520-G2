@@ -28,6 +28,27 @@ export const institutionalClientService = {
     return response.json();
   },
 
+  async getInstitutionalClientsCartera(
+    page: number = 1,
+    limit: number = 10,
+    search?: string
+  ): Promise<InstitutionalClientsResponse> {
+    const apiBaseUrl = getApiBaseUrl();
+    let url = `${apiBaseUrl}/institutional-clients/cartera/?page=${page}&limit=${limit}`;
+
+    if (search) {
+      url += `&search=${encodeURIComponent(search)}`;
+    }
+
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error("Error al obtener clientes institucionales");
+    }
+
+    return response.json();
+  },
+
   async getInstitutionalClient(id: string): Promise<InstitutionalClient> {
     const apiBaseUrl = getApiBaseUrl();
     const url = `${apiBaseUrl}/institutional-clients/${id}`;

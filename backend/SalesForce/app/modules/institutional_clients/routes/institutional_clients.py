@@ -9,6 +9,8 @@ from app.modules.institutional_clients.schemas import (
     InstitutionalClientCreate,
     InstitutionalClientsResponse,
     InstitutionalClientUpdate,
+    TerritoriesQuery,
+    InstitutionalContactClientResponse
 )
 from app.modules.institutional_clients.services import (
     create,
@@ -16,6 +18,8 @@ from app.modules.institutional_clients.services import (
     get_client,
     list_clients,
     update,
+    list_clients_by_territories,
+    list_clients_territories,
 )
 
 router = APIRouter(prefix="/institutional-clients", tags=["institutional-clients"])
@@ -39,6 +43,17 @@ def list_institutional_clients_endpoint(
     """List all institutional clients with pagination and optional search."""
     return list_clients(db, page=page, limit=limit, search=search)
 
+@router.get("/cartera", response_model=InstitutionalContactClientResponse)
+@router.get("/cartera/", response_model=InstitutionalContactClientResponse)
+async def list_institutional_clients_endpoint(
+    page: int = 1,
+    limit: int = 10,
+    search: Optional[str] = None,
+    db: Session = Depends(get_db),
+):
+    """List all institutional clients with pagination and optional search."""
+    return await list_clients_territories(db, page=page, limit=limit, search=search)
+
 
 @router.get("/{client_id}", response_model=InstitutionalClient)
 def get_institutional_client_endpoint(client_id: str, db: Session = Depends(get_db)):
@@ -60,3 +75,17 @@ def update_institutional_client_endpoint(
 def delete_institutional_client_endpoint(client_id: str, db: Session = Depends(get_db)):
     """Delete an institutional client."""
     return delete(db, client_id)
+
+@router.post("/by-territories", response_model=InstitutionalClientsResponse)
+def list_clients_by_territories_endpoint(
+    payload: TerritoriesQuery,
+    page: int = 1,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+):
+    """
+    List institutional clients by a list of territory IDs, with pagination.
+    """
+    return list_clients_by_territories(
+        db, territories=payload.territories, page=page, limit=limit
+    )
