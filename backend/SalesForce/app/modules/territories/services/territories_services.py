@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from uuid import UUID
 from fastapi import HTTPException, status
+from typing import List, Dict
 from ..crud import territories_crud as crud
 from ..models import territories_model as models
 from ..schemas import territories_schemas as schemas
@@ -104,3 +105,30 @@ class TerritoryService:
         
         # Llamar a la función CRUD que hace la consulta recursiva
         return crud.get_territorio_descendants(db, territorio_id=territorio_id)
+    
+
+    def get_by_ids(self, db: Session, territorio_ids: List[UUID]) -> List[models.Territorio]:
+        """
+        Obtiene múltiples territorios por su ID.
+        Los IDs no encontrados simplemente se omiten.
+        """
+        return crud.get_territorios_by_ids(db, territorio_ids=territorio_ids)
+    
+    def get_lineages_by_ids(
+        self, db: Session, territorio_ids: List[UUID]
+    ) -> Dict[str, List[models.Territorio]]:
+        """
+        Obtiene los linajes completos para una lista de IDs de territorio.
+        
+        Devuelve un diccionario donde cada clave es el ID de territorio solicitado
+        y el valor es una lista de sus ancestros (incluyéndose).
+        Ej: { "id_bogota": [Territorio(Colombia), Territorio(Cund), Territorio(Bogota)] }
+        """
+        # Los IDs no encontrados simplemente devolverán un array vacío en el dict
+        
+        # Llamamos a la función optimizada del CRUD
+        lineages_map = crud.get_lineages_for_multiple_territories(
+            db, territorio_ids=territorio_ids
+        )
+        
+        return lineages_map

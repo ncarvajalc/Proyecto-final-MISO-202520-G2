@@ -30,3 +30,8 @@ class Territory(TerritoryBase):
 
 class TerritoryWithChildren(Territory):
     children: List['TerritoryWithChildren'] = []
+
+
+class TerritoryIdList(BaseModel):
+    """Schema para recibir una lista de IDs en el body de un request."""
+    ids: List[uuid.UUID]

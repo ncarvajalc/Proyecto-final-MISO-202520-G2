@@ -48,3 +48,15 @@ class InstitutionalClientsResponse(BaseModel):
 
 class TerritoriesQuery(BaseModel):
     territories: List[str]
+
+class InstitutionalContactClient(InstitutionalClient):
+    country: str
+    state: str
+    city: str
+
+class InstitutionalContactClientResponse(BaseModel):
+    data: List[InstitutionalContactClient]
+    total: int
+    page: int
+    limit: int
+    total_pages: int

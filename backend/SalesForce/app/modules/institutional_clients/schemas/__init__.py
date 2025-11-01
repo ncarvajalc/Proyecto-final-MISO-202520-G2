@@ -4,6 +4,8 @@ from .institutional_client import (
     InstitutionalClientUpdate,
     InstitutionalClientsResponse,
     TerritoriesQuery,
+    InstitutionalContactClient,
+    InstitutionalContactClientResponse,
 )
 
 __all__ = [
@@ -12,4 +14,6 @@ __all__ = [
     "InstitutionalClientUpdate",
     "InstitutionalClientsResponse",
     "TerritoriesQuery",
+    "InstitutionalContactClient",
+    "InstitutionalContactClientResponse",
 ]

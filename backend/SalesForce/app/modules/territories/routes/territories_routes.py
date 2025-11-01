@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 from uuid import UUID
-from typing import List
+from typing import List, Dict
 
 from ..schemas import territories_schemas as schemas
 from ..services import territories_services as services
@@ -118,3 +118,47 @@ def get_territorio_descendants(
     en una lista plana.
     """
     return service.get_all_descendants(db, territorio_id=territorio_id)
+
+
+@router.post("/by-ids", response_model=List[schemas.Territory])
+def read_territorios_by_ids_json(
+    payload: schemas.TerritoryIdList,
+    db: Session = Depends(get_db),
+    service: services.TerritoryService = Depends(get_territory_service)
+):
+    """
+    Obtiene una lista de territorios específicos por sus IDs, 
+    recibiendo un body JSON con la lista de IDs.
+    {
+    "ids": [
+        "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+        ...
+        ]
+    }
+    """
+    return service.get_by_ids(db, territorio_ids=payload.ids)
+
+@router.post(
+    "/lineages-by-ids",
+    response_model=Dict[str, List[schemas.Territory]],
+    summary="Obtener linajes para múltiples Territorios"
+)
+def get_territorio_lineages_by_ids_endpoint(
+    payload: schemas.TerritoryIdList,
+    db: Session = Depends(get_db),
+    service: services.TerritoryService = Depends(get_territory_service)
+):
+    """
+    Recibe una lista de IDs de territorio y devuelve un diccionario 
+    mapeando cada ID a su linaje (lista de ancestros, incluyéndose).
+    """
+    
+    # Llama al método del servicio con los IDs del payload
+    lineages_map = service.get_lineages_by_ids(
+        db=db, 
+        territorio_ids=payload.ids
+    )
+    
+    # Devuelve el resultado. FastAPI usará el 'response_model'
+    # para validar y serializar la salida.
+    return lineages_map
