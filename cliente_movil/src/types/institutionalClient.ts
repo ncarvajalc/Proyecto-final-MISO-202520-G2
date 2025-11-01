@@ -10,6 +10,10 @@ export interface InstitutionalClient {
   telefono: string;
   justificacion_acceso: string | null;
   certificado_camara: string | null;
+  territory_id: string | null;
+  country: string | null;
+  state: string | null;
+  city: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -23,6 +27,7 @@ export interface InstitutionalClientCreate {
   telefono: string;
   justificacion_acceso?: string;
   certificado_camara?: string;
+  territory_id?: string;
 }
 
 export interface InstitutionalClientUpdate {
@@ -33,6 +38,7 @@ export interface InstitutionalClientUpdate {
   telefono?: string;
   justificacion_acceso?: string;
   certificado_camara?: string;
+  territory_id?: string;
 }
 
 export interface InstitutionalClientsResponse {

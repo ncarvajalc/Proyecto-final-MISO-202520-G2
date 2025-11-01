@@ -10,6 +10,7 @@ from app.modules.institutional_clients.schemas import (
     InstitutionalClientsResponse,
     InstitutionalClientUpdate,
     TerritoriesQuery,
+    InstitutionalContactClientResponse
 )
 from app.modules.institutional_clients.services import (
     create,
@@ -18,6 +19,7 @@ from app.modules.institutional_clients.services import (
     list_clients,
     update,
     list_clients_by_territories,
+    list_clients_territories,
 )
 
 router = APIRouter(prefix="/institutional-clients", tags=["institutional-clients"])
@@ -40,6 +42,17 @@ def list_institutional_clients_endpoint(
 ):
     """List all institutional clients with pagination and optional search."""
     return list_clients(db, page=page, limit=limit, search=search)
+
+@router.get("/cartera", response_model=InstitutionalContactClientResponse)
+@router.get("/cartera/", response_model=InstitutionalContactClientResponse)
+async def list_institutional_clients_endpoint(
+    page: int = 1,
+    limit: int = 10,
+    search: Optional[str] = None,
+    db: Session = Depends(get_db),
+):
+    """List all institutional clients with pagination and optional search."""
+    return await list_clients_territories(db, page=page, limit=limit, search=search)
 
 
 @router.get("/{client_id}", response_model=InstitutionalClient)

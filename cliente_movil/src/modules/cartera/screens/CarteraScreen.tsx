@@ -30,7 +30,7 @@ export const CarteraScreen: React.FC = () => {
   const loadEntities = async () => {
     try {
       setIsLoading(true);
-      const response = await institutionalClientService.getInstitutionalClients(
+      const response = await institutionalClientService.getInstitutionalClientsCartera(
         page,
         10,
         searchQuery
@@ -59,9 +59,11 @@ export const CarteraScreen: React.FC = () => {
       <View style={styles.entityHeader}>
         <Text style={styles.entityName}>{item.nombre_institucion}</Text>
       </View>
+      <Text style={styles.entityDetail}>{item.country || "No especificada - en trabajo" }</Text>
+      <Text style={styles.entityDetail}>{item.city || "No especificada - en trabajo"}</Text>
       <Text style={styles.entityDetail}>{item.direccion}</Text>
-      <Text style={styles.entityDetail}>NIT: {item.identificacion_tributaria}</Text>
-      <Text style={styles.entityDetail}>{item.telefono}</Text>
+      {/* <Text style={styles.entityDetail}>NIT: {item.identificacion_tributaria}</Text>
+      <Text style={styles.entityDetail}>{item.telefono}</Text>*/}
     </TouchableOpacity>
   );
 

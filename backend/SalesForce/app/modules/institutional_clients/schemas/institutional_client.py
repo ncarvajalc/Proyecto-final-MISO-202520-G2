@@ -50,9 +50,9 @@ class TerritoriesQuery(BaseModel):
     territories: List[str]
 
 class InstitutionalContactClient(InstitutionalClient):
-    country: str
-    state: str
-    city: str
+    country: Optional[str] = None
+    state: Optional[str] = None
+    city: Optional[str] = None
 
 class InstitutionalContactClientResponse(BaseModel):
     data: List[InstitutionalContactClient]

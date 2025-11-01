@@ -29,6 +29,7 @@ export const InstitutionForm: React.FC<InstitutionFormProps> = ({ onSubmit, onCa
   const [justificacionAcceso, setJustificacionAcceso] = useState("");
   const [certificadoCamara, setCertificadoCamara] = useState<string | null>(null);
   const [certificadoCamaraName, setCertificadoCamaraName] = useState<string | null>(null);
+  const [territoryId, setTerritoryId] = useState("");
   const [errors, setErrors] = useState<{[key: string]: string}>({});
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -100,6 +101,7 @@ export const InstitutionForm: React.FC<InstitutionFormProps> = ({ onSubmit, onCa
       telefono,
       justificacion_acceso: justificacionAcceso || undefined,
       certificado_camara: certificadoCamara || undefined,
+      territory_id: territoryId || undefined,
     };
 
     onSubmit(institutionData);
@@ -214,6 +216,16 @@ export const InstitutionForm: React.FC<InstitutionFormProps> = ({ onSubmit, onCa
             multiline
             numberOfLines={4}
             textAlignVertical="top"
+          />
+
+          {/* Ciudad */}
+          <Text style={styles.label}>Ciudad</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Ciudad"
+            placeholderTextColor="#cbd5e1"
+            value={territoryId}
+            onChangeText={setTerritoryId}
           />
 
           {/* Certificado de Cámara de Comercio */}

@@ -63,28 +63,81 @@ async def list_clients_territories(
 ) -> InstitutionalContactClientResponse:
     """List all institutional clients with pagination and optional search."""
     skip = get_pagination_offset(page, limit)
+    
+    # Esta es la función que se debe revisar
     result = list_institutional_clients_paginated(
         db, skip=skip, limit=limit, search=search
     )
 
-    total = result["total"]
+    # --- AÑADE ESTO PARA DEPURAR ---
+    print(f"DEBUG: El resultado de list_institutional_clients_paginated es: {result}")
+
+    # --- AÑADE ESTO PARA EVITAR EL CRASH ---
+    if not result or "total" not in result or "items" not in result:
+        print("Error: list_institutional_clients_paginated devolvió un formato inesperado.")
+        # Devuelve una respuesta vacía de forma segura
+        metadata = build_pagination_metadata(total=0, page=page, limit=limit)
+        return InstitutionalContactClientResponse(data=[], **metadata)
+    # --- FIN DE LAS ADICIONES ---
+
+    total = result["total"] # Esta línea ahora es segura
     clients = [InstitutionalContactClient.model_validate(item) for item in result["items"]]
-    territory_ids = [client.territory_id for client in clients]
+    
+    territory_ids = [
+        client.territory_id 
+        for client in clients 
+        if client.territory_id
+    ]
 
-    async with httpx.AsyncClient() as client:
+    if territory_ids:
+        lineage_map = None
+        async with httpx.AsyncClient() as client:
+            lineage_map = await obtener_territorios_by_ids(client, territory_ids)
         
-        territorios = await obtener_territorios(client, territory_ids)
-        
-        if territorios:
-            print("Territorios encontrados:")
-            for territorio in territorios:
-                print(f"  - Nombre: {territorio['name']}, Tipo: {territorio['type']}")
+        # --- ⬇️ DEBUG PRINT 1: ¿Qué devolvió la API? ⬇️ ---
+        print("=========================================================")
+        print(f"DEBUG 1: Mapa de linajes recibido de la API:")
+        print(lineage_map)
+        print("=========================================================")
+
+        if lineage_map:
+            print("Rellenando información de territorios...")
+            
+            for client_obj in clients:
+                if not client_obj.territory_id:
+                    continue
+
+                lineage_list = lineage_map.get(client_obj.territory_id)
+
+                # --- ⬇️ DEBUG PRINT 2: ¿Encontramos el linaje para este ID? ⬇️ ---
+                print(f"DEBUG 2: Buscando linaje para ID: {client_obj.territory_id}")
+                print(f"Linaje encontrado: {lineage_list}")
+
+                if lineage_list:
+                    for ancestro in lineage_list:
+                        tipo = ancestro.get("type")
+                        nombre = ancestro.get("name")
+
+                        # --- ⬇️ DEBUG PRINT 3: ¿Qué tipo y nombre tiene cada ancestro? ⬇️ ---
+                        print(f"DEBUG 3: Procesando ancestro: Tipo={tipo}, Nombre={nombre}")
+
+                        if not tipo or not nombre:
+                            continue
+                        
+                        # Esta es la lógica que puede estar fallando
+                        if tipo == "COUNTRY":
+                            client_obj.country = nombre
+                        elif tipo == "STATE":
+                            client_obj.state = nombre
+                        elif tipo == "CITY":
+                            client_obj.city = nombre
+                print("---------------------------------------------------------")
         else:
-            print("No se encontró ningún territorio o hubo un error.")
-
+            print("No se pudo obtener el linaje de los territorios (lineage_map está vacío o es None).")
+    else:
+        print("No hay clientes con territory_id para buscar linajes.")
 
     metadata = build_pagination_metadata(total=total, page=page, limit=limit)
-
     return InstitutionalContactClientResponse(data=clients, **metadata)
 
 
@@ -138,24 +191,34 @@ def list_clients_by_territories(
 
 async def obtener_territorios_by_ids(
     client: httpx.AsyncClient, 
-    territories: List[str]
-) -> List[Dict[str, Any]]:
-    """territory."""
-    async with httpx.AsyncClient(follow_redirects=True) as client:
-        try:
-            response = await client.get(
-                f"{TERRITORY_SERVICE_URL}/by-ids",
-                json=territories
-            )
-            response.raise_for_status()
+    territory_ids: List[str] 
+) -> Optional[Dict[str, List[Dict[str, Any]]]]:
+    """
+    Llama al endpoint POST /lineages-by-ids.
+    Devuelve un diccionario-mapa: { "territorio_id": [lista_de_ancestros] }
+    """
+    if not territory_ids:
+        return {} # Devuelve un dict vacío si no hay IDs, no None
 
-            return response.json() 
+    # PAYLOAD CORREGIDO: La API espera {"ids": [...]}
+    payload = {"ids": territory_ids}
+    
+    #  NO crees un nuevo cliente. Usa el que se pasó como argumento.
+    try:
+        response = await client.post(
+            f"{TERRITORY_SERVICE_URL}/territorios/lineages-by-ids",
+            json=payload
+        )
+        response.raise_for_status()
 
-        except httpx.HTTPStatusError as e:
-            # El servidor respondió con un error (4xx o 5xx)
-            print(f"Error HTTP de la API: {e.response.status_code} - {e.response.text}")
-            return [] # Devuelve lista vacía en caso de error
-        except httpx.RequestError as e:
-            # Error de conexión, timeout, etc.
-            print(f"Error de conexión con httpx: {e}")
-            return []
+        # Si tiene éxito, devuelve el JSON (que debe ser un dict)
+        return response.json() 
+
+    except httpx.HTTPStatusError as e:
+        # Imprime el texto del error de la API, es muy útil
+        print(f"Error HTTP de la API de linajes: {e.response.status_code} - {e.response.text}")
+        return None
+    except httpx.RequestError as e:
+        # Error de conexión (p.ej. URL incorrecta, no se pudo conectar)
+        print(f"Error de conexión con httpx: {e}")
+        return None
