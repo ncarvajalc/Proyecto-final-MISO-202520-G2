@@ -4,7 +4,9 @@ from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
 from app.core.database import SessionLocal, engine, Base
 
-from app.modules.inventory.routes.inventory import router as inventory_router
+from app.modules.inventory.routes.product_inventory import (
+    router as product_inventory_router,
+)
 
 app = FastAPI(title="Warehouse Service")
 
@@ -17,7 +19,7 @@ app.add_middleware(
 )
 
 # Include routers
-app.include_router(inventory_router)
+app.include_router(product_inventory_router)
 
 # Create database tables after models are imported
 Base.metadata.create_all(bind=engine)
