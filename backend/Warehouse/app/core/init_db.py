@@ -6,9 +6,12 @@ Creates all tables and optionally seeds initial data
 from app.core.database import Base, engine
 
 # Import all models to register them with SQLAlchemy metadata
-# Using the simple inventory system (Integer-based)
-from app.modules.inventory.models.warehouse import Warehouse  # noqa: F401
-from app.modules.inventory.models.inventory import Inventory  # noqa: F401
+from app.modules.warehouse.models.warehouse_model import (
+    WarehouseV1,
+)  # noqa: F401
+from app.modules.inventory.models.product_inventory_model import (
+    ProductInventory,
+)  # noqa: F401
 
 
 def init_db():

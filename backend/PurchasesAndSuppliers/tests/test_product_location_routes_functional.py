@@ -14,8 +14,6 @@ def mock_httpx_client():
         yield mock_client
 
 
-# TODO: Fix product location endpoint returning 422 for valid SKU queries.
-@pytest.mark.skip(reason="TODO: Fix product location endpoint returning 422 for valid SKU queries.")
 def test_get_product_location_success(client, mock_httpx_client, fake: Faker):
     """Test GET /productos/localizacion returns product location successfully."""
     sku = "MED-12345"
@@ -31,7 +29,7 @@ def test_get_product_location_success(client, mock_httpx_client, fake: Faker):
                 "product_id": sku,
                 "warehouse_id": warehouse_id,
                 "zona": "A1-3",
-                "storage_type": "cold"
+                "storage_type": "cold",
             }
         ]
     }
@@ -41,7 +39,7 @@ def test_get_product_location_success(client, mock_httpx_client, fake: Faker):
     warehouse_response.json.return_value = {
         "id": warehouse_id,
         "nombre": warehouse_name,
-        "ubicacion": "Bogotá"
+        "ubicacion": "Bogotá",
     }
 
     # Setup mock client
@@ -59,8 +57,6 @@ def test_get_product_location_success(client, mock_httpx_client, fake: Faker):
     assert data["encontrado"] is True
 
 
-# TODO: Fix product location endpoint returning 422 when SKU is not found.
-@pytest.mark.skip(reason="TODO: Fix product location endpoint returning 422 when SKU is not found.")
 def test_get_product_location_not_found(client, mock_httpx_client):
     """Test GET /productos/localizacion when product is not found."""
     sku = "MED-NOTFOUND"
@@ -90,8 +86,6 @@ def test_get_product_location_missing_sku(client):
     assert response.status_code == 422  # Unprocessable Entity
 
 
-# TODO: Fix product location endpoint rejecting empty SKU with the correct status code.
-@pytest.mark.skip(reason="TODO: Fix product location endpoint rejecting empty SKU with the correct status code.")
 def test_get_product_location_empty_sku(client):
     """Test GET /productos/localizacion rejects empty sku."""
     response = client.get("/productos/localizacion?sku=")
@@ -100,9 +94,9 @@ def test_get_product_location_empty_sku(client):
     assert "no puede estar vacío" in response.json()["detail"]
 
 
-# TODO: Fix product location by warehouse endpoint returning 422 for valid requests.
-@pytest.mark.skip(reason="TODO: Fix product location by warehouse endpoint returning 422 for valid requests.")
-def test_get_product_location_in_warehouse_success(client, mock_httpx_client, fake: Faker):
+def test_get_product_location_in_warehouse_success(
+    client, mock_httpx_client, fake: Faker
+):
     """Test GET /productos/localizacion-bodega returns product location in specific warehouse."""
     sku = "MED-12345"
     warehouse_id = fake.uuid4()
@@ -116,7 +110,7 @@ def test_get_product_location_in_warehouse_success(client, mock_httpx_client, fa
                 "product_id": sku,
                 "warehouse_id": warehouse_id,
                 "zona": "B2-5",
-                "storage_type": "general"
+                "storage_type": "general",
             }
         ]
     }
@@ -126,7 +120,7 @@ def test_get_product_location_in_warehouse_success(client, mock_httpx_client, fa
     warehouse_response.json.return_value = {
         "id": warehouse_id,
         "nombre": warehouse_name,
-        "ubicacion": "Medellín"
+        "ubicacion": "Medellín",
     }
 
     mock_instance = MagicMock()
@@ -145,9 +139,9 @@ def test_get_product_location_in_warehouse_success(client, mock_httpx_client, fa
     assert data["encontrado"] is True
 
 
-# TODO: Fix product location by warehouse endpoint handling missing product correctly.
-@pytest.mark.skip(reason="TODO: Fix product location by warehouse endpoint handling missing product correctly.")
-def test_get_product_location_in_warehouse_not_found(client, mock_httpx_client, fake: Faker):
+def test_get_product_location_in_warehouse_not_found(
+    client, mock_httpx_client, fake: Faker
+):
     """Test GET /productos/localizacion-bodega when product not in warehouse."""
     sku = "MED-12345"
     warehouse_id = fake.uuid4()
@@ -162,7 +156,7 @@ def test_get_product_location_in_warehouse_not_found(client, mock_httpx_client, 
     warehouse_response.json.return_value = {
         "id": warehouse_id,
         "nombre": warehouse_name,
-        "ubicacion": "Cali"
+        "ubicacion": "Cali",
     }
 
     mock_instance = MagicMock()
@@ -181,9 +175,9 @@ def test_get_product_location_in_warehouse_not_found(client, mock_httpx_client, 
     assert data["encontrado"] is False
 
 
-# TODO: Fix product location by warehouse endpoint when the warehouse is missing.
-@pytest.mark.skip(reason="TODO: Fix product location by warehouse endpoint when the warehouse is missing.")
-def test_get_product_location_in_warehouse_warehouse_not_found(client, mock_httpx_client, fake: Faker):
+def test_get_product_location_in_warehouse_warehouse_not_found(
+    client, mock_httpx_client, fake: Faker
+):
     """Test GET /productos/localizacion-bodega when warehouse doesn't exist."""
     sku = "MED-12345"
     warehouse_id = fake.uuid4()
@@ -222,8 +216,6 @@ def test_get_product_location_in_warehouse_missing_params(client):
     assert response.status_code == 422
 
 
-# TODO: Fix product location by warehouse endpoint returning 422 instead of 400 for empty params.
-@pytest.mark.skip(reason="TODO: Fix product location by warehouse endpoint returning 422 instead of 400 for empty params.")
 def test_get_product_location_in_warehouse_empty_params(client, fake: Faker):
     """Test GET /productos/localizacion-bodega rejects empty parameters."""
     response = client.get("/productos/localizacion-bodega?sku=&bodegaId=123")
@@ -233,8 +225,6 @@ def test_get_product_location_in_warehouse_empty_params(client, fake: Faker):
     assert response.status_code == 400
 
 
-# TODO: Fix product location endpoint handling inventory service errors without 422 responses.
-@pytest.mark.skip(reason="TODO: Fix product location endpoint handling inventory service errors without 422 responses.")
 def test_get_product_location_inventory_service_error(client, mock_httpx_client):
     """Test GET /productos/localizacion handles inventory service errors."""
     sku = "MED-12345"
@@ -252,8 +242,6 @@ def test_get_product_location_inventory_service_error(client, mock_httpx_client)
     assert "Error al consultar el servicio de inventario" in response.json()["detail"]
 
 
-# TODO: Fix product location endpoint handling connection errors without returning 422.
-@pytest.mark.skip(reason="TODO: Fix product location endpoint handling connection errors without returning 422.")
 def test_get_product_location_connection_error(client, mock_httpx_client):
     """Test GET /productos/localizacion handles connection errors."""
     import httpx
