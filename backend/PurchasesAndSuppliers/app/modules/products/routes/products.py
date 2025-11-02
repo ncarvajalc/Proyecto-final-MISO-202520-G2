@@ -55,7 +55,6 @@ async def obtener_localizacion_producto(
             inventory_response = await client.get(INVENTORY_SERVICE_URL)
 
             if inventory_response.status_code != 200:
-                r
                 raise HTTPException(
                     status_code=500,
                     detail=f"Error al consultar el servicio de inventario.",
