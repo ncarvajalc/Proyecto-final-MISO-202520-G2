@@ -20,6 +20,7 @@ def init_db():
         # Importamos los modelos que tu seed_db.py utiliza
         from app.modules.territories.models.territories_model import Territorio
         from app.modules.institutional_clients.models import InstitutionalClient
+        from app.modules.salespeople.models.salespeople_model import Salespeople, Route
         
         # Si tuvieras más modelos (ej. Productos), los importarías aquí también
         # from app.modules.products.models.bulk_products import Product

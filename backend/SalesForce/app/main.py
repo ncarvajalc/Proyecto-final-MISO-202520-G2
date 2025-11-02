@@ -4,7 +4,7 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy import text
 from app.core.database import SessionLocal, engine, Base
 
-from app.modules.salespeople.routes import salespeople
+from app.modules.salespeople.routes import salespeople, dayroutes
 from app.modules.sales.routes import sales_plans_router
 from app.modules.reports.routes import router as informes_comerciales_router
 from app.modules.visits.routes import router as visits_router
@@ -48,3 +48,4 @@ app.include_router(visits_router)
 app.include_router(institutional_clients_router)
 app.include_router(territories_routes.router)
 app.include_router(orders_router)
+app.include_router(dayroutes.router)

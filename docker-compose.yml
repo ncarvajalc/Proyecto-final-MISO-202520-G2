@@ -173,6 +173,7 @@ services:
       PORT: "8004"
       DATABASE_URL: postgresql://salesforce_user:salesforce_password@salesforce-db:5432/salesforce_schema
       PRODUCT_SERVICE_URL: http://warehouse:8003
+      API_KEY_GOOGLE: QUl6YVN5QWdCSjU0LWVUOTMxbkZHMmtJdzVuOUI4VWtUcjlnZGJn
     depends_on:
       salesforce-db:
         condition: service_healthy

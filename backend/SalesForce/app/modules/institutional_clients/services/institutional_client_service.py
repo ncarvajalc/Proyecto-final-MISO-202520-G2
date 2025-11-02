@@ -13,6 +13,7 @@ from app.modules.institutional_clients.crud import (
     list_institutional_clients_paginated,
     update_institutional_client,
     list_clients_by_territories_paginated,
+    list_clients_by_list_id_paginated,
 )
 from app.modules.institutional_clients.schemas import (
     InstitutionalClient,
@@ -59,26 +60,22 @@ def list_clients(
 
 
 async def list_clients_territories(
-    db: Session, page: int = 1, limit: int = 10, search: Optional[str] = None
+    db: Session, territories: List[str] = None,page: int = 1, limit: int = 10, search: Optional[str] = None
 ) -> InstitutionalContactClientResponse:
     """List all institutional clients with pagination and optional search."""
     skip = get_pagination_offset(page, limit)
     
-    # Esta es la función que se debe revisar
-    result = list_institutional_clients_paginated(
-        db, skip=skip, limit=limit, search=search
+    result = (
+    list_clients_by_list_id_paginated(db, territories=territories,skip=skip, limit=limit)
+    if territories
+    else list_institutional_clients_paginated(db, skip=skip, limit=limit, search=search)
     )
 
-    # --- AÑADE ESTO PARA DEPURAR ---
-    print(f"DEBUG: El resultado de list_institutional_clients_paginated es: {result}")
-
-    # --- AÑADE ESTO PARA EVITAR EL CRASH ---
     if not result or "total" not in result or "items" not in result:
         print("Error: list_institutional_clients_paginated devolvió un formato inesperado.")
-        # Devuelve una respuesta vacía de forma segura
+
         metadata = build_pagination_metadata(total=0, page=page, limit=limit)
         return InstitutionalContactClientResponse(data=[], **metadata)
-    # --- FIN DE LAS ADICIONES ---
 
     total = result["total"] # Esta línea ahora es segura
     clients = [InstitutionalContactClient.model_validate(item) for item in result["items"]]
@@ -94,14 +91,8 @@ async def list_clients_territories(
         async with httpx.AsyncClient() as client:
             lineage_map = await obtener_territorios_by_ids(client, territory_ids)
         
-        # --- ⬇️ DEBUG PRINT 1: ¿Qué devolvió la API? ⬇️ ---
-        print("=========================================================")
-        print(f"DEBUG 1: Mapa de linajes recibido de la API:")
-        print(lineage_map)
-        print("=========================================================")
 
         if lineage_map:
-            print("Rellenando información de territorios...")
             
             for client_obj in clients:
                 if not client_obj.territory_id:
@@ -109,17 +100,10 @@ async def list_clients_territories(
 
                 lineage_list = lineage_map.get(client_obj.territory_id)
 
-                # --- ⬇️ DEBUG PRINT 2: ¿Encontramos el linaje para este ID? ⬇️ ---
-                print(f"DEBUG 2: Buscando linaje para ID: {client_obj.territory_id}")
-                print(f"Linaje encontrado: {lineage_list}")
-
                 if lineage_list:
                     for ancestro in lineage_list:
                         tipo = ancestro.get("type")
                         nombre = ancestro.get("name")
-
-                        # --- ⬇️ DEBUG PRINT 3: ¿Qué tipo y nombre tiene cada ancestro? ⬇️ ---
-                        print(f"DEBUG 3: Procesando ancestro: Tipo={tipo}, Nombre={nombre}")
 
                         if not tipo or not nombre:
                             continue
