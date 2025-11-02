@@ -1,6 +1,47 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
+from datetime import date
+from typing import Optional
+
+# --- Schema Base ---
+# Campos comunes que se comparten
+class RouteBase(BaseModel):
+    salespeople_id: str
+    institution_id: str
+    day: date
+    done: int
+
+# --- Schema para Creación ---
+# Se usa al recibir datos en un POST
+class RouteCreate(RouteBase):
+    pass  # Hereda todos los campos y todos son requeridos
+
+# --- Schema para Actualización ---
+# Se usa al recibir datos en un PUT/PATCH
+# Todos los campos son opcionales
+class RouteUpdate(BaseModel):
+    salespeople_id: Optional[str] = None
+    institution_id: Optional[str] = None
+    day: Optional[date] = None
+    done: Optional[int] = None
+
+# --- Schema para Lectura ---
+# El modelo que se enviará de vuelta al cliente (GET)
+# Incluye el 'id' y habilita el 'orm_mode'
+class Route(RouteBase):
+    id: str
+
+    model_config = ConfigDict(from_attributes=True)
 
 class RouteResponse(BaseModel):
+    id: str
+    nombreEntidad: str
+    tiempo: str
+    distancia: str
+    pais: str
+    ciudad: str
+    direccion: str
+
+class RouteGoogleResponse(BaseModel):
     origin: str
     destination: str
     distance_text: str
@@ -19,4 +60,4 @@ class MultipleRouteResponse(BaseModel):
     total_routes_found: int
     total_routes_requested: int
     # Usamos el modelo RouteResponse que ya teníamos
-    routes: list[RouteResponse]
+    routes: list[RouteGoogleResponse]

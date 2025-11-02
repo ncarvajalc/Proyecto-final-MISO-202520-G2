@@ -2,13 +2,11 @@
 export interface Ruta {
   id: string;
   nombreEntidad: string;
-  minutosLlegada: number;
-  distanciaKm: number;
-  distanciaRealKm: number | null;
+  tiempo: number;
+  distancia: number;
   pais: string;
   ciudad: string;
   direccion: string;
-  destinoCoords: string;
 }
 
 export type RoutesResponse = Ruta[];

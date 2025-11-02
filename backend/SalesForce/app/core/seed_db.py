@@ -117,6 +117,7 @@ HOSPITALES_DATA = [
     {"nombre": "Hospital ABC", "nit": "HAB870101-AAA", "ciudad": "Ciudad de México", "direccion": "Sur 136 # 116, Col. Las Américas (Campus Observatorio)"},
     {"nombre": "Hospital Ángeles Lomas", "nit": "HAL950101-BBB", "ciudad": "Ciudad de México", "direccion": "Vialidad de la Barranca 240, Huixquilucan"},
     {"nombre": "Hospital Zambrano Hellion", "nit": "HZH000101-CCC", "ciudad": "Monterrey", "direccion": "Av. Batallón de San Patricio 112, San Pedro Garza García"},
+    {"nombre": "Hospital San Javier", "nit": "HSJ-GDL-987", "ciudad": "Guadalajara", "direccion": "Av. Pablo Casals 640, Prados de Providencia"},
 ]
 
 
@@ -193,59 +194,67 @@ def seed_territorios(db: Session) -> dict:
     return city_map
 
 
-def seed_institutional_clients(db: Session, city_map: dict):
-    """Crea clientes institucionales (hospitales) usando los IDs de las ciudades."""
+def seed_institutional_clients(db: Session, city_map: dict) -> dict:
+    """Crea clientes institucionales (hospitales) y devuelve mapa {nit: id}."""
     log.info("Sembrando clientes institucionales...")
     
+    institution_map = {}
+
     if not city_map:
         log.error("No se proporcionó mapa de ciudades (city_map). No se pueden sembrar clientes.")
-        return
+        return institution_map 
 
     try:
-        created_clients = []
+        created_nits = []
+        
         for hosp in HOSPITALES_DATA:
             nit = hosp["nit"]
             
-            # Verificar si ya existe
+            # 1. Verificar si ya existe
             existing = db.query(InstitutionalClient).filter(InstitutionalClient.identificacion_tributaria == nit).first()
             if existing:
+                institution_map[nit] = str(existing.id)
                 continue
 
-            # Buscar el territory_id de la ciudad
+            # ... (Lógica existente para buscar territory_id_uuid) ...
             ciudad_nombre = hosp["ciudad"]
             territory_id_str = city_map.get(ciudad_nombre)
-            
-            territory_id_uuid = None
-            if territory_id_str:
-                territory_id_uuid = uuid.UUID(territory_id_str) # Convertir a UUID
-            else:
-                log.warning(f"No se encontró ID para la ciudad: {ciudad_nombre}. El cliente '{hosp['nombre']}' se creará sin territory_id.")
-                
+            territory_id_uuid = uuid.UUID(territory_id_str) if territory_id_str else None
+            if not territory_id_uuid:
+                 log.warning(f"No se encontró ID para la ciudad: {ciudad_nombre}...")
+
             client = InstitutionalClient(
-                id=str(uuid.uuid4()), # El modelo de InstitutionalClient espera str
+                id=str(uuid.uuid4()), 
                 nombre_institucion=hosp["nombre"],
                 identificacion_tributaria=nit,
-                territory_id=str(territory_id_uuid) if territory_id_uuid else None, # Guardamos como string
-                # Datos de relleno
+                territory_id=str(territory_id_uuid) if territory_id_uuid else None,
                 direccion=f"{hosp['direccion']}",
                 direccion_institucional=f"contacto@{nit}.com",
                 representante_legal="Dr. Apellido",
                 telefono="123456789",
             )
             db.add(client)
-            created_clients.append(nit)
+            created_nits.append(nit) # <-- MODIFICADO
         
         db.commit()
-        if created_clients:
-            log.info(f"Creados {len(created_clients)} clientes institucionales.")
+        
+        if created_nits:
+            log.info(f"Creados {len(created_nits)} clientes institucionales.")
+            # 6. Actualizar el mapa con los IDs de los recién creados
+            new_clients = db.query(InstitutionalClient).filter(
+                InstitutionalClient.identificacion_tributaria.in_(created_nits)
+            ).all()
+            for client in new_clients:
+                institution_map[client.identificacion_tributaria] = str(client.id)
         else:
             log.info("Clientes institucionales ya existen.")
-
+        return institution_map
     except Exception as e:
         db.rollback()
         log.error(f"Error sembrando clientes institucionales: {e}")
         import traceback
         traceback.print_exc()
+        return {}
 
 
 # --- Datos de Vendedores (Salespeople) --- (NUEVO)
@@ -342,27 +351,29 @@ def seed_salespeople(db: Session, city_map: dict) -> dict:
 
 ROUTES_DATA = [
     # Rutas para Ana García (Bogotá)
-    {"salesperson_email": "ana.garcia@company.com", "day": "2025-10-27", "done": 0}, # Lunes (hecha)
-    {"salesperson_email": "ana.garcia@company.com", "day": "2025-10-28", "done": 0}, # Martes (pendiente)
+    {"salesperson_email": "ana.garcia@company.com", "institution_nit": "860.010.518-1", "day": "2025-10-27", "done": 0}, # Visita a Santa Fe
+    {"salesperson_email": "ana.garcia@company.com", "institution_nit": "860.010.518-2", "day": "2025-10-28", "done": 0}, # Visita a San Ignacio
     
     # Rutas para Luis Pérez (Medellín)
-    {"salesperson_email": "luis.perez@company.com", "day": "2025-10-27", "done": 0}, # Lunes
+    {"salesperson_email": "luis.perez@company.com", "institution_nit": "890.900.380-1", "day": "2025-10-27", "done": 0}, # Visita a Pablo Tobón
     
     # Rutas para Carla Ruiz (Lima)
-    {"salesperson_email": "carla.ruiz@company.com", "day": "2025-10-29", "done": 0}, # Miércoles (pendiente)
+    {"salesperson_email": "carla.ruiz@company.com", "institution_nit": "20100063223", "day": "2025-10-29", "done": 0}, # Visita a Clínica Anglo Americana
 
     # Rutas para Javier Torres (Guadalajara)
-    {"salesperson_email": "javier.torres@company.com", "day": "2025-10-27", "done": 0},
-    {"salesperson_email": "javier.torres@company.com", "day": "2025-10-28", "done": 0},
-    {"salesperson_email": "javier.torres@company.com", "day": "2025-10-29", "done": 0},
+    {"salesperson_email": "javier.torres@company.com", "institution_nit": "HSJ-GDL-987", "day": "2025-10-27", "done": 0}, # Visita a Hospital San Javier
 ]
 
-def seed_routes(db: Session, salespeople_map: dict):
+def seed_routes(db: Session, salespeople_map: dict, institution_map: dict):
     """Crea las Rutas (routes) diarias para los vendedores."""
     log.info("Sembrando routes (rutas)...")
     
     if not salespeople_map:
         log.error("No se proporcionó mapa de salespeople. No se pueden sembrar rutas.")
+        return
+        
+    if not institution_map:
+        log.error("No se proporcionó mapa de instituciones. No se pueden sembrar rutas.")
         return
 
     if not hasattr(Route, '__tablename__'):
@@ -373,32 +384,37 @@ def seed_routes(db: Session, salespeople_map: dict):
         created_count = 0
         for route_data in ROUTES_DATA:
             email_vendedor = route_data["salesperson_email"]
-            salesperson_id = salespeople_map.get(email_vendedor)
+            nit_institucion = route_data["institution_nit"]
             
-            if not salesperson_id:
-                log.warning(f"No se encontró ID para el vendedor: {email_vendedor}. Saltando ruta.")
+            salesperson_id = salespeople_map.get(email_vendedor)
+            institution_id = institution_map.get(nit_institucion)
+            
+            if not salesperson_id or not institution_id:
+                log.warning(f"No se encontró ID para vendedor ({email_vendedor}) o institución ({nit_institucion}). Saltando ruta.")
                 continue
                 
             day_obj = date.fromisoformat(route_data["day"])
             
+            # Verificar si la ruta (vendedor + institucion + dia) ya existe
             existing = db.query(Route).filter(
                 Route.salespeople_id == salesperson_id,
+                Route.institution_id == institution_id, 
                 Route.day == day_obj
             ).first()
             
             if existing:
                 continue
                 
+            # Crear la ruta
             route = Route(
                 salespeople_id=salesperson_id,
+                institution_id=institution_id,
                 day=day_obj,
                 done=route_data["done"]
             )
             db.add(route)
             created_count += 1
         
-        # --- CORRECCIÓN DE RENDIMIENTO ---
-        # El commit AHORA ESTÁ FUERA del bucle
         db.commit() 
             
         if created_count > 0:
@@ -423,14 +439,14 @@ def seed_all():
         # 1. Crear territorios y obtener el mapa de ciudades
         city_id_map = seed_territorios(db)
         
-        # 2. Crear clientes usando el mapa de ciudades
-        seed_institutional_clients(db, city_id_map)
-
+        # 2. Crear clientes
+        institution_id_map = seed_institutional_clients(db, city_id_map)
+        
         # 3. Crear Vendedores
         salespeople_id_map = seed_salespeople(db, city_id_map)
         
         # 4. Crear Rutas
-        seed_routes(db, salespeople_id_map)
+        seed_routes(db, salespeople_id_map, institution_id_map)
         
         log.info("Siembra de base de datos completada!\n")
         

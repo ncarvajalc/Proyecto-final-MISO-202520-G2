@@ -80,5 +80,6 @@ class Route(Base):
     __tablename__ = "routes"
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     salespeople_id = Column(String(36), nullable=False, index=True)
+    institution_id = Column(String(36), nullable=False, index=True)
     day = Column(Date, nullable=False)
     done = Column(Integer, nullable=False)

@@ -113,3 +113,22 @@ def list_clients_by_territories_paginated(
     items = query.offset(skip).limit(limit).all()
 
     return {"items": items, "total": total}
+
+def list_clients_by_list_id_paginated(
+    db: Session, territories: List[str], skip: int, limit: int):
+
+    # Si la lista está vacía, no devolvemos nada
+    if not territories:
+        return {"items": [], "total": 0}
+
+    # Filtramos usando 'in_' para la lista de IDs
+    query = (
+        db.query(InstitutionalClient)
+        .filter(InstitutionalClient.id.in_(territories))
+        .order_by(InstitutionalClient.created_at.desc())
+    )
+
+    total = query.count()
+    items = query.offset(skip).limit(limit).all()
+
+    return {"items": items, "total": total}

@@ -3,18 +3,50 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 import googlemaps
 import os
-from ..crud.crud_dayroutes import get_dayroute_bd
-from ..schemas.dayroutes_schemas import  RouteResponse, MultipleRouteResponse
+from typing import List, Optional
+from ..crud import crud_dayroutes as crud_route
+from ..schemas.dayroutes_schemas import *
+from ..models.salespeople_model import Route
+from app.modules.institutional_clients.services import institutional_client_service as ins_service
+from app.modules.institutional_clients.schemas import InstitutionalContactClientResponse
 
-def get_dayroute(db: Session, salespeople_id: str, latitud: float, longitud: float):
+def create_route_service(db: Session, route: RouteCreate) -> Route:
+    # Lógica de negocio iría aquí
+    # ej: if not salesperson_exists(db, route.salespeople_id):
+    #         raise ValueError("El vendedor no existe")
+    return crud_route.create_route(db=db, route=route)
+
+def get_route_service(db: Session, route_id: str) -> Optional[Route]:
+    return crud_route.get_route(db=db, route_id=route_id)
+
+def get_routes_by_salesperson_service(db: Session, salespeople_id: str, skip: int = 0, limit: int = 100) -> List[Route]:
+    # Lógica de negocio iría aquí
+    return crud_route.get_routes_by_salesperson(db=db, salespeople_id=salespeople_id, skip=skip, limit=limit)
+
+def get_routes_by_institution_service(db: Session, institution_id: str, skip: int = 0, limit: int = 100) -> List[Route]:
+    # Lógica de negocio iría aquí
+    return crud_route.get_routes_by_institution(db=db, institution_id=institution_id, skip=skip, limit=limit)
+
+def get_all_routes_service(db: Session, skip: int = 0, limit: int = 100) -> List[Route]:
+    return crud_route.get_all_routes(db=db, skip=skip, limit=limit)
+
+def update_route_service(db: Session, route_id: str, route_update: RouteUpdate) -> Optional[Route]:
+    # Lógica de negocio iría aquí
+    return crud_route.update_route(db=db, route_id=route_id, route_update=route_update)
+
+def delete_route_service(db: Session, route_id: str) -> Optional[Route]:
+    return crud_route.delete_route(db=db, route_id=route_id)
+
+
+async def get_dayroute(db: Session, salespeople_id: str, latitud: float, longitud: float):
     try:
-        # 1. Llama a tu nueva lógica de negocio
-        destino=[
-            "Plaza de Cataluña, Barcelona, España",
-            "Plaza del Ayuntamiento, Valencia, España",
-            "Plaza Mayor, Salamanca, España",
-            "Calle felipe II 29, Parla, España"
-        ]
+        routes = crud_route.get_all_missing_routes(db)
+        institution_ids = [route.institution_id for route in routes]
+        instituciones: InstitutionalContactClientResponse = await ins_service.list_clients_territories(db,territories=institution_ids)
+    
+        # 3. Itera sobre la lista '.data'
+        destino = [f"{client.direccion}, {client.city}, {client.country}" for client in instituciones.data]
+        
         route_data_list_of_dicts = get_multiple_routes_data(
             origin_lat=latitud,
             origin_lon=longitud,
@@ -24,7 +56,7 @@ def get_dayroute(db: Session, salespeople_id: str, latitud: float, longitud: flo
         # 2. Convertimos la lista de diccionarios en una lista de RouteResponse
         # Filtramos solo las que se encontraron (status "OK")
         found_routes = [
-            RouteResponse(**data) for data in route_data_list_of_dicts 
+            RouteGoogleResponse(**data) for data in route_data_list_of_dicts 
             if data["distance_meters"] > 0
         ]
         
@@ -41,7 +73,6 @@ def get_dayroute(db: Session, salespeople_id: str, latitud: float, longitud: flo
         raise HTTPException(status_code=400, detail=f"Error al contactar la API de Google: {e.message}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error interno del servidor: {str(e)}")
-    #return get_dayroute_bd(db, salespeople_id=salespeople_id)
     
 
 def get_multiple_routes_data(origin_lat: float, origin_lon: float, destination_addresses: list[str]) -> list[dict]:
