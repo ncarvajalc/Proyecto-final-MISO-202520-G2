@@ -59,5 +59,5 @@ class MultipleRouteRequest(BaseModel):
 class MultipleRouteResponse(BaseModel):
     total_routes_found: int
     total_routes_requested: int
-    # Usamos el modelo RouteResponse que ya teníamos
-    routes: list[RouteGoogleResponse]
+    # Devolvemos ahora la lista de RouteResponse (id + datos de institución y tiempos/distancias)
+    routes: list[RouteResponse]

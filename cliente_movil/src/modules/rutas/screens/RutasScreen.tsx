@@ -92,7 +92,7 @@ export const RutasScreen: React.FC = () => {
       <View style={styles.cardHeader}>
         <Text style={styles.entityName}>{item.nombreEntidad}</Text>
       </View>
-      <Text style={styles.entityDetail}>{item.tiempo} - {item.distancia.toFixed(1)}</Text>
+      <Text style={styles.entityDetail}>{item.tiempo} - {item.distancia}</Text>
       <Text style={styles.entityDetail}>{item.direccion}</Text>
       <Text style={styles.locationDetail}>
          {item.ciudad}, {item.pais}

@@ -53,19 +53,35 @@ async def get_dayroute(db: Session, salespeople_id: str, latitud: float, longitu
             destination_addresses=destino
         )
 
-        # 2. Convertimos la lista de diccionarios en una lista de RouteResponse
-        # Filtramos solo las que se encontraron (status "OK")
-        found_routes = [
-            RouteGoogleResponse(**data) for data in route_data_list_of_dicts 
-            if data["distance_meters"] > 0
-        ]
-        
-        # 3. Devolvemos la respuesta estructurada
-        return MultipleRouteResponse(
-            total_routes_found=len(found_routes),
-            total_routes_requested=len(destino),
-            routes=found_routes
-        )
+        # 2. Construimos la lista de RouteResponse uniendo:
+        #    - id desde `routes` (resultado del CRUD)
+        #    - datos de la institución desde `instituciones.data`
+        #    - tiempo/distancia desde los resultados de la API (route_data_list_of_dicts)
+        route_responses: list[RouteResponse] = []
+        for i, data in enumerate(route_data_list_of_dicts):
+            # Solo añadimos rutas con distancia válida (> 0)
+            if data.get("distance_meters", 0) > 0:
+                # Tomamos la entidad y el route asociado por índice
+                try:
+                    route_obj = routes[i]
+                except IndexError:
+                    # Si por alguna razón las listas no están alineadas, saltamos
+                    continue
+                client = instituciones.data[i]
+
+                route_resp = RouteResponse(
+                    id=getattr(route_obj, "id", ""),
+                    nombreEntidad=getattr(client, "nombre_institucion", ""),
+                    tiempo=data.get("duration_text", ""),
+                    distancia=data.get("distance_text", ""),
+                    pais=getattr(client, "country", "") or "",
+                    ciudad=getattr(client, "city", "") or "",
+                    direccion=getattr(client, "direccion", "") or ""
+                )
+                route_responses.append(route_resp)
+
+        # 3. Devolvemos la respuesta estructurada con RouteResponse
+        return route_responses
         
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
