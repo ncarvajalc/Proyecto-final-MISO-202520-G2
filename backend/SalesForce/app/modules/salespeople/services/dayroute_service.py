@@ -4,6 +4,7 @@ from datetime import datetime
 import googlemaps
 import os
 from typing import List, Optional
+import base64
 from ..crud import crud_dayroutes as crud_route
 from ..schemas.dayroutes_schemas import *
 from ..models.salespeople_model import Route
@@ -96,7 +97,9 @@ def get_multiple_routes_data(origin_lat: float, origin_lon: float, destination_a
     Función de lógica de negocio para calcular la ruta.
     Devuelve un diccionario con los datos o lanza una excepción.
     """
-    API_KEY= os.environ.get("API_KEY_GOOGLE")
+    mi_key_bytes= os.environ.get("API_KEY_GOOGLE")
+    key_decodificada_bytes = base64.b64decode(mi_key_bytes)
+    API_KEY = key_decodificada_bytes.decode('utf-8')
     try:
         gmaps = googlemaps.Client(key=API_KEY)
     except ValueError:
