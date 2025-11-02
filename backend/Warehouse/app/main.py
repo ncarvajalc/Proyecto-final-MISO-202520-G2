@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
 from app.core.database import SessionLocal, engine, Base
+from app.modules.warehouse.routes.warehouses import router as warehouse_router
 
 from app.modules.inventory.routes.product_inventory import (
     router as product_inventory_router,
@@ -20,6 +21,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(product_inventory_router)
+app.include_router(warehouse_router)
 
 # Create database tables after models are imported
 Base.metadata.create_all(bind=engine)
