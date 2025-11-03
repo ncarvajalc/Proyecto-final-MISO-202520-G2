@@ -1,6 +1,6 @@
 # Gráficas del proyecto no generadas por Jira - Proyecto Final MISO 202520 G2
 
-**Última actualización:** 2025-11-03 01:51:36 UTC
+**Última actualización:** 2025-11-03 01:53:49 UTC
 
 ## Resumen de métricas del proyecto
 
@@ -17,9 +17,9 @@
 
 ### Release burndown chart
 - **Alcance inicial:** 110 puntos de historia
-- **Restante:** 78 puntos de historia
-- **Completado:** 32 puntos de historia
-- **Sprints registrados:** 2
+- **Restante:** 45 puntos de historia
+- **Completado:** 65 puntos de historia
+- **Sprints registrados:** 3
 
 ---
 
