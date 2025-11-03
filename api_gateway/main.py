@@ -8,25 +8,37 @@ import httpx
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 
+from typing import Tuple
+
 PREFIX_ROUTES: Tuple[Tuple[str, str], ...] = (
     # Order matters: check longer prefixes first to avoid partial matches.
-    ("/institutional-clients", "http://salesforce:8004"),
-    ("/informes-comerciales", "http://salesforce:8004"),
-    ("/planes-venta", "http://salesforce:8004"),
-    ("/daily-routes", "http://salesforce:8004"),
-    ("/vendedores", "http://salesforce:8004"),
-    ("/proveedores", "http://purchases_suppliers:8001"),
-    ("/productos", "http://purchases_suppliers:8001"),
-    ("/pedidos", "http://salesforce:8004"),
-    ("/inventario", "http://warehouse:8003"),
-    ("/vehiculos", "http://tracking:8002"),
-    ("/paradas", "http://tracking:8002"),
-    ("/bodegas", "http://warehouse:8003"),
-    ("/visitas", "http://salesforce:8004"),
-    ("/rutas", "http://tracking:8002"),
-    ("/auth", "http://security_audit:8000"),
-    ("/territorios", "http://salesforce:8004"),
+    # Salesforce service
+    ("/institutional-clients", "https://salesforce-212820187078.us-central1.run.app"),
+    ("/informes-comerciales", "https://salesforce-212820187078.us-central1.run.app"),
+    ("/planes-venta", "https://salesforce-212820187078.us-central1.run.app"),
+    ("/daily-routes", "https://salesforce-212820187078.us-central1.run.app"),
+    ("/vendedores", "https://salesforce-212820187078.us-central1.run.app"),
+    ("/pedidos", "https://salesforce-212820187078.us-central1.run.app"),
+    ("/visitas", "https://salesforce-212820187078.us-central1.run.app"),
+    ("/territorios", "https://salesforce-212820187078.us-central1.run.app"),
+
+    # Purchases & suppliers service
+    ("/proveedores", "https://purchases-suppliers-212820187078.us-central1.run.app"),
+    ("/productos", "https://purchases-suppliers-212820187078.us-central1.run.app"),
+
+    # Warehouse service
+    ("/inventario", "https://warehouse-212820187078.us-central1.run.app"),
+    ("/bodegas", "https://warehouse-212820187078.us-central1.run.app"),
+
+    # Tracking service
+    ("/vehiculos", "https://tracking-212820187078.us-central1.run.app"),
+    ("/paradas", "https://tracking-212820187078.us-central1.run.app"),
+    ("/rutas", "https://tracking-212820187078.us-central1.run.app"),
+
+    # Security & audit service
+    ("/auth", "https://security-audit-212820187078.us-central1.run.app"),
 )
+
 
 HEALTH_ENDPOINTS: Tuple[Tuple[str, str], ...] = (
     (
