@@ -2,6 +2,7 @@
 
 import math
 
+import pytest
 from faker import Faker
 
 from app.modules.reports.schemas import InformeComercialCreate

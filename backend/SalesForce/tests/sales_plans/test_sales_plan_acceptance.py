@@ -1,6 +1,9 @@
+import pytest
 from faker import Faker
 
 from app.modules.salespeople.models.salespeople_model import SalesPlan
+
+
 def test_sales_plan_creation_end_to_end(client, db_session, fake: Faker):
     vendor_payload = {
         "full_name": fake.name(),
@@ -17,7 +20,9 @@ def test_sales_plan_creation_end_to_end(client, db_session, fake: Faker):
         "nombre": fake.catch_phrase(),
         "descripcion": fake.text(max_nb_chars=60),
         "periodo": f"{fake.random_int(min=2020, max=2030)}-Q{fake.random_int(min=1, max=4)}",
-        "meta": float(round(fake.pyfloat(min_value=50, max_value=500, right_digits=2), 2)),
+        "meta": float(
+            round(fake.pyfloat(min_value=50, max_value=500, right_digits=2), 2)
+        ),
         "vendedorId": vendor_id,
     }
 

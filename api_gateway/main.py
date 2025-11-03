@@ -13,6 +13,7 @@ PREFIX_ROUTES: Tuple[Tuple[str, str], ...] = (
     ("/institutional-clients", "http://salesforce:8004"),
     ("/informes-comerciales", "http://salesforce:8004"),
     ("/planes-venta", "http://salesforce:8004"),
+    ("/daily-routes", "http://salesforce:8004"),
     ("/vendedores", "http://salesforce:8004"),
     ("/proveedores", "http://purchases_suppliers:8001"),
     ("/productos", "http://purchases_suppliers:8001"),
@@ -58,6 +59,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.get("/")
 async def root() -> Dict[str, str]:
     """Return a simple message indicating the gateway is running."""
@@ -72,7 +74,9 @@ async def healthcheck() -> Dict[str, str]:
 
 # Headers to skip when proxying requests
 REQUEST_HEADER_SKIP = frozenset(["host", "content-length", "transfer-encoding"])
-RESPONSE_HEADER_SKIP = frozenset(["content-length", "transfer-encoding", "content-encoding"])
+RESPONSE_HEADER_SKIP = frozenset(
+    ["content-length", "transfer-encoding", "content-encoding"]
+)
 
 
 def _resolve_upstream(path: str) -> Optional[str]:
@@ -141,4 +145,3 @@ async def proxy(full_path: str, request: Request) -> Response:
         proxied_response.headers.append(key, value)
 
     return proxied_response
-

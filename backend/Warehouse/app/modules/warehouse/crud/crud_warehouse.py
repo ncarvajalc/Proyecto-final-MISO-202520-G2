@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from ..models.warehouse_model import Warehouse
+from ..models.warehouse_model import WarehouseV1 as Warehouse
 from ..schemas.warehouse import WarehouseCreate, WarehouseUpdate
 
 

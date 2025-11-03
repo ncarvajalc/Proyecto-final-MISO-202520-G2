@@ -11,3 +11,4 @@ pydantic[email]==2.12.2
 httpx==0.28.1
 Faker==37.11.0
 cryptography==46.0.3
+googlemaps==4.10.0

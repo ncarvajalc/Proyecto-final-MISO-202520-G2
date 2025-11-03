@@ -1,5 +1,6 @@
 """Unit tests for Informe Comercial CRUD operations."""
 
+import pytest
 from faker import Faker
 
 from app.modules.reports.models import InformeComercial

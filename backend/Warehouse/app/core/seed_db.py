@@ -3,9 +3,10 @@ Database seeding script
 Populates the database with initial warehouses and product inventory
 """
 
+from datetime import date, timedelta
 from app.core.database import SessionLocal
-from app.modules.inventory.models.warehouse import Warehouse
-from app.modules.inventory.models.inventory import Inventory
+from app.modules.warehouse.models.warehouse_model import WarehouseV1 as Warehouse
+from app.modules.inventory.models.product_inventory_model import ProductInventory
 
 
 def seed_warehouses():
@@ -14,19 +15,20 @@ def seed_warehouses():
     try:
         warehouses_data = [
             {
-                "name": "Bodega Principal Bogotá",
-                "location": "Calle 100 #15-20, Bogotá",
-                "active": True,
+                "nombre": "Bogotá-1",
+                "ubicacion": "Bogotá",
             },
             {
-                "name": "Bodega Medellín",
-                "location": "Carrera 43A #1-50, Medellín",
-                "active": True,
+                "nombre": "Medellín-1",
+                "ubicacion": "Medellín",
             },
             {
-                "name": "Bodega Cali",
-                "location": "Avenida 6 Norte #23-50, Cali",
-                "active": True,
+                "nombre": "Cali-1",
+                "ubicacion": "Cali",
+            },
+            {
+                "nombre": "Barranquilla-1",
+                "ubicacion": "Barranquilla",
             },
         ]
 
@@ -35,7 +37,7 @@ def seed_warehouses():
             # Check if warehouse already exists
             existing = (
                 db.query(Warehouse)
-                .filter(Warehouse.name == warehouse_data["name"])
+                .filter(Warehouse.nombre == warehouse_data["nombre"])
                 .first()
             )
 
@@ -47,80 +49,144 @@ def seed_warehouses():
                 created_warehouses.append(existing)
 
         db.commit()
-        # Refresh to get the generated IDs
-        for wh in created_warehouses:
-            db.refresh(wh)
-
         if created_warehouses:
             print(f"Created/found {len(created_warehouses)} warehouses")
         return created_warehouses
     except Exception as e:
         db.rollback()
         print(f"Error seeding warehouses: {e}")
-        import traceback
-        traceback.print_exc()
         return []
     finally:
         db.close()
 
 
 def seed_inventory():
-    """Create initial product inventory for all existing products"""
+    """Create initial product inventory across warehouses"""
     db = SessionLocal()
     try:
-        # Get the first warehouse (or create if none exists)
-        warehouse = db.query(Warehouse).first()
-        if not warehouse:
-            print("No warehouses found. Creating default warehouse...")
-            warehouse = Warehouse(
-                name="Bodega Principal",
-                location="Bogotá",
-                active=True
-            )
-            db.add(warehouse)
-            db.commit()
-            db.refresh(warehouse)
+        # Get existing warehouses
+        warehouses = db.query(Warehouse).all()
+        if not warehouses:
+            print("No warehouses found. Please seed warehouses first.")
+            return
 
-        # Product IDs 1-6 that exist in PurchasesAndSuppliers
-        products_inventory = [
-            {"product_id": 1, "stock": 1000, "available": 1000},
-            {"product_id": 2, "stock": 500, "available": 500},
-            {"product_id": 3, "stock": 2000, "available": 2000},
-            {"product_id": 4, "stock": 300, "available": 300},
-            {"product_id": 5, "stock": 1500, "available": 1500},
-            {"product_id": 6, "stock": 100, "available": 100},
+        # Medical products SKUs that should have inventory
+        products_data = [
+            {
+                "product_id": "MED-12345",
+                "name": "Termómetro Digital",
+                "storage_type": "general",
+                "quantity_per_warehouse": 100,
+            },
+            {
+                "product_id": "MED-12346",
+                "name": "Tensiómetro Digital",
+                "storage_type": "general",
+                "quantity_per_warehouse": 75,
+            },
+            {
+                "product_id": "MED-12347",
+                "name": "Oxímetro de Pulso",
+                "storage_type": "general",
+                "quantity_per_warehouse": 120,
+            },
+            {
+                "product_id": "MED-12348",
+                "name": "Glucómetro",
+                "storage_type": "cold",
+                "quantity_per_warehouse": 80,
+            },
+            {
+                "product_id": "MED-12349",
+                "name": "Nebulizador Ultrasónico",
+                "storage_type": "general",
+                "quantity_per_warehouse": 60,
+            },
+            {
+                "product_id": "MED-12350",
+                "name": "Estetoscopio Profesional",
+                "storage_type": "general",
+                "quantity_per_warehouse": 90,
+            },
+            {
+                "product_id": "MED-12351",
+                "name": "Mascarilla N95",
+                "storage_type": "general",
+                "quantity_per_warehouse": 500,
+            },
+            {
+                "product_id": "MED-12352",
+                "name": "Guantes de Nitrilo",
+                "storage_type": "general",
+                "quantity_per_warehouse": 800,
+            },
+            {
+                "product_id": "MED-12353",
+                "name": "Jeringa 10ml",
+                "storage_type": "cold",
+                "quantity_per_warehouse": 300,
+            },
+            {
+                "product_id": "MED-12354",
+                "name": "Alcohol Antiséptico 70%",
+                "storage_type": "general",
+                "quantity_per_warehouse": 200,
+            },
         ]
 
         created_count = 0
-        for item in products_inventory:
-            # Check if inventory already exists
-            existing = (
-                db.query(Inventory)
-                .filter(
-                    Inventory.warehouse_id == warehouse.id,
-                    Inventory.product_id == item["product_id"],
-                )
-                .first()
-            )
 
-            if not existing:
-                inventory = Inventory(
-                    product_id=item["product_id"],
-                    warehouse_id=warehouse.id,
-                    stock_quantity=item["stock"],
-                    available_quantity=item["available"],
+        # Warehouse zones - realistic location codes
+        zones = ["A1-3", "A2-5", "B1-2", "B3-7", "C2-4", "D1-6", "E3-1", "F2-8"]
+
+        # Distribute products across warehouses
+        for i, product in enumerate(products_data):
+            # Each product will be in 2-3 warehouses
+            num_warehouses = 2 if i % 3 == 0 else 3
+
+            for j in range(num_warehouses):
+                warehouse = warehouses[j % len(warehouses)]
+
+                # Check if inventory already exists
+                existing = (
+                    db.query(ProductInventory)
+                    .filter(
+                        ProductInventory.warehouse_id == warehouse.id,
+                        ProductInventory.product_id == product["product_id"],
+                    )
+                    .first()
                 )
-                db.add(inventory)
-                created_count += 1
-                print(f"  ✓ Added {item['stock']} units of product {item['product_id']} to {warehouse.name}")
+
+                if not existing:
+                    # Calculate expiration date (1-2 years from now)
+                    expiration_date = date.today() + timedelta(days=365 + (i * 30))
+
+                    # Assign a zone based on product and warehouse
+                    zone_index = (i + j) % len(zones)
+                    zona = zones[zone_index]
+
+                    inventory = ProductInventory(
+                        warehouse_id=warehouse.id,
+                        product_id=product["product_id"],
+                        batch_number=f"BATCH-{product['product_id']}-{j+1}",
+                        quantity=product["quantity_per_warehouse"],
+                        storage_type=product["storage_type"],
+                        zona=zona,
+                        capacity=product["quantity_per_warehouse"] * 2,
+                        expiration_date=expiration_date,
+                    )
+                    db.add(inventory)
+                    created_count += 1
+                    print(
+                        f"  ✓ Added {product['quantity_per_warehouse']} units of "
+                        f"{product['product_id']} to {warehouse.nombre} in zone {zona} ({product['storage_type']})"
+                    )
 
         db.commit()
         print(f"\nCreated {created_count} inventory entries")
     except Exception as e:
         db.rollback()
         print(f"Error seeding inventory: {e}")
-        import traceback
-        traceback.print_exc()
     finally:
         db.close()
 

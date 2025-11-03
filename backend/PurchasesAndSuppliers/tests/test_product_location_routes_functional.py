@@ -29,7 +29,7 @@ def test_get_product_location_success(client, mock_httpx_client, fake: Faker):
                 "product_id": sku,
                 "warehouse_id": warehouse_id,
                 "zona": "A1-3",
-                "storage_type": "cold"
+                "storage_type": "cold",
             }
         ]
     }
@@ -39,7 +39,7 @@ def test_get_product_location_success(client, mock_httpx_client, fake: Faker):
     warehouse_response.json.return_value = {
         "id": warehouse_id,
         "nombre": warehouse_name,
-        "ubicacion": "Bogotá"
+        "ubicacion": "Bogotá",
     }
 
     # Setup mock client
@@ -94,7 +94,9 @@ def test_get_product_location_empty_sku(client):
     assert "no puede estar vacío" in response.json()["detail"]
 
 
-def test_get_product_location_in_warehouse_success(client, mock_httpx_client, fake: Faker):
+def test_get_product_location_in_warehouse_success(
+    client, mock_httpx_client, fake: Faker
+):
     """Test GET /productos/localizacion-bodega returns product location in specific warehouse."""
     sku = "MED-12345"
     warehouse_id = fake.uuid4()
@@ -108,7 +110,7 @@ def test_get_product_location_in_warehouse_success(client, mock_httpx_client, fa
                 "product_id": sku,
                 "warehouse_id": warehouse_id,
                 "zona": "B2-5",
-                "storage_type": "general"
+                "storage_type": "general",
             }
         ]
     }
@@ -118,7 +120,7 @@ def test_get_product_location_in_warehouse_success(client, mock_httpx_client, fa
     warehouse_response.json.return_value = {
         "id": warehouse_id,
         "nombre": warehouse_name,
-        "ubicacion": "Medellín"
+        "ubicacion": "Medellín",
     }
 
     mock_instance = MagicMock()
@@ -137,7 +139,9 @@ def test_get_product_location_in_warehouse_success(client, mock_httpx_client, fa
     assert data["encontrado"] is True
 
 
-def test_get_product_location_in_warehouse_not_found(client, mock_httpx_client, fake: Faker):
+def test_get_product_location_in_warehouse_not_found(
+    client, mock_httpx_client, fake: Faker
+):
     """Test GET /productos/localizacion-bodega when product not in warehouse."""
     sku = "MED-12345"
     warehouse_id = fake.uuid4()
@@ -152,7 +156,7 @@ def test_get_product_location_in_warehouse_not_found(client, mock_httpx_client, 
     warehouse_response.json.return_value = {
         "id": warehouse_id,
         "nombre": warehouse_name,
-        "ubicacion": "Cali"
+        "ubicacion": "Cali",
     }
 
     mock_instance = MagicMock()
@@ -171,7 +175,9 @@ def test_get_product_location_in_warehouse_not_found(client, mock_httpx_client, 
     assert data["encontrado"] is False
 
 
-def test_get_product_location_in_warehouse_warehouse_not_found(client, mock_httpx_client, fake: Faker):
+def test_get_product_location_in_warehouse_warehouse_not_found(
+    client, mock_httpx_client, fake: Faker
+):
     """Test GET /productos/localizacion-bodega when warehouse doesn't exist."""
     sku = "MED-12345"
     warehouse_id = fake.uuid4()

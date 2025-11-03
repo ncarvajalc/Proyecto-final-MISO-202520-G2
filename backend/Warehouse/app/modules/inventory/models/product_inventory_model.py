@@ -13,14 +13,16 @@ class ProductInventory(Base):
     batch_number = Column(String(255), nullable=False, index=True)
     quantity = Column(Integer, nullable=False, default=0)
     storage_type = Column(String(50), nullable=False)  # general, cold, ultra-cold
-    zona = Column(String(50), nullable=True)  # Physical location/zone in warehouse (e.g., "Z4-2", "A1-5")
+    zona = Column(
+        String(50), nullable=True
+    )  # Physical location/zone in warehouse (e.g., "Z4-2", "A1-5")
     capacity = Column(Integer, nullable=True)
     expiration_date = Column(Date, nullable=True)
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
 
     # Relación con Warehouse
-    warehouse = relationship("Warehouse", back_populates="inventory")
+    warehouse = relationship("WarehouseV1", back_populates="inventory")
 
     def __repr__(self):
         return f"<ProductInventory(id={self.id}, product_id={self.product_id}, warehouse={self.warehouse_id}, quantity={self.quantity})>"

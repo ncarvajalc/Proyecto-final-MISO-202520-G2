@@ -1,4 +1,5 @@
 from typing import List
+from app.modules.inventory.services import inventory_service
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from app.core.database import get_db
@@ -8,7 +9,7 @@ from ..schemas.product_inventory import (
     ProductInventoryUpdate,
     ProductInventoryPaginated,
     InventorySummary,
-    WarehouseInventorySummary
+    WarehouseInventorySummary,
 )
 from ..services.product_inventory_service import (
     create,
@@ -20,7 +21,7 @@ from ..services.product_inventory_service import (
     update,
     delete,
     get_product_summary,
-    get_warehouse_inventory_summary
+    get_warehouse_inventory_summary,
 )
 
 router = APIRouter(prefix="/inventario", tags=["inventario"])
@@ -55,7 +56,7 @@ def create_inventory(inventory: ProductInventoryCreate, db: Session = Depends(ge
 def read_inventory(
     page: int = Query(1, ge=1),
     limit: int = Query(10, ge=1, le=100),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Lista todo el inventario con paginación
@@ -68,7 +69,7 @@ def read_inventory_by_warehouse(
     warehouse_id: str,
     page: int = Query(1, ge=1),
     limit: int = Query(10, ge=1, le=100),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Lista el inventario de una bodega específica
@@ -76,12 +77,20 @@ def read_inventory_by_warehouse(
     return read_by_warehouse(db, warehouse_id=warehouse_id, page=page, limit=limit)
 
 
-@router.get("/producto/{product_id}", response_model=List[ProductInventory])
-def read_inventory_by_product(product_id: str, db: Session = Depends(get_db)):
+@router.get("/producto/{product_id}", response_model=ProductInventory)
+def get_product_inventory(
+    product_id: int,
+    db: Session = Depends(get_db),
+) -> ProductInventory:
     """
-    Obtiene todo el inventario de un producto en todas las bodegas
+    Get inventory information for a specific product.
+
+    Returns stock levels across all warehouses for the given product.
     """
-    return read_by_product(db, product_id=product_id)
+    try:
+        return inventory_service.get_product_inventory(db, product_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/lote/{batch_number}", response_model=List[ProductInventory])
@@ -96,7 +105,6 @@ def read_inventory_by_batch(batch_number: str, db: Session = Depends(get_db)):
 def get_product_inventory_summary(product_id: str, db: Session = Depends(get_db)):
     """
     Obtiene resumen del inventario de un producto
-    
     Retorna:
     - Cantidad total
     - Número de bodegas donde está disponible
@@ -109,7 +117,6 @@ def get_product_inventory_summary(product_id: str, db: Session = Depends(get_db)
 def get_warehouse_summary_endpoint(warehouse_id: str, db: Session = Depends(get_db)):
     """
     Obtiene resumen del inventario de una bodega
-    
     Retorna:
     - Nombre de la bodega
     - Total de productos diferentes
@@ -129,9 +136,7 @@ def read_inventory_detail(inventory_id: str, db: Session = Depends(get_db)):
 
 @router.put("/{inventory_id}", response_model=ProductInventory)
 def update_inventory(
-    inventory_id: str,
-    inventory: ProductInventoryUpdate,
-    db: Session = Depends(get_db)
+    inventory_id: str, inventory: ProductInventoryUpdate, db: Session = Depends(get_db)
 ):
     """
     Actualiza un registro de inventario existente
@@ -145,12 +150,15 @@ def delete_inventory(inventory_id: str, db: Session = Depends(get_db)):
     Elimina un registro de inventario
     """
     return delete(db, inventory_id=inventory_id)
+
+
 from app.modules.warehouse.crud.crud_warehouse import get_warehouse
+
 
 @router.get("/buscar")
 def buscar_producto_en_inventario(
     sku: str = Query(..., description="SKU del producto a buscar"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Busca la ubicación de un producto por su SKU (product_id) en el inventario.
@@ -158,25 +166,37 @@ def buscar_producto_en_inventario(
     Retorna la primera coincidencia encontrada con la bodega y la zona.
     """
     if not sku.strip():
-        raise HTTPException(status_code=400, detail="El parámetro 'sku' es requerido y no puede estar vacío.")
+        raise HTTPException(
+            status_code=400,
+            detail="El parámetro 'sku' es requerido y no puede estar vacío.",
+        )
 
     inventarios = read_by_product(db, product_id=sku)
 
     if not inventarios:
-        raise HTTPException(status_code=404, detail=f"Producto con SKU '{sku}' no encontrado en el inventario.")
+        raise HTTPException(
+            status_code=404,
+            detail=f"Producto con SKU '{sku}' no encontrado en el inventario.",
+        )
 
     inventario = inventarios[0]
 
     # Obtener la bodega relacionada
     warehouse = get_warehouse(db, inventario.warehouse_id)
     if not warehouse:
-        raise HTTPException(status_code=404, detail=f"Bodega '{inventario.warehouse_id}' no encontrada.")
+        raise HTTPException(
+            status_code=404, detail=f"Bodega '{inventario.warehouse_id}' no encontrada."
+        )
 
     # Si existe un campo 'zona' o 'location' en el modelo, lo usamos
     zona = getattr(inventario, "zona", "") or getattr(inventario, "location", "")
 
     return {
         "sku": sku,
-        "bodega": warehouse.nombre if hasattr(warehouse, "nombre") else inventario.warehouse_id,
-        "zona": zona
+        "bodega": (
+            warehouse.nombre
+            if hasattr(warehouse, "nombre")
+            else inventario.warehouse_id
+        ),
+        "zona": zona,
     }
