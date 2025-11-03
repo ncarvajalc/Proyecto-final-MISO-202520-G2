@@ -37,12 +37,12 @@ export const ProductDetailScreen: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      const [productData, inventoryData] = await Promise.all([
-        productService.getProductById(productId),
-        inventoryService.getProductInventory(productId),
-      ]);
-
+      // First get product data to obtain SKU
+      const productData = await productService.getProductById(productId);
       setProduct(productData);
+
+      // Then get inventory using SKU
+      const inventoryData = await inventoryService.getProductInventory(productData.sku);
       setInventory(inventoryData);
     } catch (err) {
       setError("Error al cargar información del producto");

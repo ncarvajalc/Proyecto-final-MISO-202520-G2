@@ -2,6 +2,6 @@
 Módulo de Inventario de Productos (Product Inventory)
 """
 
-# product_inventory router is not imported to avoid loading conflicting models
-# Only the simple inventory system is used
-__all__ = []
+from .routes.product_inventory import router as inventory_router
+
+__all__ = ["inventory_router"]
