@@ -1,5 +1,8 @@
 jest.mock('expo/src/winter/runtime.native', () => ({}), { virtual: true });
 
+// Mock expo-location - this must be before any imports that use it
+jest.mock('expo-location');
+
 const { expoNativeModulesProxy, exponentConstants, expoModules } = require('./jest.expo-environment');
 const { NativeModules } = require('react-native');
 
