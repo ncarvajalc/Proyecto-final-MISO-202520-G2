@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { ProductInventory, BackendProductInventory } from '../types/warehouse';
+import { ProductInventory, BackendProductInventory, Warehouse } from '../types/warehouse';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8080';
 
@@ -15,6 +15,16 @@ export const inventoryService = {
       );
 
       const inventoryList = response.data;
+
+      // Get unique warehouse IDs
+      const warehouseIds = [...new Set(inventoryList.map(item => item.warehouse_id))];
+
+      // Fetch warehouse information
+      const warehousesResponse = await axios.get<Warehouse[]>(`${API_URL}/bodegas`);
+      const warehousesMap = new Map<string, Warehouse>();
+      warehousesResponse.data.forEach(warehouse => {
+        warehousesMap.set(warehouse.id, warehouse);
+      });
 
       // Transform old system response to expected format
       const warehouseMap = new Map<string, BackendProductInventory>();
@@ -32,16 +42,19 @@ export const inventoryService = {
       // Calculate total stock
       const total_stock = inventoryList.reduce((sum, item) => sum + item.quantity, 0);
 
-      // Build warehouses array
-      const warehouses = Array.from(warehouseMap.values()).map(item => ({
-        warehouse: item.warehouse || {
-          id: item.warehouse_id,
-          nombre: item.warehouse_id,
-          ubicacion: ''
-        },
-        stock_quantity: item.quantity,
-        available_quantity: item.quantity
-      }));
+      // Build warehouses array with complete warehouse information
+      const warehouses = Array.from(warehouseMap.values()).map(item => {
+        const warehouse = warehousesMap.get(item.warehouse_id);
+        return {
+          warehouse: warehouse || {
+            id: item.warehouse_id,
+            nombre: 'Bodega desconocida',
+            ubicacion: 'Ubicación no disponible'
+          },
+          stock_quantity: item.quantity,
+          available_quantity: item.quantity
+        };
+      });
 
       return {
         product_id: productSku,

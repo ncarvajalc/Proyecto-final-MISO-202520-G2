@@ -168,22 +168,8 @@ export const ProductDetailScreen: React.FC = () => {
             {inventory.warehouses.length > 0 ? (
               inventory.warehouses.map((item, index) => (
                 <View key={index} style={styles.warehouseCard}>
-                  <View style={styles.warehouseHeader}>
-                    <Text style={styles.warehouseName}>{item.warehouse.name}</Text>
-                    <View
-                      style={[
-                        styles.warehouseStatusBadge,
-                        item.warehouse.active
-                          ? styles.warehouseActive
-                          : styles.warehouseInactive,
-                      ]}
-                    >
-                      <Text style={styles.warehouseStatusText}>
-                        {item.warehouse.active ? "Activa" : "Inactiva"}
-                      </Text>
-                    </View>
-                  </View>
-                  <Text style={styles.warehouseLocation}>{item.warehouse.location}</Text>
+                  <Text style={styles.warehouseName}>{item.warehouse.nombre}</Text>
+                  <Text style={styles.warehouseLocation}>{item.warehouse.ubicacion}</Text>
 
                   <View style={styles.stockInfo}>
                     <View style={styles.stockItem}>
@@ -361,33 +347,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#e2e8f0",
   },
-  warehouseHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
-  },
   warehouseName: {
     fontSize: 16,
     fontWeight: "700",
     color: "#0f172a",
-    flex: 1,
-  },
-  warehouseStatusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  warehouseActive: {
-    backgroundColor: "#dcfce7",
-  },
-  warehouseInactive: {
-    backgroundColor: "#fee2e2",
-  },
-  warehouseStatusText: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: "#0f172a",
+    marginBottom: 4,
   },
   warehouseLocation: {
     fontSize: 14,
