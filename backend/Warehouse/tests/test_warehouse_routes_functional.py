@@ -6,8 +6,6 @@ import pytest
 from faker import Faker
 
 
-# TODO: Fix warehouse creation endpoint returning 404 instead of the expected payload.
-@pytest.mark.skip(reason="TODO: Fix warehouse creation endpoint returning 404 instead of the expected payload.")
 def test_create_warehouse_endpoint_success(client, fake: Faker):
     """Test POST /bodegas creates a warehouse successfully."""
     payload = {
@@ -27,8 +25,6 @@ def test_create_warehouse_endpoint_success(client, fake: Faker):
     assert "updated_at" in data
 
 
-# TODO: Fix warehouse creation validation responses for missing fields.
-@pytest.mark.skip(reason="TODO: Fix warehouse creation validation responses for missing fields.")
 def test_create_warehouse_endpoint_validates_required_fields(client):
     """Test POST /bodegas validates required fields."""
     # Missing nombre
@@ -42,8 +38,6 @@ def test_create_warehouse_endpoint_validates_required_fields(client):
     assert response.status_code == 201
 
 
-# TODO: Fix warehouse listing endpoint returning 404 for simple list.
-@pytest.mark.skip(reason="TODO: Fix warehouse listing endpoint returning 404 for simple list.")
 def test_list_warehouses_endpoint_returns_simple_list(client, fake: Faker):
     """Test GET /bodegas returns simple list by default."""
     # Create a warehouse
@@ -69,8 +63,6 @@ def test_list_warehouses_endpoint_returns_simple_list(client, fake: Faker):
         assert "ubicacion" in warehouse
 
 
-# TODO: Fix warehouse listing pagination to respond with expected payload.
-@pytest.mark.skip(reason="TODO: Fix warehouse listing pagination to respond with expected payload.")
 def test_list_warehouses_endpoint_returns_paginated_payload(client, fake: Faker):
     """Test GET /bodegas?simple=false returns paginated list."""
     # Get baseline - use simple=True to get the count
@@ -93,8 +85,6 @@ def test_list_warehouses_endpoint_returns_paginated_payload(client, fake: Faker)
     assert len(data) == baseline + 3
 
 
-# TODO: Fix warehouse detail endpoint returning 404 for existing records.
-@pytest.mark.skip(reason="TODO: Fix warehouse detail endpoint returning 404 for existing records.")
 def test_get_warehouse_by_id_success(client, fake: Faker):
     """Test GET /bodegas/{warehouse_id} returns warehouse details."""
     # Create a warehouse
@@ -124,8 +114,6 @@ def test_get_warehouse_by_id_not_found(client, fake: Faker):
     assert response.status_code == 404
 
 
-# TODO: Fix warehouse update endpoint returning 404 for valid updates.
-@pytest.mark.skip(reason="TODO: Fix warehouse update endpoint returning 404 for valid updates.")
 def test_update_warehouse_endpoint_success(client, fake: Faker):
     """Test PUT /bodegas/{warehouse_id} updates warehouse successfully."""
     # Create a warehouse
@@ -150,8 +138,6 @@ def test_update_warehouse_endpoint_success(client, fake: Faker):
     assert data["ubicacion"] == update_payload["ubicacion"]
 
 
-# TODO: Fix warehouse partial update endpoint returning errors for valid payloads.
-@pytest.mark.skip(reason="TODO: Fix warehouse partial update endpoint returning errors for valid payloads.")
 def test_update_warehouse_partial_update(client, fake: Faker):
     """Test PUT /bodegas/{warehouse_id} allows partial updates."""
     # Create a warehouse
@@ -172,8 +158,6 @@ def test_update_warehouse_partial_update(client, fake: Faker):
     assert data["ubicacion"] == "OriginalLoc"  # Should remain unchanged
 
 
-# TODO: Fix warehouse deletion endpoint returning 404 after creation.
-@pytest.mark.skip(reason="TODO: Fix warehouse deletion endpoint returning 404 after creation.")
 def test_delete_warehouse_endpoint_success(client, fake: Faker):
     """Test DELETE /bodegas/{warehouse_id} deletes warehouse successfully."""
     # Create a warehouse
