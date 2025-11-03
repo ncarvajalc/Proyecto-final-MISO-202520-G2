@@ -41,18 +41,36 @@ async def validate_product(product_id: int) -> Dict:
 
 async def validate_inventory(product_id: int, quantity: int) -> bool:
     """Validate sufficient inventory exists for the product."""
+    # First, get product SKU from products service
     async with httpx.AsyncClient(follow_redirects=True) as client:
         try:
-            response = await client.get(
-                f"{WAREHOUSE_URL}/inventario/producto/{product_id}"
+            # Get product to obtain SKU
+            product_response = await client.get(
+                f"{PURCHASES_SUPPLIERS_URL}/productos/{product_id}"
             )
-            if response.status_code == 404:
+            product_response.raise_for_status()
+            product_data = product_response.json()
+            product_sku = product_data.get("sku")
+
+            if not product_sku:
+                return False
+
+            # Get inventory using SKU (old system returns list of inventory items)
+            inventory_response = await client.get(
+                f"{WAREHOUSE_URL}/inventario/producto/{product_sku}"
+            )
+            if inventory_response.status_code == 404:
                 # Product has no inventory
                 return False
-            response.raise_for_status()
+            inventory_response.raise_for_status()
 
-            inventory_data = response.json()
-            total_stock = inventory_data.get("total_stock", 0)
+            inventory_list = inventory_response.json()
+            # Old system returns a list, calculate total from all warehouses
+            if isinstance(inventory_list, list):
+                total_stock = sum(item.get("quantity", 0) for item in inventory_list)
+            else:
+                # Fallback for new system format (shouldn't happen)
+                total_stock = inventory_list.get("total_stock", 0)
 
             return total_stock >= quantity
         except httpx.HTTPError as e:
