@@ -123,13 +123,13 @@ class Visit:
             "id": self.id,
             "nombre_institucion": self.nombre_institucion,
             "direccion": self.direccion,
-        "hora": to_iso(self.hora),
-        "desplazamiento_minutos": self.desplazamiento_minutos,
-        "hora_salida": to_iso(self.hora_salida) if self.hora_salida else None,
-        "estado": self.estado,
-        "observacion": self.observacion,
-        "created_at": to_iso(self.created_at),
-        "updated_at": to_iso(self.updated_at),
+            "hora": to_iso(self.hora),
+            "desplazamiento_minutos": self.desplazamiento_minutos,
+            "hora_salida": to_iso(self.hora_salida) if self.hora_salida else None,
+            "estado": self.estado,
+            "observacion": self.observacion,
+            "created_at": to_iso(self.created_at),
+            "updated_at": to_iso(self.updated_at),
         }
 
 
@@ -233,11 +233,15 @@ def health() -> Dict[str, str]:
 
 
 @app.get("/institutional-clients/")
-def list_institutional_clients(page: int = 1, limit: int = 10, search: Optional[str] = None) -> PaginatedResponse:
+def list_institutional_clients(
+    page: int = 1, limit: int = 10, search: Optional[str] = None
+) -> PaginatedResponse:
     items = [client.to_dict() for client in _clients]
     if search:
         lowered = search.lower()
-        items = [item for item in items if lowered in item["nombre_institucion"].lower()]
+        items = [
+            item for item in items if lowered in item["nombre_institucion"].lower()
+        ]
     return paginate(items, page, limit)
 
 
@@ -257,7 +261,9 @@ def create_institutional_client(payload: CreateInstitutionalClient) -> Dict[str,
 
 
 @app.put("/institutional-clients/{client_id}")
-def update_institutional_client(client_id: str, payload: UpdateInstitutionalClient) -> Dict[str, Any]:
+def update_institutional_client(
+    client_id: str, payload: UpdateInstitutionalClient
+) -> Dict[str, Any]:
     for client in _clients:
         if client.id == client_id:
             data = payload.model_dump(exclude_unset=True)

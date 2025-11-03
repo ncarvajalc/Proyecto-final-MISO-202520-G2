@@ -50,20 +50,15 @@ const locateVendorRow = (page: Page, vendor: VendedorResponse) =>
     .filter({ hasText: new RegExp(escapeRegex(vendor.correo), "i") })
     .first();
 
-const navigateToVendorPage = async (
-  page: Page,
-  targetPage: number
-) => {
+const navigateToVendorPage = async (page: Page, targetPage: number) => {
   if (targetPage <= 1) {
     return;
   }
 
   let currentPage = 1;
   while (currentPage < targetPage) {
-    const responsePromise = waitForVendorListResponse(
-      page,
-      (response) =>
-        (response.headers()["content-type"] ?? "").includes("application/json")
+    const responsePromise = waitForVendorListResponse(page, (response) =>
+      (response.headers()["content-type"] ?? "").includes("application/json")
     );
     await page.getByRole("button", { name: "Siguiente" }).click();
     await responsePromise;
@@ -94,7 +89,10 @@ const openReporteModal = async (
 };
 
 // TODO: Restore sales report e2e scenarios when API authentication succeeds in tests.
-test.skip(true, "TODO: Restore sales report e2e when backend auth works in CI.");
+test.skip(
+  true,
+  "TODO: Restore sales report e2e when backend auth works in CI."
+);
 test.describe.serial("HUP-007 Consulta de reportes de vendedor", () => {
   let adminToken: string;
   let storagePayload: { user: unknown; permissions: string[] };
@@ -106,9 +104,13 @@ test.describe.serial("HUP-007 Consulta de reportes de vendedor", () => {
   const vendorsToCleanup: string[] = [];
 
   const ensureVendorPage = async (vendor: VendedorResponse) => {
-    const { page: vendorPage } = await findVendorPageViaApi(salesforceApi, vendor.id, {
-      limit: ITEMS_PER_PAGE,
-    });
+    const { page: vendorPage } = await findVendorPageViaApi(
+      salesforceApi,
+      vendor.id,
+      {
+        limit: ITEMS_PER_PAGE,
+      }
+    );
     return vendorPage;
   };
 
@@ -131,7 +133,10 @@ test.describe.serial("HUP-007 Consulta de reportes de vendedor", () => {
       meta: 150,
     });
 
-    const detail = await getVendedorDetalleViaApi(salesforceApi, vendorWithPlan.id);
+    const detail = await getVendedorDetalleViaApi(
+      salesforceApi,
+      vendorWithPlan.id
+    );
     expect(detail.planDeVenta).not.toBeNull();
 
     vendorWithoutPlan = await seedVendedor(
@@ -161,14 +166,14 @@ test.describe.serial("HUP-007 Consulta de reportes de vendedor", () => {
     await ensureAuthStorage(page, adminToken, storagePayload);
   });
 
-  test("Muestra el detalle del plan de venta con indicadores y cumplimiento", async ({ page }) => {
+  test("Muestra el detalle del plan de venta con indicadores y cumplimiento", async ({
+    page,
+  }) => {
     const tracker = trackVendedoresRequests(page);
 
     try {
-      const listResponsePromise = waitForVendorListResponse(
-        page,
-        (response) =>
-          (response.headers()["content-type"] ?? "").includes("application/json")
+      const listResponsePromise = waitForVendorListResponse(page, (response) =>
+        (response.headers()["content-type"] ?? "").includes("application/json")
       );
       await gotoVendedores(page);
       await listResponsePromise;
@@ -207,14 +212,14 @@ test.describe.serial("HUP-007 Consulta de reportes de vendedor", () => {
     }
   });
 
-  test("Muestra mensaje cuando el vendedor no tiene plan de venta asignado", async ({ page }) => {
+  test("Muestra mensaje cuando el vendedor no tiene plan de venta asignado", async ({
+    page,
+  }) => {
     const tracker = trackVendedoresRequests(page);
 
     try {
-      const listResponsePromise = waitForVendorListResponse(
-        page,
-        (response) =>
-          (response.headers()["content-type"] ?? "").includes("application/json")
+      const listResponsePromise = waitForVendorListResponse(page, (response) =>
+        (response.headers()["content-type"] ?? "").includes("application/json")
       );
       await gotoVendedores(page);
       await listResponsePromise;
@@ -248,14 +253,14 @@ test.describe.serial("HUP-007 Consulta de reportes de vendedor", () => {
     }
   });
 
-  test("Calcula cumplimiento en 0% cuando no hay unidades vendidas", async ({ page }) => {
+  test("Calcula cumplimiento en 0% cuando no hay unidades vendidas", async ({
+    page,
+  }) => {
     const tracker = trackVendedoresRequests(page);
 
     try {
-      const listResponsePromise = waitForVendorListResponse(
-        page,
-        (response) =>
-          (response.headers()["content-type"] ?? "").includes("application/json")
+      const listResponsePromise = waitForVendorListResponse(page, (response) =>
+        (response.headers()["content-type"] ?? "").includes("application/json")
       );
       await gotoVendedores(page);
       await listResponsePromise;
@@ -282,20 +287,24 @@ test.describe.serial("HUP-007 Consulta de reportes de vendedor", () => {
     }
   });
 
-  test("Muestra notificación de error cuando falla la consulta del reporte", async ({ page }) => {
+  test("Muestra notificación de error cuando falla la consulta del reporte", async ({
+    page,
+  }) => {
     const vendor = await seedVendedor(salesforceApi, `${SEED_PREFIX}-ERROR`);
 
-    const { page: vendorPage } = await findVendorPageViaApi(salesforceApi, vendor.id, {
-      limit: ITEMS_PER_PAGE,
-    });
+    const { page: vendorPage } = await findVendorPageViaApi(
+      salesforceApi,
+      vendor.id,
+      {
+        limit: ITEMS_PER_PAGE,
+      }
+    );
 
     const tracker = trackVendedoresRequests(page);
 
     try {
-      const listResponsePromise = waitForVendorListResponse(
-        page,
-        (response) =>
-          (response.headers()["content-type"] ?? "").includes("application/json")
+      const listResponsePromise = waitForVendorListResponse(page, (response) =>
+        (response.headers()["content-type"] ?? "").includes("application/json")
       );
       await gotoVendedores(page);
       await listResponsePromise;
@@ -306,7 +315,10 @@ test.describe.serial("HUP-007 Consulta de reportes de vendedor", () => {
 
       await deleteVendedorViaApi(salesforceApi, vendor.id);
 
-      const detailResponsePromise = waitForVendedorDetalleResponse(page, vendor.id);
+      const detailResponsePromise = waitForVendedorDetalleResponse(
+        page,
+        vendor.id
+      );
       await row.getByRole("button", { name: /Ver asignaciones/i }).click();
       const detailResponse = await detailResponsePromise;
       expect(detailResponse.ok()).toBeFalsy();
@@ -316,8 +328,12 @@ test.describe.serial("HUP-007 Consulta de reportes de vendedor", () => {
         page,
         "No se pudo cargar la información del vendedor"
       );
-      await expect(page.getByRole("dialog", { name: /Reporte Vendedor/i })).toHaveCount(0);
-      await expect(row.getByRole("button", { name: /Ver asignaciones/i })).toBeEnabled();
+      await expect(
+        page.getByRole("dialog", { name: /Reporte Vendedor/i })
+      ).toHaveCount(0);
+      await expect(
+        row.getByRole("button", { name: /Ver asignaciones/i })
+      ).toBeEnabled();
 
       tracker.assertAllAuthorized();
     } finally {

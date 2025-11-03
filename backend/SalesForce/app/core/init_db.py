@@ -4,15 +4,16 @@ import logging
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
 
+
 def init_db():
     """
     Inicializa la base de datos.
     Importa todos los modelos necesarios para que
     Base.metadata los conozca y cree las tablas.
     """
-    
+
     log.info("Importando modelos para la creación de tablas...")
-    
+
     # --- ¡IMPORTANTE! ---
     # Importa aquí TODOS los modelos que SQLAlchemy debe crear.
     # Al importarlos, se registran en Base.metadata.
@@ -21,15 +22,17 @@ def init_db():
         from app.modules.territories.models.territories_model import Territorio
         from app.modules.institutional_clients.models import InstitutionalClient
         from app.modules.salespeople.models.salespeople_model import Salespeople, Route
-        
+
         # Si tuvieras más modelos (ej. Productos), los importarías aquí también
         # from app.modules.products.models.bulk_products import Product
 
         log.info("Modelos importados correctamente.")
-        
+
     except ImportError as e:
         log.error(f"No se pudieron importar los modelos: {e}")
-        log.error("Asegúrate de que los paths de importación son correctos y que los archivos existen.")
+        log.error(
+            "Asegúrate de que los paths de importación son correctos y que los archivos existen."
+        )
         log.error("No se crearán tablas.")
         return
 

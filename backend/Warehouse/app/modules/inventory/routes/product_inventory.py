@@ -105,7 +105,6 @@ def read_inventory_by_batch(batch_number: str, db: Session = Depends(get_db)):
 def get_product_inventory_summary(product_id: str, db: Session = Depends(get_db)):
     """
     Obtiene resumen del inventario de un producto
-
     Retorna:
     - Cantidad total
     - Número de bodegas donde está disponible
@@ -118,7 +117,6 @@ def get_product_inventory_summary(product_id: str, db: Session = Depends(get_db)
 def get_warehouse_summary_endpoint(warehouse_id: str, db: Session = Depends(get_db)):
     """
     Obtiene resumen del inventario de una bodega
-
     Retorna:
     - Nombre de la bodega
     - Total de productos diferentes

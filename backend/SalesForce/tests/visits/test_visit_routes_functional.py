@@ -15,7 +15,6 @@ def _require_endpoint(response, message: str):
     return response
 
 
-
 def test_create_visit_endpoint_success(client, visit_payload_factory):
     payload = visit_payload_factory()
 
@@ -31,9 +30,10 @@ def test_create_visit_endpoint_success(client, visit_payload_factory):
     assert "id" in data
 
 
-
 # TODO: Fix visit creation validation to reject invalid departure times consistently.
-@pytest.mark.skip(reason="TODO: Fix visit creation validation to reject invalid departure times consistently.")
+@pytest.mark.skip(
+    reason="TODO: Fix visit creation validation to reject invalid departure times consistently."
+)
 def test_create_visit_endpoint_rejects_invalid_departure(client, visit_payload_factory):
     payload = visit_payload_factory()
     visit_time = datetime.fromisoformat(payload["hora"])
@@ -47,7 +47,6 @@ def test_create_visit_endpoint_rejects_invalid_departure(client, visit_payload_f
     assert response.status_code in {400, 422}
     body = response.json()
     assert "detail" in body
-
 
 
 def test_list_visits_endpoint_returns_paginated_data(client, visit_payload_factory):
@@ -78,7 +77,6 @@ def test_list_visits_endpoint_returns_paginated_data(client, visit_payload_facto
     assert len(payload["data"]) == min(2, payload["total"])
 
 
-
 def test_retrieve_visit_endpoint(client, visit_payload_factory):
     payload = visit_payload_factory()
     create_response = _require_endpoint(
@@ -95,7 +93,6 @@ def test_retrieve_visit_endpoint(client, visit_payload_factory):
 
     assert response.status_code == 200
     assert response.json()["id"] == visit_id
-
 
 
 def test_mark_departure_endpoint_updates_visit(client, visit_payload_factory):
@@ -118,7 +115,6 @@ def test_mark_departure_endpoint_updates_visit(client, visit_payload_factory):
 
     assert response.status_code == 200
     assert response.json()["hora_salida"].startswith(new_departure.isoformat()[:19])
-
 
 
 def test_mark_departure_endpoint_requires_existing_visit(client):
