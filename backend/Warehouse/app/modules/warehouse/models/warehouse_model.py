@@ -4,7 +4,7 @@ from sqlalchemy.orm import relationship
 from app.core.database import Base
 
 
-class Warehouse(Base):
+class WarehouseV1(Base):
     __tablename__ = "warehouses"
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))

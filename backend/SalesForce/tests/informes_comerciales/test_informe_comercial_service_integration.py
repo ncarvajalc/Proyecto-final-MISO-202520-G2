@@ -124,8 +124,6 @@ def test_list_informes_ordered_by_fecha_desc(db_session, fake: Faker):
         ), "Informes should be ordered by fecha descending"
 
 
-# TODO: Fix informes list service returning non-zero totals for empty datasets.
-@pytest.mark.skip(reason="TODO: Fix informes list service returning non-zero totals for empty datasets.")
 def test_list_informes_with_no_data(db_session):
     """Test that list service handles empty database correctly."""
     result = service.list_informes_comerciales(db_session, page=1, limit=10)
