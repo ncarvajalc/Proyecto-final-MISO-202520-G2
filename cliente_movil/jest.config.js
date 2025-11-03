@@ -14,6 +14,7 @@ const createProject = (displayName, pattern) => ({
   ],
   moduleNameMapper: {
     '^expo$': path.resolve(__dirname, '__mocks__/expo.ts'),
+    '^expo-location$': path.resolve(__dirname, '__mocks__/expo-location.ts'),
     '^react-native/Libraries/BatchedBridge/NativeModules$': path.resolve(__dirname, 'jest.native-modules.mock.js'),
   },
 });

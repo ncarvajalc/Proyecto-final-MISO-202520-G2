@@ -1,5 +1,4 @@
 from typing import List
-from app.modules.inventory.services import inventory_service
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from app.core.database import get_db
@@ -77,20 +76,12 @@ def read_inventory_by_warehouse(
     return read_by_warehouse(db, warehouse_id=warehouse_id, page=page, limit=limit)
 
 
-@router.get("/producto/{product_id}", response_model=ProductInventory)
-def get_product_inventory(
-    product_id: int,
-    db: Session = Depends(get_db),
-) -> ProductInventory:
+@router.get("/producto/{product_id}", response_model=List[ProductInventory])
+def read_inventory_by_product(product_id: str, db: Session = Depends(get_db)):
     """
-    Get inventory information for a specific product.
-
-    Returns stock levels across all warehouses for the given product.
+    Obtiene todo el inventario de un producto en todas las bodegas
     """
-    try:
-        return inventory_service.get_product_inventory(db, product_id)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return read_by_product(db, product_id=product_id)
 
 
 @router.get("/lote/{batch_number}", response_model=List[ProductInventory])
