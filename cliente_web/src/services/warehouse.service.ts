@@ -270,7 +270,7 @@ export const getProductLocationInWarehouse = async (
   request: ProductWarehouseLocationRequest
 ): Promise<ProductWarehouseLocation> =>
   fetchWarehouseLocation<ProductWarehouseLocation>(
-    "/productos/localizacion-bodega/",
+    "/productos/localizacion-bodega",
     {
       sku: request.sku,
       bodegaId: request.bodegaId,
