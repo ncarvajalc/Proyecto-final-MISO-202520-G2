@@ -32,9 +32,13 @@ describe("visitService", () => {
 
       const mockResponse: Visit = {
         id: "visit-123",
-        ...visitPayload,
+        nombre_institucion: visitPayload.nombre_institucion,
+        direccion: visitPayload.direccion,
+        hora: visitPayload.hora,
+        estado: visitPayload.estado,
         desplazamiento_minutos: 25,
         hora_salida: null,
+        observacion: visitPayload.observacion || null,
         multimedia: [],
         created_at: "2024-11-20T10:00:00.000Z",
         updated_at: "2024-11-20T10:00:00.000Z",
@@ -169,8 +173,13 @@ describe("visitService", () => {
 
       const mockResponse: Visit = {
         id: "visit-789",
-        ...visitPayload,
-        hora_salida: visitPayload.hora_salida!,
+        nombre_institucion: visitPayload.nombre_institucion,
+        direccion: visitPayload.direccion,
+        hora: visitPayload.hora,
+        estado: visitPayload.estado,
+        desplazamiento_minutos: visitPayload.desplazamiento_minutos || null,
+        hora_salida: visitPayload.hora_salida || null,
+        observacion: visitPayload.observacion || null,
         multimedia: [
           {
             id: "media-3",
@@ -216,9 +225,13 @@ describe("visitService", () => {
 
       const mockResponse: Visit = {
         id: "visit-empty",
-        ...visitPayload,
+        nombre_institucion: visitPayload.nombre_institucion,
+        direccion: visitPayload.direccion,
+        hora: visitPayload.hora,
+        estado: visitPayload.estado,
         desplazamiento_minutos: null,
         hora_salida: null,
+        observacion: null,
         multimedia: [],
         created_at: "2024-11-22T10:00:00.000Z",
         updated_at: "2024-11-22T10:00:00.000Z",

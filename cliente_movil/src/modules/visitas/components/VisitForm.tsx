@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   View,
   Text,
@@ -8,10 +8,18 @@ import {
   Platform,
   TouchableOpacity,
   Modal,
+  Alert,
+  Image,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Picker } from "@react-native-picker/picker";
-import { VisitCreate } from "../../../types/visit";
+import { VisitCreate, MultimediaFile } from "../../../types/visit";
+import {
+  takePhoto,
+  recordVideo,
+  pickImage,
+  pickVideo,
+} from "../../../utils/multimediaUtils";
 
 interface VisitFormProps {
   onSubmit: (visit: VisitCreate) => void;
@@ -19,8 +27,14 @@ interface VisitFormProps {
   initialClientName?: string;
 }
 
-export const VisitForm: React.FC<VisitFormProps> = ({ onSubmit, onCancel, initialClientName }) => {
-  const [nombreInstitucion, setNombreInstitucion] = useState(initialClientName || "");
+export const VisitForm: React.FC<VisitFormProps> = ({
+  onSubmit,
+  onCancel,
+  initialClientName,
+}) => {
+  const [nombreInstitucion, setNombreInstitucion] = useState(
+    initialClientName || ""
+  );
   const [direccion, setDireccion] = useState("");
   const [hora, setHora] = useState(new Date());
   const [showHoraPicker, setShowHoraPicker] = useState(false);
@@ -31,6 +45,8 @@ export const VisitForm: React.FC<VisitFormProps> = ({ onSubmit, onCancel, initia
   const [observacion, setObservacion] = useState("");
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [multimediaFiles, setMultimediaFiles] = useState<MultimediaFile[]>([]);
+  const [showMultimediaModal, setShowMultimediaModal] = useState(false);
 
   const estadoOptions = ["Programada", "En progreso", "Realizada", "Cancelada"];
 
@@ -63,7 +79,61 @@ export const VisitForm: React.FC<VisitFormProps> = ({ onSubmit, onCancel, initia
       visit.observacion = observacion;
     }
 
+    if (multimediaFiles.length > 0) {
+      visit.files = multimediaFiles;
+    }
+
     onSubmit(visit);
+  };
+
+  const handleAddMultimedia = () => {
+    setShowMultimediaModal(true);
+  };
+
+  const handleTakePhoto = async () => {
+    const photo = await takePhoto();
+    if (photo) {
+      setMultimediaFiles([...multimediaFiles, photo]);
+      setShowMultimediaModal(false);
+    }
+  };
+
+  const handleRecordVideo = async () => {
+    const video = await recordVideo();
+    if (video) {
+      setMultimediaFiles([...multimediaFiles, video]);
+      setShowMultimediaModal(false);
+    }
+  };
+
+  const handlePickImage = async () => {
+    const image = await pickImage();
+    if (image) {
+      setMultimediaFiles([...multimediaFiles, image]);
+      setShowMultimediaModal(false);
+    }
+  };
+
+  const handlePickVideo = async () => {
+    const video = await pickVideo();
+    if (video) {
+      setMultimediaFiles([...multimediaFiles, video]);
+      setShowMultimediaModal(false);
+    }
+  };
+
+  const handleRemoveFile = (index: number) => {
+    Alert.alert("Eliminar archivo", "¿Está seguro de eliminar este archivo?", [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: "Eliminar",
+        style: "destructive",
+        onPress: () => {
+          const newFiles = multimediaFiles.filter((_, i) => i !== index);
+          setMultimediaFiles(newFiles);
+        },
+      },
+    ]);
   };
 
   const handleConfirmCancel = () => {
@@ -73,7 +143,10 @@ export const VisitForm: React.FC<VisitFormProps> = ({ onSubmit, onCancel, initia
 
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+      >
         <View style={styles.form}>
           <Text style={styles.label}>Nombre Institución *</Text>
           <TextInput
@@ -127,8 +200,12 @@ export const VisitForm: React.FC<VisitFormProps> = ({ onSubmit, onCancel, initia
             style={styles.input}
             onPress={() => setShowHoraSalidaPicker(true)}
           >
-            <Text style={[styles.dateText, !horaSalida && styles.placeholderText]}>
-              {horaSalida ? horaSalida.toLocaleString("es-ES") : "Seleccionar hora de salida"}
+            <Text
+              style={[styles.dateText, !horaSalida && styles.placeholderText]}
+            >
+              {horaSalida
+                ? horaSalida.toLocaleString("es-ES")
+                : "Seleccionar hora de salida"}
             </Text>
           </TouchableOpacity>
           {showHoraSalidaPicker && (
@@ -168,9 +245,49 @@ export const VisitForm: React.FC<VisitFormProps> = ({ onSubmit, onCancel, initia
             textAlignVertical="top"
           />
 
-          <TouchableOpacity style={styles.multimediaButton}>
-            <Text style={styles.multimediaButtonText}>Agregar Multimedia</Text>
+          <TouchableOpacity
+            style={styles.multimediaButton}
+            onPress={handleAddMultimedia}
+          >
+            <Text style={styles.multimediaButtonText}>
+              Agregar Multimedia{" "}
+              {multimediaFiles.length > 0 && `(${multimediaFiles.length})`}
+            </Text>
           </TouchableOpacity>
+
+          {/* Display selected multimedia files */}
+          {multimediaFiles.length > 0 && (
+            <View style={styles.filesContainer}>
+              <Text style={styles.filesTitle}>Archivos seleccionados:</Text>
+              {multimediaFiles.map((file, index) => (
+                <View key={index} style={styles.fileItem}>
+                  {file.type.startsWith("image/") && (
+                    <Image
+                      source={{ uri: file.uri }}
+                      style={styles.fileThumbnail}
+                    />
+                  )}
+                  {file.type.startsWith("video/") && (
+                    <View style={styles.videoThumbnail}>
+                      <Text style={styles.videoIcon}>🎥</Text>
+                    </View>
+                  )}
+                  <View style={styles.fileInfo}>
+                    <Text style={styles.fileName} numberOfLines={1}>
+                      {file.name}
+                    </Text>
+                    <Text style={styles.fileType}>{file.type}</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.removeButton}
+                    onPress={() => handleRemoveFile(index)}
+                  >
+                    <Text style={styles.removeButtonText}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
 
           <View style={styles.buttonContainer}>
             <TouchableOpacity
@@ -200,7 +317,8 @@ export const VisitForm: React.FC<VisitFormProps> = ({ onSubmit, onCancel, initia
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Guardar registro?</Text>
             <Text style={styles.modalText}>
-              Al Guardar, la información registrada será registrada en la base de datos de lo contrario regresara la pantalla anterior.
+              Al Guardar, la información registrada será registrada en la base
+              de datos de lo contrario regresara la pantalla anterior.
             </Text>
             <View style={styles.modalButtons}>
               <TouchableOpacity
@@ -231,7 +349,8 @@ export const VisitForm: React.FC<VisitFormProps> = ({ onSubmit, onCancel, initia
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Cancelar Guardado?</Text>
             <Text style={styles.modalText}>
-              Al Cancelar, se regresara listado de visitas de la institución, de lo contrario regresara la pantalla anterior.
+              Al Cancelar, se regresara listado de visitas de la institución, de
+              lo contrario regresara la pantalla anterior.
             </Text>
             <View style={styles.modalButtons}>
               <TouchableOpacity
@@ -247,6 +366,87 @@ export const VisitForm: React.FC<VisitFormProps> = ({ onSubmit, onCancel, initia
                 <Text style={styles.modalButtonTextPrimary}>Cancelar</Text>
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Multimedia selection modal */}
+      <Modal
+        visible={showMultimediaModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowMultimediaModal(false)}
+      >
+        <View style={styles.multimediaModalOverlay}>
+          <View style={styles.multimediaModalContent}>
+            <Text style={styles.modalTitle}>Seleccionar Multimedia</Text>
+            <Text style={styles.modalSubtitle}>
+              Fotos: Comprimidas a 50% calidad{"\n"}
+              Videos: Máximo 10 segundos
+            </Text>
+
+            <TouchableOpacity
+              style={styles.multimediaOption}
+              onPress={handleTakePhoto}
+            >
+              <Text style={styles.multimediaOptionIcon}>📸</Text>
+              <View style={styles.multimediaOptionText}>
+                <Text style={styles.multimediaOptionTitle}>Tomar Foto</Text>
+                <Text style={styles.multimediaOptionSubtitle}>
+                  Usar cámara para foto
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.multimediaOption}
+              onPress={handleRecordVideo}
+            >
+              <Text style={styles.multimediaOptionIcon}>🎥</Text>
+              <View style={styles.multimediaOptionText}>
+                <Text style={styles.multimediaOptionTitle}>Grabar Video</Text>
+                <Text style={styles.multimediaOptionSubtitle}>
+                  Grabar video (max 10s)
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.multimediaOption}
+              onPress={handlePickImage}
+            >
+              <Text style={styles.multimediaOptionIcon}>🖼️</Text>
+              <View style={styles.multimediaOptionText}>
+                <Text style={styles.multimediaOptionTitle}>Elegir Foto</Text>
+                <Text style={styles.multimediaOptionSubtitle}>
+                  Desde galería
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.multimediaOption}
+              onPress={handlePickVideo}
+            >
+              <Text style={styles.multimediaOptionIcon}>📹</Text>
+              <View style={styles.multimediaOptionText}>
+                <Text style={styles.multimediaOptionTitle}>Elegir Video</Text>
+                <Text style={styles.multimediaOptionSubtitle}>
+                  Desde galería (max 10s)
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.modalButton,
+                styles.modalButtonSecondary,
+                { marginTop: 16 },
+              ]}
+              onPress={() => setShowMultimediaModal(false)}
+            >
+              <Text style={styles.modalButtonTextSecondary}>Cancelar</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -398,5 +598,118 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     fontSize: 16,
     fontWeight: "500",
+  },
+  // Multimedia styles
+  filesContainer: {
+    marginTop: 16,
+    backgroundColor: "#f8fafc",
+    borderRadius: 8,
+    padding: 12,
+  },
+  filesTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#0f172a",
+    marginBottom: 12,
+  },
+  fileItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#ffffff",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+  },
+  fileThumbnail: {
+    width: 50,
+    height: 50,
+    borderRadius: 6,
+    marginRight: 12,
+  },
+  videoThumbnail: {
+    width: 50,
+    height: 50,
+    borderRadius: 6,
+    marginRight: 12,
+    backgroundColor: "#1e293b",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  videoIcon: {
+    fontSize: 24,
+  },
+  fileInfo: {
+    flex: 1,
+  },
+  fileName: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#0f172a",
+    marginBottom: 4,
+  },
+  fileType: {
+    fontSize: 12,
+    color: "#64748b",
+  },
+  removeButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#fee2e2",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  removeButtonText: {
+    color: "#dc2626",
+    fontSize: 18,
+    fontWeight: "600",
+  },
+  multimediaModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-end",
+  },
+  multimediaModalContent: {
+    backgroundColor: "#ffffff",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 24,
+    width: "100%",
+    maxHeight: "80%",
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: "#64748b",
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  multimediaOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f8fafc",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+  },
+  multimediaOptionIcon: {
+    fontSize: 32,
+    marginRight: 16,
+  },
+  multimediaOptionText: {
+    flex: 1,
+  },
+  multimediaOptionTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#0f172a",
+    marginBottom: 4,
+  },
+  multimediaOptionSubtitle: {
+    fontSize: 14,
+    color: "#64748b",
   },
 });
