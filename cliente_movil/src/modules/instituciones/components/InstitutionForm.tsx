@@ -8,17 +8,16 @@ import {
   TouchableOpacity,
   Modal,
   Alert,
-  KeyboardAvoidingView,
   Platform,
 } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { InstitutionalClientCreate } from "../../../types/institutionalClient";
 
 interface InstitutionFormProps {
   onSubmit: (institution: InstitutionalClientCreate) => void;
   onCancel: () => void;
 }
-
 export const InstitutionForm: React.FC<InstitutionFormProps> = ({ onSubmit, onCancel }) => {
   const [nombreInstitucion, setNombreInstitucion] = useState("");
   const [direccion, setDireccion] = useState("");
@@ -33,6 +32,7 @@ export const InstitutionForm: React.FC<InstitutionFormProps> = ({ onSubmit, onCa
   const [errors, setErrors] = useState<{[key: string]: string}>({});
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const handlePickDocument = async () => {
     try {
@@ -113,13 +113,13 @@ export const InstitutionForm: React.FC<InstitutionFormProps> = ({ onSubmit, onCa
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-    >
+    <React.Fragment>
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: styles.scrollContent.paddingBottom + insets.bottom }
+        ]}
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.form}>
@@ -320,17 +320,18 @@ export const InstitutionForm: React.FC<InstitutionFormProps> = ({ onSubmit, onCa
           </View>
         </View>
       </Modal>
-    </KeyboardAvoidingView>
+    </React.Fragment>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#ffffff",
-  },
   scrollView: {
     flex: 1,
+    ...Platform.select({
+      web: {
+        overflow: "visible",
+      }
+    }),
   },
   scrollContent: {
     paddingBottom: 40,

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, StyleSheet, Alert, Text } from "react-native";
+import { View, StyleSheet, Alert, Text, KeyboardAvoidingView, Platform, } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { InstitutionForm } from "../components/InstitutionForm";
@@ -44,7 +44,10 @@ export const InstitutionRegistrationScreen: React.FC = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
       {/* Title */}
       <View style={styles.header}>
         <Text style={styles.title}>Registro de Institución</Text>
@@ -54,7 +57,7 @@ export const InstitutionRegistrationScreen: React.FC = () => {
         onSubmit={handleSubmit}
         onCancel={handleCancel}
       />
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 
