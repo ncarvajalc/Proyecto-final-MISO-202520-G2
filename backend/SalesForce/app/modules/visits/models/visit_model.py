@@ -1,5 +1,6 @@
 import uuid
 from sqlalchemy import Column, String, DateTime, Integer, Text, TIMESTAMP, func
+from sqlalchemy.orm import relationship
 
 from app.core.database import Base
 
@@ -17,3 +18,6 @@ class Visit(Base):
     observacion = Column(Text, nullable=True)
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
+
+    # Relationship to VisitMultimedia (one-to-many, nullable)
+    multimedia = relationship("VisitMultimedia", back_populates="visit", cascade="all, delete-orphan")
