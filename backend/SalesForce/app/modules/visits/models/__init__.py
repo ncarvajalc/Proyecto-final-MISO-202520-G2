@@ -1,3 +1,3 @@
 from .visit_model import Visit
-
-__all__ = ["Visit"]
+from .visit_multimedia_model import VisitMultimedia
+__all__ = ["Visit", "VisitMultimedia"]

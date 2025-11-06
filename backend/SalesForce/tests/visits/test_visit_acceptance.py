@@ -43,8 +43,20 @@ def test_visit_registration_end_to_end(client, db_session, visit_payload_factory
 
     payload = visit_payload_factory(hours_ahead=2, overrides={"desplazamiento_minutos": 20})
 
+    # Convert to form data for multipart/form-data endpoint
+    form_data = {
+        "nombre_institucion": payload["nombre_institucion"],
+        "direccion": payload["direccion"],
+        "hora": payload["hora"],
+        "estado": payload["estado"],
+        "desplazamiento_minutos": str(payload["desplazamiento_minutos"]),
+        "observacion": payload["observacion"],
+    }
+    if "hora_salida" in payload and payload["hora_salida"]:
+        form_data["hora_salida"] = payload["hora_salida"]
+
     create_response = _require_endpoint(
-        client.post("/visitas/", json=payload),
+        client.post("/visitas/", data=form_data),
         "Visit creation endpoint not implemented yet",
     )
     assert create_response.status_code in {200, 201}

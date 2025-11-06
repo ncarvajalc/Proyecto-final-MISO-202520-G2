@@ -27,6 +27,14 @@ jest.mock("expo-document-picker", () => ({
   getDocumentAsync: jest.fn(async () => ({ canceled: true })),
 }));
 
+// Mock multimedia utilities
+jest.mock("../src/utils/multimediaUtils", () => ({
+  takePhoto: jest.fn(),
+  recordVideo: jest.fn(),
+  pickImage: jest.fn(),
+  pickVideo: jest.fn(),
+}));
+
 jest.mock("@react-native-community/datetimepicker", () => {
   const React = require("react");
   const listeners: Array<(event: unknown, date?: Date) => void> = [];

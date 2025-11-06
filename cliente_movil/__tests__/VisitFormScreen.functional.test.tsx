@@ -4,6 +4,14 @@ import { fireEvent, render, waitFor } from "@testing-library/react-native";
 import { VisitFormScreen } from "../src/modules/visitas/screens/VisitFormScreen";
 import { visitService } from "../src/services/visitService";
 
+// Mock multimedia utilities
+jest.mock("../src/utils/multimediaUtils", () => ({
+  takePhoto: jest.fn(),
+  recordVideo: jest.fn(),
+  pickImage: jest.fn(),
+  pickVideo: jest.fn(),
+}));
+
 const mockGoBack = jest.fn();
 
 jest.mock("@react-navigation/native", () => ({

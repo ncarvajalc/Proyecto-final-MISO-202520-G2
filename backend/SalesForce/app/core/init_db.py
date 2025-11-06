@@ -21,7 +21,8 @@ def init_db():
         from app.modules.territories.models.territories_model import Territorio
         from app.modules.institutional_clients.models import InstitutionalClient
         from app.modules.salespeople.models.salespeople_model import Salespeople, Route
-        
+        from app.modules.visits.models import Visit, VisitMultimedia
+
         # Si tuvieras más modelos (ej. Productos), los importarías aquí también
         # from app.modules.products.models.bulk_products import Product
 
