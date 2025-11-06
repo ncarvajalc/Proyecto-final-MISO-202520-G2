@@ -11,11 +11,13 @@ from typing import (
     Any,
     Dict,
     Iterable,
+    List,
     Mapping,
     MutableMapping,
     Optional,
     Tuple,
     Type,
+    Union,
 )
 from uuid import uuid4
 from urllib.parse import urlencode, urljoin, urlsplit
@@ -263,7 +265,7 @@ def _expand_params(params: Mapping[str, Any]) -> Iterable[Tuple[str, Any]]:
 
 def encode_multipart(
     data: Mapping[str, Any],
-    files: Mapping[str, Tuple[str, Any, Optional[str]]],
+    files: Union[Mapping[str, Tuple[str, Any, Optional[str]]], List[Tuple[str, Tuple[str, Any, Optional[str]]]]],
 ) -> Tuple[bytes, str]:
     boundary = f"----TestClientBoundary{uuid4().hex}"
     buffer = io.BytesIO()
@@ -278,7 +280,12 @@ def encode_multipart(
         buffer.write(str(value).encode("utf-8"))
         buffer.write(b"\r\n")
 
-    for key, file_info in files.items():
+    # Handle both dict and list formats for files
+    # Dict format: {"key": (filename, content, content_type)}
+    # List format: [("key", (filename, content, content_type)), ...]
+    files_items = files.items() if isinstance(files, Mapping) else files
+
+    for key, file_info in files_items:
         filename, content, content_type = file_info
         buffer.write(b"--" + boundary_bytes + b"\r\n")
         disposition = (

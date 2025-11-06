@@ -52,7 +52,6 @@ def test_create_visit_with_single_file(client, visit_payload_factory):
     assert data["multimedia"][0]["file_size"] == len(file_content)
 
 
-@pytest.mark.skip(reason="TestClient limitation: doesn't support multiple files with same key")
 def test_create_visit_with_multiple_files(client, visit_payload_factory):
     """Test creating a visit with multiple multimedia files."""
     payload = visit_payload_factory()
@@ -61,10 +60,11 @@ def test_create_visit_with_multiple_files(client, visit_payload_factory):
     image_content = b"\xFF\xD8\xFF\xE0\x00\x10JFIF fake image"
     video_content = b"\x00\x00\x00\x18ftypmp42 fake video"
 
-    # Note: In real usage, multiple files work fine. This is a test client limitation.
-    files = {
-        "files": ("image.jpg", image_content, "image/jpeg"),
-    }
+    # Use list format to upload multiple files with the same key
+    files = [
+        ("files", ("image.jpg", image_content, "image/jpeg")),
+        ("files", ("video.mp4", video_content, "video/mp4")),
+    ]
 
     form_data = {
         "nombre_institucion": payload["nombre_institucion"],
