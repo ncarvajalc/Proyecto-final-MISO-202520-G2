@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -48,6 +48,7 @@ interface FormContentProps {
   setSelectedState: (value: string) => void;
   setSelectedCity: (value: string) => void;
   loadingTerritories: boolean;
+  isFormValid: boolean;
 }
 
 const FormContent: React.FC<FormContentProps> = ({
@@ -79,7 +80,8 @@ const FormContent: React.FC<FormContentProps> = ({
   setSelectedCountry,
   setSelectedState,
   setSelectedCity,
-  loadingTerritories
+  loadingTerritories,
+  isFormValid
 }) => (
   <View style={styles.form}>
     {/* Nombre Institución */}
@@ -252,10 +254,18 @@ const FormContent: React.FC<FormContentProps> = ({
     {/* Action Buttons */}
     <View style={styles.buttonContainer}>
       <TouchableOpacity
-        style={[styles.actionButton, styles.saveButton]}
+        style={[
+          styles.actionButton,
+          styles.saveButton,
+          !isFormValid && styles.disabledButton
+        ]}
         onPress={handleSavePress}
+        disabled={!isFormValid}
       >
-        <Text style={styles.actionButtonText}>Registrar</Text>
+        <Text style={[
+          styles.actionButtonText,
+          !isFormValid && styles.disabledButtonText
+        ]}>Registrar</Text>
       </TouchableOpacity>
       <TouchableOpacity
         style={[styles.actionButton, styles.cancelButton]}
@@ -288,6 +298,7 @@ export const InstitutionForm: React.FC<InstitutionFormProps> = ({ onSubmit, onCa
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
+  const [isFormValid, setIsFormValid] = useState(false);
   const insets = useSafeAreaInsets();
 
   // Estados para territorios
@@ -377,6 +388,33 @@ export const InstitutionForm: React.FC<InstitutionFormProps> = ({ onSubmit, onCa
     }
   };
 
+  const checkFormValidity = useCallback(() => {
+    const isValid = !!(
+      nombreInstitucion.trim() &&
+      direccion.trim() &&
+      direccionInstitucional.trim() &&
+      /\S+@\S+\.\S+/.test(direccionInstitucional) &&
+      identificacionTributaria.trim() &&
+      representanteLegal.trim() &&
+      telefono.trim() &&
+      selectedCity
+    );
+    setIsFormValid(isValid);
+    return isValid;
+  }, [
+    nombreInstitucion,
+    direccion,
+    direccionInstitucional,
+    identificacionTributaria,
+    representanteLegal,
+    telefono,
+    selectedCity
+  ]);
+
+  useEffect(() => {
+    checkFormValidity();
+  }, [checkFormValidity]);
+
   const validateForm = (): boolean => {
     const newErrors: {[key: string]: string} = {};
 
@@ -405,7 +443,9 @@ export const InstitutionForm: React.FC<InstitutionFormProps> = ({ onSubmit, onCa
     }
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    const isValid = Object.keys(newErrors).length === 0;
+    setIsFormValid(isValid);
+    return isValid;
   };
 
   const handleSavePress = () => {
@@ -493,6 +533,7 @@ export const InstitutionForm: React.FC<InstitutionFormProps> = ({ onSubmit, onCa
       setSelectedState={setSelectedState}
       setSelectedCity={setSelectedCity}
       loadingTerritories={loadingTerritories}
+      isFormValid={isFormValid}
     />
   );
 
@@ -648,6 +689,12 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     flex: 1,
     paddingVertical: 12,
+  },
+  disabledButton: {
+    opacity: 0.5,
+  },
+  disabledButtonText: {
+    opacity: 0.7,
   },
   actionButtonText: {
     color: "#ffffff",
