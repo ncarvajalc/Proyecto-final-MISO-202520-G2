@@ -40,6 +40,17 @@ def read_territorios(
     """Obtiene una lista de territorios."""
     return service.get_all(db, skip=skip, limit=limit)
 
+@router.get("/paises", response_model=List[schemas.Territory])
+def get_full_tree(
+    db: Session = Depends(get_db),
+    service: services.TerritoryService = Depends(get_territory_service)
+):
+    """
+    Obtiene la estructura de árbol completa de todos los territorios, 
+    empezando desde los nodos raíz (sin padre).
+    """
+    return service.get_full_tree(db)
+
 
 @router.get("/{territorio_id}", response_model=schemas.Territory)
 def read_territorio(
@@ -70,19 +81,6 @@ def delete_territorio(
 ):
     """Elimina un territorio."""
     return service.delete(db, territorio_id=territorio_id)
-
-
-@router.get("/todos", response_model=List[schemas.TerritoryWithChildren])
-def get_full_tree(
-    db: Session = Depends(get_db),
-    service: services.TerritoryService = Depends(get_territory_service)
-):
-    """
-    Obtiene la estructura de árbol completa de todos los territorios, 
-    empezando desde los nodos raíz (sin padre).
-    """
-    return service.get_full_tree(db)
-
 
 @router.get("/{territorio_id}/hijos", response_model=List[schemas.Territory])
 def get_territorio_children(
