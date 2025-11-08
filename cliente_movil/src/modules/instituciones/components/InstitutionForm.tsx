@@ -32,8 +32,7 @@ interface FormContentProps {
   setTelefono: (value: string) => void;
   justificacionAcceso: string;
   setJustificacionAcceso: (value: string) => void;
-  territoryId: string;
-  setTerritoryId: (value: string) => void;
+
   errors: {[key: string]: string};
   certificadoCamaraName: string | null;
   handlePickDocument: () => void;
@@ -269,7 +268,7 @@ const FormContent: React.FC<FormContentProps> = ({
 );
 
 interface InstitutionFormProps {
-  onSubmit: (institution: InstitutionalClientCreate) => void;
+  onSubmit: (institution: InstitutionalClientCreate) => Promise<void>;
   onCancel: () => void;
 }
 
@@ -283,10 +282,12 @@ export const InstitutionForm: React.FC<InstitutionFormProps> = ({ onSubmit, onCa
   const [justificacionAcceso, setJustificacionAcceso] = useState("");
   const [certificadoCamara, setCertificadoCamara] = useState<string | null>(null);
   const [certificadoCamaraName, setCertificadoCamaraName] = useState<string | null>(null);
-  const [territoryId, setTerritoryId] = useState("");
+
   const [errors, setErrors] = useState<{[key: string]: string}>({});
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
   const insets = useSafeAreaInsets();
 
   // Estados para territorios
@@ -417,7 +418,23 @@ export const InstitutionForm: React.FC<InstitutionFormProps> = ({ onSubmit, onCa
     setShowCancelModal(true);
   };
 
-  const handleConfirmSave = () => {
+  const resetForm = () => {
+    setNombreInstitucion("");
+    setDireccion("");
+    setDireccionInstitucional("");
+    setIdentificacionTributaria("");
+    setRepresentanteLegal("");
+    setTelefono("");
+    setJustificacionAcceso("");
+    setCertificadoCamara(null);
+    setCertificadoCamaraName(null);
+    setSelectedCountry("");
+    setSelectedState("");
+    setSelectedCity("");
+    setErrors({});
+  };
+
+  const handleConfirmSave = async () => {
     setShowSaveModal(false);
     const institutionData: InstitutionalClientCreate = {
       nombre_institucion: nombreInstitucion,
@@ -430,7 +447,13 @@ export const InstitutionForm: React.FC<InstitutionFormProps> = ({ onSubmit, onCa
       certificado_camara: certificadoCamara || undefined,
       territory_id: selectedCity || undefined,
     };
-    onSubmit(institutionData);
+    
+    try {
+      await onSubmit(institutionData);
+      setShowSuccessModal(true);
+    } catch (error) {
+      setShowErrorModal(true);
+    }
   };
 
   const handleConfirmCancel = () => {
@@ -454,8 +477,7 @@ export const InstitutionForm: React.FC<InstitutionFormProps> = ({ onSubmit, onCa
       setTelefono={setTelefono}
       justificacionAcceso={justificacionAcceso}
       setJustificacionAcceso={setJustificacionAcceso}
-      territoryId={territoryId}
-      setTerritoryId={setTerritoryId}
+
       errors={errors}
       certificadoCamaraName={certificadoCamaraName}
       handlePickDocument={handlePickDocument}
@@ -511,9 +533,9 @@ export const InstitutionForm: React.FC<InstitutionFormProps> = ({ onSubmit, onCa
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Guardar registro?</Text>
+            <Text style={styles.modalTitle}>¿Confirmar registro?</Text>
             <Text style={styles.modalText}>
-              Al Guardar, la información registrada será registrada en la base de datos de lo contrario regresara la pantalla anterior.
+              ¿Está seguro que desea registrar esta institución con la información ingresada?
             </Text>
             <View style={styles.modalButtons}>
               <TouchableOpacity
@@ -526,7 +548,7 @@ export const InstitutionForm: React.FC<InstitutionFormProps> = ({ onSubmit, onCa
                 style={[styles.modalButton, styles.modalButtonPrimary]}
                 onPress={handleConfirmSave}
               >
-                <Text style={styles.modalButtonTextPrimary}>Guardar</Text>
+                <Text style={styles.modalButtonTextPrimary}>Registrar</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -558,6 +580,59 @@ export const InstitutionForm: React.FC<InstitutionFormProps> = ({ onSubmit, onCa
                 onPress={handleConfirmCancel}
               >
                 <Text style={styles.modalButtonTextPrimary}>Cancelar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal de éxito */}
+      <Modal
+        visible={showSuccessModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowSuccessModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Registro Exitoso</Text>
+            <Text style={styles.modalText}>
+              La institución ha sido registrada correctamente en el sistema.
+            </Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonPrimary]}
+                onPress={() => {
+                  setShowSuccessModal(false);
+                  resetForm();
+                }}
+              >
+                <Text style={styles.modalButtonTextPrimary}>Aceptar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal de error */}
+      <Modal
+        visible={showErrorModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowErrorModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Error en el Registro</Text>
+            <Text style={styles.modalText}>
+              No se pudo registrar la institución. Por favor verifique la información e intente nuevamente.
+            </Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonPrimary]}
+                onPress={() => setShowErrorModal(false)}
+              >
+                <Text style={styles.modalButtonTextPrimary}>Aceptar</Text>
               </TouchableOpacity>
             </View>
           </View>
