@@ -18,6 +18,7 @@ interface InstitutionFormProps {
   onSubmit: (institution: InstitutionalClientCreate) => void;
   onCancel: () => void;
 }
+
 export const InstitutionForm: React.FC<InstitutionFormProps> = ({ onSubmit, onCancel }) => {
   const [nombreInstitucion, setNombreInstitucion] = useState("");
   const [direccion, setDireccion] = useState("");
@@ -103,7 +104,6 @@ export const InstitutionForm: React.FC<InstitutionFormProps> = ({ onSubmit, onCa
       certificado_camara: certificadoCamara || undefined,
       territory_id: territoryId || undefined,
     };
-
     onSubmit(institutionData);
   };
 
@@ -112,152 +112,171 @@ export const InstitutionForm: React.FC<InstitutionFormProps> = ({ onSubmit, onCa
     onCancel();
   };
 
+  const FormContent = () => (
+    <View style={styles.form}>
+      {/* Nombre Institución */}
+      <Text style={styles.label}>Nombre Institución</Text>
+      <TextInput
+        style={[styles.input, errors.nombreInstitucion && styles.inputError]}
+        placeholder="Nombre Institución"
+        placeholderTextColor="#cbd5e1"
+        value={nombreInstitucion}
+        onChangeText={setNombreInstitucion}
+      />
+      {errors.nombreInstitucion && (
+        <Text style={styles.errorText}>{errors.nombreInstitucion}</Text>
+      )}
+
+      {/* Dirección */}
+      <Text style={styles.label}>Dirección</Text>
+      <TextInput
+        style={[styles.input, errors.direccion && styles.inputError]}
+        placeholder="Dirección"
+        placeholderTextColor="#cbd5e1"
+        value={direccion}
+        onChangeText={setDireccion}
+      />
+      {errors.direccion && (
+        <Text style={styles.errorText}>{errors.direccion}</Text>
+      )}
+
+      {/* Dirección Institucional (Email) */}
+      <Text style={styles.label}>Dirección Institucional</Text>
+      <TextInput
+        style={[styles.input, errors.direccionInstitucional && styles.inputError]}
+        placeholder="correo@institucion.com"
+        placeholderTextColor="#cbd5e1"
+        value={direccionInstitucional}
+        onChangeText={setDireccionInstitucional}
+        keyboardType="email-address"
+        autoCapitalize="none"
+        autoCorrect={false}
+      />
+      {errors.direccionInstitucional && (
+        <Text style={styles.errorText}>{errors.direccionInstitucional}</Text>
+      )}
+
+      {/* Identificación Tributaria (NIT) */}
+      <Text style={styles.label}>Identificación Tributaria</Text>
+      <TextInput
+        style={[styles.input, errors.identificacionTributaria && styles.inputError]}
+        placeholder="NIT"
+        placeholderTextColor="#cbd5e1"
+        value={identificacionTributaria}
+        onChangeText={setIdentificacionTributaria}
+      />
+      {errors.identificacionTributaria && (
+        <Text style={styles.errorText}>{errors.identificacionTributaria}</Text>
+      )}
+
+      {/* Representante Legal */}
+      <Text style={styles.label}>Representante Legal</Text>
+      <TextInput
+        style={[styles.input, errors.representanteLegal && styles.inputError]}
+        placeholder="Representante Legal"
+        placeholderTextColor="#cbd5e1"
+        value={representanteLegal}
+        onChangeText={setRepresentanteLegal}
+      />
+      {errors.representanteLegal && (
+        <Text style={styles.errorText}>{errors.representanteLegal}</Text>
+      )}
+
+      {/* Teléfono */}
+      <Text style={styles.label}>Teléfono</Text>
+      <TextInput
+        style={[styles.input, errors.telefono && styles.inputError]}
+        placeholder="Teléfono"
+        placeholderTextColor="#cbd5e1"
+        value={telefono}
+        onChangeText={setTelefono}
+        keyboardType="phone-pad"
+      />
+      {errors.telefono && (
+        <Text style={styles.errorText}>{errors.telefono}</Text>
+      )}
+
+      {/* Justificación de Acceso (Optional) */}
+      <Text style={styles.label}>Justificación de Acceso</Text>
+      <TextInput
+        style={[styles.input, styles.textArea]}
+        placeholder="Justificación de acceso..."
+        placeholderTextColor="#cbd5e1"
+        value={justificacionAcceso}
+        onChangeText={setJustificacionAcceso}
+        multiline
+        numberOfLines={4}
+        textAlignVertical="top"
+      />
+
+      {/* Ciudad */}
+      <Text style={styles.label}>Ciudad</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Ciudad"
+        placeholderTextColor="#cbd5e1"
+        value={territoryId}
+        onChangeText={setTerritoryId}
+      />
+
+      {/* Certificado de Cámara de Comercio */}
+      <TouchableOpacity
+        style={styles.fileButton}
+        onPress={handlePickDocument}
+      >
+        <Text style={styles.fileButtonText}>
+          Certificado de Cámara de Comercio
+        </Text>
+      </TouchableOpacity>
+      {certificadoCamaraName && (
+        <Text style={styles.fileInfo}>Archivo: {certificadoCamaraName}</Text>
+      )}
+
+      {/* Action Buttons */}
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity
+          style={[styles.actionButton, styles.saveButton]}
+          onPress={handleSavePress}
+        >
+          <Text style={styles.actionButtonText}>Registrar</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.actionButton, styles.cancelButton]}
+          onPress={handleCancelPress}
+        >
+          <Text style={styles.actionButtonText}>Cancelar</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
   return (
     <React.Fragment>
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingBottom: styles.scrollContent.paddingBottom + insets.bottom }
-        ]}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={styles.form}>
-          {/* Nombre Institución */}
-          <Text style={styles.label}>Nombre Institución</Text>
-          <TextInput
-            style={[styles.input, errors.nombreInstitucion && styles.inputError]}
-            placeholder="Nombre Institución"
-            placeholderTextColor="#cbd5e1"
-            value={nombreInstitucion}
-            onChangeText={setNombreInstitucion}
-          />
-          {errors.nombreInstitucion && (
-            <Text style={styles.errorText}>{errors.nombreInstitucion}</Text>
-          )}
-
-          {/* Dirección */}
-          <Text style={styles.label}>Dirección</Text>
-          <TextInput
-            style={[styles.input, errors.direccion && styles.inputError]}
-            placeholder="Dirección"
-            placeholderTextColor="#cbd5e1"
-            value={direccion}
-            onChangeText={setDireccion}
-          />
-          {errors.direccion && (
-            <Text style={styles.errorText}>{errors.direccion}</Text>
-          )}
-
-          {/* Dirección Institucional (Email) */}
-          <Text style={styles.label}>Dirección Institucional</Text>
-          <TextInput
-            style={[styles.input, errors.direccionInstitucional && styles.inputError]}
-            placeholder="correo@institucion.com"
-            placeholderTextColor="#cbd5e1"
-            value={direccionInstitucional}
-            onChangeText={setDireccionInstitucional}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          {errors.direccionInstitucional && (
-            <Text style={styles.errorText}>{errors.direccionInstitucional}</Text>
-          )}
-
-          {/* Identificación Tributaria (NIT) */}
-          <Text style={styles.label}>Identificación Tributaria</Text>
-          <TextInput
-            style={[styles.input, errors.identificacionTributaria && styles.inputError]}
-            placeholder="NIT"
-            placeholderTextColor="#cbd5e1"
-            value={identificacionTributaria}
-            onChangeText={setIdentificacionTributaria}
-          />
-          {errors.identificacionTributaria && (
-            <Text style={styles.errorText}>{errors.identificacionTributaria}</Text>
-          )}
-
-          {/* Representante Legal */}
-          <Text style={styles.label}>Representante Legal</Text>
-          <TextInput
-            style={[styles.input, errors.representanteLegal && styles.inputError]}
-            placeholder="Representante Legal"
-            placeholderTextColor="#cbd5e1"
-            value={representanteLegal}
-            onChangeText={setRepresentanteLegal}
-          />
-          {errors.representanteLegal && (
-            <Text style={styles.errorText}>{errors.representanteLegal}</Text>
-          )}
-
-          {/* Teléfono */}
-          <Text style={styles.label}>Teléfono</Text>
-          <TextInput
-            style={[styles.input, errors.telefono && styles.inputError]}
-            placeholder="Teléfono"
-            placeholderTextColor="#cbd5e1"
-            value={telefono}
-            onChangeText={setTelefono}
-            keyboardType="phone-pad"
-          />
-          {errors.telefono && (
-            <Text style={styles.errorText}>{errors.telefono}</Text>
-          )}
-
-          {/* Justificación de Acceso (Optional) */}
-          <Text style={styles.label}>Justificación de Acceso</Text>
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            placeholder="Justificación de acceso..."
-            placeholderTextColor="#cbd5e1"
-            value={justificacionAcceso}
-            onChangeText={setJustificacionAcceso}
-            multiline
-            numberOfLines={4}
-            textAlignVertical="top"
-          />
-
-          {/* Ciudad */}
-          <Text style={styles.label}>Ciudad</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Ciudad"
-            placeholderTextColor="#cbd5e1"
-            value={territoryId}
-            onChangeText={setTerritoryId}
-          />
-
-          {/* Certificado de Cámara de Comercio */}
-          <TouchableOpacity
-            style={styles.fileButton}
-            onPress={handlePickDocument}
+      <View style={[styles.container, Platform.OS === 'web' && styles.webContainer]}>
+        {Platform.OS === 'web' ? (
+          <div style={{
+            flex: '1',
+            overflowY: 'auto',
+            height: '100%',
+            WebkitOverflowScrolling: 'touch'
+          }}>
+            <div style={{ padding: '20px' }}>
+              <FormContent />
+            </div>
+          </div>
+        ) : (
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={[
+              styles.scrollContent,
+              { paddingBottom: 40 + insets.bottom }
+            ]}
+            keyboardShouldPersistTaps="handled"
           >
-            <Text style={styles.fileButtonText}>
-              Certificado de Cámara de Comercio
-            </Text>
-          </TouchableOpacity>
-          {certificadoCamaraName && (
-            <Text style={styles.fileInfo}>Archivo: {certificadoCamaraName}</Text>
-          )}
-
-          {/* Action Buttons */}
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.saveButton]}
-              onPress={handleSavePress}
-            >
-              <Text style={styles.actionButtonText}>Registrar</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.cancelButton]}
-              onPress={handleCancelPress}
-            >
-              <Text style={styles.actionButtonText}>Cancelar</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </ScrollView>
+            <FormContent />
+          </ScrollView>
+        )}
+      </View>
 
       {/* Modal de confirmación de guardado */}
       <Modal
@@ -325,19 +344,26 @@ export const InstitutionForm: React.FC<InstitutionFormProps> = ({ onSubmit, onCa
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    position: 'relative',
+  },
+  webContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
   scrollView: {
     flex: 1,
-    ...Platform.select({
-      web: {
-        overflow: "visible",
-      }
-    }),
   },
   scrollContent: {
-    paddingBottom: 40,
+    flexGrow: 1,
   },
   form: {
     padding: 20,
+    marginTop: 20,
   },
   label: {
     fontSize: 14,

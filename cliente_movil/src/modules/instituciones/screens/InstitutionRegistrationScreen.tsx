@@ -6,6 +6,7 @@ import { InstitutionForm } from "../components/InstitutionForm";
 import { institutionalClientService } from "../../../services/institutionalClientService";
 import { InstitutionalClientCreate } from "../../../types/institutionalClient";
 import { RootStackParamList } from "../../../navigation/RootNavigator";
+import { colors } from "../../../constants/colors";
 
 type InstitutionRegistrationScreenNavigationProp = StackNavigationProp<
   RootStackParamList,
@@ -63,21 +64,31 @@ export const InstitutionRegistrationScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: {
+    backgroundColor: colors.white,
     flex: 1,
-    backgroundColor: "#ffffff",
+    ...(Platform.OS === 'web' ? {
+      height: '100%',
+      overflow: 'hidden',
+      position: 'relative',
+    } : {}),
   },
   header: {
+    backgroundColor: colors.white,
+    borderBottomColor: colors.slate200,
+    borderBottomWidth: 1,
+    paddingBottom: 12,
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 12,
-    backgroundColor: "#ffffff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e2e8f0",
+    ...(Platform.OS === 'web' ? {
+      position: 'relative',
+      top: 0,
+      zIndex: 1,
+    } : {}),
   },
   title: {
+    color: colors.slate900,
     fontSize: 24,
-    fontWeight: "bold",
-    color: "#0f172a",
-    textAlign: "left",
+    fontWeight: 'bold',
+    textAlign: 'left',
   },
 });
