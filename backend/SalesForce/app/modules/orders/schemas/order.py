@@ -54,3 +54,28 @@ class OrdersResponse(BaseModel):
     page: int
     limit: int
     total_pages: int
+
+class MostPurchasedProduct(BaseModel):
+    """
+    Esquema para un producto individual en el reporte.
+    """
+    product_id: int
+    product_name: str
+    current_unit_price: Decimal
+    total_quantity_sold: int
+    institutions: str
+    
+    model_config = ConfigDict(from_attributes=True)
+
+
+class MostPurchasedProductPaginatedResponse(BaseModel):
+    """
+    Esquema para la respuesta paginada de productos más comprados.
+    """
+    items: List[MostPurchasedProduct]
+    total: int
+    page: int
+    limit: int
+    total_pages: int
+    
+    model_config = ConfigDict(from_attributes=True)

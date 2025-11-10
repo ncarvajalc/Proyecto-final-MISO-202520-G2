@@ -4,12 +4,13 @@ from decimal import Decimal
 from typing import Dict, List
 
 import httpx
+import math
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from app.modules.institutional_clients.crud import get_institutional_client_by_id
-from app.modules.orders.crud import create_order_with_items
-from app.modules.orders.schemas import OrderCreate
+from app.modules.orders.crud import create_order_with_items, get_most_purchased_products
+from app.modules.orders.schemas import OrderCreate, MostPurchasedProduct, MostPurchasedProductPaginatedResponse
 
 # Service URLs
 PURCHASES_SUPPLIERS_URL = "http://purchases_suppliers:8001"
@@ -155,3 +156,36 @@ async def create_order_service(db: Session, order_create: OrderCreate):
     )
 
     return order
+
+
+def get_top_purchased_products(db: Session, page: int, limit: int) -> List[MostPurchasedProduct]:
+    """
+    obtener el reporte de productos más comprados.
+    """
+    crud_result = get_most_purchased_products(db, page=page, limit=limit)
+    
+    items_rows = crud_result["items"]
+    total_count = crud_result["total"]
+
+    # mapear los objetos
+    items_schemas = [
+        MostPurchasedProduct.model_validate(row) for row in items_rows
+    ]
+    
+    # calcular total_pages
+    total_pages = 0
+    if total_count > 0 and limit > 0:
+        total_pages = math.ceil(total_count / limit)
+    elif total_count == 0:
+        total_pages = 0
+    else:
+        total_pages = 1
+        
+    # construir la respuesta paginada final
+    return MostPurchasedProductPaginatedResponse(
+        items=items_schemas,
+        total=total_count,
+        page=page,
+        limit=limit,
+        total_pages=total_pages
+    )
