@@ -173,57 +173,71 @@ def get_top_institution_buyer_products(
     db: Session, page: int, limit: int
 ) -> Dict[str, Any]:
     """
-    Obtiene los clientes (instituciones) que más han comprado (paginado).
-    Devuelve la misma estructura que get_most_purchased_products pero agrupado por institución.
+    Obtiene los productos comprados por las instituciones que más han comprado (paginado).
     """
-    # para ranquear precios por fecha (más reciente por institución)
+    # identificar las TOP instituciones por cantidad total comprada
+    top_institutions_sq = (
+        select(
+            Order.institutional_client_id,
+            func.sum(OrderItem.quantity).label("total_by_institution"),
+        )
+        .join(Order, Order.id == OrderItem.order_id)
+        .group_by(Order.institutional_client_id)
+        .order_by(desc(func.sum(OrderItem.quantity)))
+        .limit(10)
+        .subquery("top_institutions")
+    )
+
+    # para ranquear precios por fecha
     ranked_items_cte = (
         select(
-            InstitutionalClient.id,
-            InstitutionalClient.nombre_institucion,
+            OrderItem.product_id,
             OrderItem.unit_price,
             func.row_number()
             .over(
-                partition_by=InstitutionalClient.id,
+                partition_by=OrderItem.product_id,
                 order_by=Order.order_date.desc(),
             )
             .label("rn"),
         )
         .join(Order, Order.id == OrderItem.order_id)
         .join(
-            InstitutionalClient,
-            InstitutionalClient.id == Order.institutional_client_id,
+            top_institutions_sq,
+            Order.institutional_client_id == top_institutions_sq.c.institutional_client_id,
         )
         .cte("ranked_items")
     )
 
-    # filtrar solo el precio más reciente por institución
+    # filtrar solo el precio más reciente
     latest_price_cte = (
         select(
-            ranked_items_cte.c.id,
-            ranked_items_cte.c.nombre_institucion,
+            ranked_items_cte.c.product_id,
             ranked_items_cte.c.unit_price.label("current_unit_price"),
         )
         .where(ranked_items_cte.c.rn == 1)
         .cte("latest_price")
     )
 
-    # subconsulta principal para agregación por institución
+    # subconsulta principal para agregación de productos de top instituciones
     main_aggregation_sq = (
         select(
-            Order.institutional_client_id.label("product_id"),  # Usamos como ID de "producto" el client_id
-            InstitutionalClient.nombre_institucion.label("product_name"),  # Usamos como "nombre del producto" el nombre de la institución
+            OrderItem.product_id,
+            OrderItem.product_name,
             func.sum(OrderItem.quantity).label("total_quantity_sold"),
             func.string_agg(
-                func.distinct(OrderItem.product_name), ","
-            ).label("institutions"),  # Aquí listamos los productos comprados
+                func.distinct(InstitutionalClient.nombre_institucion), ","
+            ).label("institutions"),
         )
         .join(Order, Order.id == OrderItem.order_id)
         .join(
             InstitutionalClient,
             InstitutionalClient.id == Order.institutional_client_id,
         )
-        .group_by(Order.institutional_client_id, InstitutionalClient.nombre_institucion)
+        .join(
+            top_institutions_sq,
+            Order.institutional_client_id == top_institutions_sq.c.institutional_client_id,
+        )
+        .group_by(OrderItem.product_id, OrderItem.product_name)
         .subquery("main_aggregation")
     )
 
@@ -238,11 +252,11 @@ def get_top_institution_buyer_products(
         )
         .join(
             latest_price_cte,
-            main_aggregation_sq.c.product_id == latest_price_cte.c.id,
+            main_aggregation_sq.c.product_id == latest_price_cte.c.product_id,
         )
     )
 
-    # obtener el CONTEO TOTAL de instituciones
+    # obtener el CONTEO TOTAL de productos únicos de top instituciones
     total_query = select(func.count()).select_from(base_query.alias())
     total = db.execute(total_query).scalar() or 0
 
