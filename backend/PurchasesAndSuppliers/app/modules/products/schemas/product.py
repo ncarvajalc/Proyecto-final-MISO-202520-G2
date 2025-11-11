@@ -62,6 +62,12 @@ class ProductPaginated(BaseModel):
     total_pages: int
 
 
+class ProductIdsList(BaseModel):
+    """Schema for requesting products by a list of IDs."""
+
+    product_ids: List[int] = Field(..., min_items=1)
+
+
 __all__ = [
     "SpecificationSchema",
     "TechnicalSheetSchema",
@@ -69,4 +75,5 @@ __all__ = [
     "ProductCreate",
     "Product",
     "ProductPaginated",
+    "ProductIdsList",
 ]

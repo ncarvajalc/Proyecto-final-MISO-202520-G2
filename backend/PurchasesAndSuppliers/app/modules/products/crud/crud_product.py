@@ -40,6 +40,18 @@ def get_products_all(db: Session, skip: int = 0, limit: int = 10) -> dict:
     return {"products": products, "total": total}
 
 
+def get_products_by_ids(db: Session, product_ids: list[int]) -> list[Product]:
+    """Get multiple products by a list of IDs."""
+    return (
+        db.query(Product)
+        .options(
+            joinedload(Product.technical_sheets), joinedload(Product.specifications)
+        )
+        .filter(Product.id.in_(product_ids))
+        .all()
+    )
+
+
 def create_product(db: Session, product: ProductCreate) -> Product:
     """Create a new product with specifications and technical sheet."""
     # Create product
@@ -84,5 +96,6 @@ __all__ = [
     "get_product",
     "get_product_by_sku",
     "get_products_all",
+    "get_products_by_ids",
     "create_product",
 ]

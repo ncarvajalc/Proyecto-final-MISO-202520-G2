@@ -1,4 +1,4 @@
-from .order_service import create_order_service , get_top_purchased_products
+from .order_service import create_order_service , get_top_purchased_products, get_top_institution_buyers
 
 __all__ = ["create_order_service",
-           "get_top_purchased_products"]
+           "get_top_purchased_products", "get_top_institution_buyers"]

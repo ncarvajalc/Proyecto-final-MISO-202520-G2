@@ -64,6 +64,7 @@ class MostPurchasedProduct(BaseModel):
     current_unit_price: Decimal
     total_quantity_sold: int
     institutions: str
+    url_imagen: str
     
     model_config = ConfigDict(from_attributes=True)
 

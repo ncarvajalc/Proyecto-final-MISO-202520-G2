@@ -167,3 +167,96 @@ def get_most_purchased_products(
     items = db.execute(final_query).all()
     
     return {"items": items, "total": total}
+
+
+def get_top_institution_buyer_products(
+    db: Session, page: int, limit: int
+) -> Dict[str, Any]:
+    """
+    Obtiene los clientes (instituciones) que más han comprado (paginado).
+    Devuelve la misma estructura que get_most_purchased_products pero agrupado por institución.
+    """
+    # para ranquear precios por fecha (más reciente por institución)
+    ranked_items_cte = (
+        select(
+            InstitutionalClient.id,
+            InstitutionalClient.nombre_institucion,
+            OrderItem.unit_price,
+            func.row_number()
+            .over(
+                partition_by=InstitutionalClient.id,
+                order_by=Order.order_date.desc(),
+            )
+            .label("rn"),
+        )
+        .join(Order, Order.id == OrderItem.order_id)
+        .join(
+            InstitutionalClient,
+            InstitutionalClient.id == Order.institutional_client_id,
+        )
+        .cte("ranked_items")
+    )
+
+    # filtrar solo el precio más reciente por institución
+    latest_price_cte = (
+        select(
+            ranked_items_cte.c.id,
+            ranked_items_cte.c.nombre_institucion,
+            ranked_items_cte.c.unit_price.label("current_unit_price"),
+        )
+        .where(ranked_items_cte.c.rn == 1)
+        .cte("latest_price")
+    )
+
+    # subconsulta principal para agregación por institución
+    main_aggregation_sq = (
+        select(
+            Order.institutional_client_id.label("product_id"),  # Usamos como ID de "producto" el client_id
+            InstitutionalClient.nombre_institucion.label("product_name"),  # Usamos como "nombre del producto" el nombre de la institución
+            func.sum(OrderItem.quantity).label("total_quantity_sold"),
+            func.string_agg(
+                func.distinct(OrderItem.product_name), ","
+            ).label("institutions"),  # Aquí listamos los productos comprados
+        )
+        .join(Order, Order.id == OrderItem.order_id)
+        .join(
+            InstitutionalClient,
+            InstitutionalClient.id == Order.institutional_client_id,
+        )
+        .group_by(Order.institutional_client_id, InstitutionalClient.nombre_institucion)
+        .subquery("main_aggregation")
+    )
+
+    # consulta base
+    base_query = (
+        select(
+            main_aggregation_sq.c.product_id,
+            main_aggregation_sq.c.product_name,
+            latest_price_cte.c.current_unit_price,
+            main_aggregation_sq.c.total_quantity_sold,
+            main_aggregation_sq.c.institutions,
+        )
+        .join(
+            latest_price_cte,
+            main_aggregation_sq.c.product_id == latest_price_cte.c.id,
+        )
+    )
+
+    # obtener el CONTEO TOTAL de instituciones
+    total_query = select(func.count()).select_from(base_query.alias())
+    total = db.execute(total_query).scalar() or 0
+
+    skip = (page - 1) * limit
+
+    # consulta final ordenada por cantidad total comprada
+    final_query = (
+        base_query
+        .order_by(desc(main_aggregation_sq.c.total_quantity_sold))
+        .offset(skip)
+        .limit(limit)
+    )
+
+    # ejecutar y devolver resultados
+    items = db.execute(final_query).all()
+    
+    return {"items": items, "total": total}

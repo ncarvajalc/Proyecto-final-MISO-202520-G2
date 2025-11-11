@@ -146,6 +146,11 @@ export const ProductosScreen: React.FC = () => {
         <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
           <Text style={styles.searchButtonText}>Buscar</Text>
         </TouchableOpacity>
+        <TouchableOpacity 
+          style={styles.recommendedLink}
+          onPress={() => navigation.navigate('RecommendedProducts')}>
+          <Text style={styles.recommendedLinkText}>Ver productos recomendados</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Title */}
@@ -249,6 +254,16 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     fontSize: 16,
     fontWeight: "600",
+  },
+  recommendedLink: {
+    alignItems: "center",
+    marginTop: 12,
+  },
+  recommendedLinkText: {
+    color: "#024A77",
+    fontSize: 16,
+    fontWeight: "600",
+    textDecorationLine: "underline",
   },
   title: {
     fontSize: 24,
