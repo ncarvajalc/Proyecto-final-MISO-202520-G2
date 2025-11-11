@@ -1,3 +1,3 @@
-from .order import Order, OrderCreate, OrderItem, OrderItemCreate, OrdersResponse
+from .order import Order, OrderCreate, OrderItem, OrderItemCreate, OrdersResponse, MostPurchasedProduct, MostPurchasedProductPaginatedResponse
 
-__all__ = ["Order", "OrderCreate", "OrderItem", "OrderItemCreate", "OrdersResponse"]
+__all__ = ["Order", "OrderCreate", "OrderItem", "OrderItemCreate", "OrdersResponse", "MostPurchasedProduct", "MostPurchasedProductPaginatedResponse"]

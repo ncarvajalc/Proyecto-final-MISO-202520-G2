@@ -2,6 +2,7 @@ import React from "react";
 import { createStackNavigator } from "@react-navigation/stack";
 import { ProductosScreen } from "../screens/ProductosScreen";
 import { ProductDetailScreen } from "../screens/ProductDetailScreen";
+import { RecommendedProductsScreen } from "../screens/RecommendedProductsScreen";
 
 export type ProductStackParamList = {
   ProductList: undefined;
@@ -19,6 +20,7 @@ export const ProductStackNavigator: React.FC = () => {
     >
       <Stack.Screen name="ProductList" component={ProductosScreen} />
       <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
+      <Stack.Screen name="RecommendedProducts" component={RecommendedProductsScreen} />
     </Stack.Navigator>
   );
 };

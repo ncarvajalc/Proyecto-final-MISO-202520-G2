@@ -4,12 +4,13 @@ from decimal import Decimal
 from typing import Dict, List
 
 import httpx
+import math
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from app.modules.institutional_clients.crud import get_institutional_client_by_id
-from app.modules.orders.crud import create_order_with_items
-from app.modules.orders.schemas import OrderCreate
+from app.modules.orders.crud import create_order_with_items, get_most_purchased_products, get_top_institution_buyer_products
+from app.modules.orders.schemas import OrderCreate, MostPurchasedProduct, MostPurchasedProductPaginatedResponse
 
 # Service URLs
 PURCHASES_SUPPLIERS_URL = "http://purchases_suppliers:8001"
@@ -155,3 +156,163 @@ async def create_order_service(db: Session, order_create: OrderCreate):
     )
 
     return order
+
+
+async def get_top_purchased_products(db: Session, page: int, limit: int) -> List[MostPurchasedProduct]:
+    """
+    obtener el reporte de productos más comprados.
+    """
+    crud_result = get_most_purchased_products(db, page=page, limit=limit)
+    
+    items_rows = crud_result["items"]
+    total_count = crud_result["total"]
+
+    # Obtener datos de precios desde el servicio de productos
+    product_data_list = []
+    price_map = {}
+    image_map = {} 
+    
+    async with httpx.AsyncClient(follow_redirects=True) as client:
+        try:
+            product_ids = [row.product_id for row in items_rows]
+            if product_ids:
+                product_response = await client.post(
+                    f"{PURCHASES_SUPPLIERS_URL}/productos/by-ids",
+                    json={"product_ids": product_ids}
+                )
+                product_response.raise_for_status()
+                product_data = product_response.json()
+                product_data_list = product_data.get("data", [])
+                
+                # Construir mapa de precios: {id: precio}
+                for product in product_data_list:
+                    price_map[product['id']] = Decimal(str(product.get('precio', 0)))
+                    image_map[product['id']] = str(product.get('imagen', None))
+
+        except httpx.HTTPError as e:
+            raise HTTPException(
+                status_code=502,
+                detail=f"Error communicating with product service: {str(e)}",
+            )
+    
+    # Mapear items_rows a MostPurchasedProduct con precios y URLs de imagen
+    items_schemas = []
+    for row in items_rows:
+        product_id = row.product_id
+        product_name = row.product_name
+        
+        # Obtener precio desde product_data (comparando IDs)
+        current_price = price_map.get(product_id, Decimal("0"))
+        
+        # Construir URL de imagen con nombre del producto (espacios → +)
+        url_imagen_text = product_name.replace(" ", "+")
+        url_imagen = f"https://placehold.co/600x400/eeeeee/999999?text={url_imagen_text}"
+        
+        # Crear objeto MostPurchasedProduct
+        item = MostPurchasedProduct(
+            product_id=product_id,
+            product_name=product_name,
+            current_unit_price=current_price,
+            total_quantity_sold=row.total_quantity_sold or 0,
+            institutions=row.institutions or "",
+            url_imagen=url_imagen
+        )
+        items_schemas.append(item)
+    
+    # calcular total_pages
+    total_pages = 0
+    if total_count > 0 and limit > 0:
+        total_pages = math.ceil(total_count / limit)
+    elif total_count == 0:
+        total_pages = 0
+    else:
+        total_pages = 1
+        
+    # construir la respuesta paginada final
+    return MostPurchasedProductPaginatedResponse(
+        items=items_schemas,
+        total=total_count,
+        page=page,
+        limit=limit,
+        total_pages=total_pages
+    )
+
+
+async def get_top_institution_buyers(db: Session, page: int, limit: int) -> MostPurchasedProductPaginatedResponse:
+    """
+    Obtener productos comprados por las instituciones que más han comprado.
+    """
+    crud_result = get_top_institution_buyer_products(db, page=page, limit=limit)
+    
+    items_rows = crud_result["items"]
+    total_count = crud_result["total"]
+
+    # Obtener datos de precios desde el servicio de productos
+    product_data_list = []
+    price_map = {}
+    image_map = {} 
+    
+    async with httpx.AsyncClient(follow_redirects=True) as client:
+        try:
+            product_ids = [row.product_id for row in items_rows]
+            if product_ids:
+                product_response = await client.post(
+                    f"{PURCHASES_SUPPLIERS_URL}/productos/by-ids",
+                    json={"product_ids": product_ids}
+                )
+                product_response.raise_for_status()
+                product_data = product_response.json()
+                product_data_list = product_data.get("data", [])
+                
+                # Construir mapa de precios: {id: precio}
+                for product in product_data_list:
+                    price_map[product['id']] = Decimal(str(product.get('precio', 0)))
+                    image_map[product['id']] = str(product.get('imagen', None))
+
+        except httpx.HTTPError as e:
+            raise HTTPException(
+                status_code=502,
+                detail=f"Error communicating with product service: {str(e)}",
+            )
+    
+    # Mapear items_rows a MostPurchasedProduct con precios y URLs de imagen
+    items_schemas = []
+    for row in items_rows:
+        product_id = row.product_id
+        product_name = row.product_name
+        
+        # Obtener precio desde product_data (comparando IDs)
+        current_price = price_map.get(product_id, Decimal("0"))
+        
+        # Construir URL de imagen con nombre del producto (espacios → +)
+        url_imagen_text = product_name.replace(" ", "+")
+        url_imagen = f"https://placehold.co/600x400/eeeeee/999999?text={url_imagen_text}"
+        
+        # Crear objeto MostPurchasedProduct
+        item = MostPurchasedProduct(
+            product_id=product_id,
+            product_name=product_name,
+            current_unit_price=current_price,
+            total_quantity_sold=row.total_quantity_sold or 0,
+            institutions=row.institutions or "",
+            url_imagen=url_imagen
+        )
+        items_schemas.append(item)
+    
+    # calcular total_pages
+    total_pages = 0
+    if total_count > 0 and limit > 0:
+        total_pages = math.ceil(total_count / limit)
+    elif total_count == 0:
+        total_pages = 0
+    else:
+        total_pages = 1
+        
+    # construir la respuesta paginada final
+    return MostPurchasedProductPaginatedResponse(
+        items=items_schemas,
+        total=total_count,
+        page=page,
+        limit=limit,
+        total_pages=total_pages
+    )

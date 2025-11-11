@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 
-from ..schemas.product import ProductCreate
+from ..schemas.product import ProductCreate, ProductIdsList
 from ..services import product_service
 
 router = APIRouter(prefix="/productos", tags=["products"])
@@ -25,6 +25,13 @@ def create_product(product: ProductCreate, db: Session = Depends(get_db)):
 def list_products(page: int = 1, limit: int = 10, db: Session = Depends(get_db)):
     """List products with pagination."""
     return product_service.read(db, page=page, limit=limit)
+
+
+@router.post("/by-ids")
+def list_products_by_ids(request: ProductIdsList, db: Session = Depends(get_db)):
+    """Get multiple products by a list of IDs.
+    """
+    return product_service.read_by_ids(db, request.product_ids)
 
 
 INVENTORY_SERVICE_URL = os.getenv(

@@ -1,12 +1,12 @@
-from typing import Optional
+from typing import Optional, List
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.modules.orders.crud import get_order_by_id, list_orders_paginated
-from app.modules.orders.schemas import Order, OrderCreate, OrdersResponse
-from app.modules.orders.services import create_order_service
+from app.modules.orders.schemas import Order, OrderCreate, OrdersResponse, MostPurchasedProduct, MostPurchasedProductPaginatedResponse
+from app.modules.orders.services import create_order_service, get_top_purchased_products, get_top_institution_buyers
 
 router = APIRouter(prefix="/pedidos", tags=["pedidos"])
 
@@ -42,6 +42,29 @@ def list_orders_endpoint(
         total_pages=total_pages,
     )
 
+@router.get(
+    "/productos/mas-comprados", 
+    response_model=MostPurchasedProductPaginatedResponse,
+    summary="Obtener productos más comprados (Paginado)"
+)
+async def read_most_purchased_products(
+    page: int = 1,
+    limit: int = 20,
+    db: Session = Depends(get_db)
+):
+    return await get_top_purchased_products(db=db, page=page, limit=limit)
+
+@router.get(
+    "/clientes/mas-compradores",
+    response_model=MostPurchasedProductPaginatedResponse,
+    summary="Obtener clientes (instituciones) que más han comprado (Paginado)"
+)
+async def read_top_institution_buyers(
+    page: int = 1,
+    limit: int = 20,
+    db: Session = Depends(get_db)
+):
+    return await get_top_institution_buyers(db=db, page=page, limit=limit)
 
 @router.get("/{order_id}", response_model=Order)
 def get_order_endpoint(order_id: int, db: Session = Depends(get_db)):
