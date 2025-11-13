@@ -1,12 +1,23 @@
-from typing import Optional, List
+from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.modules.orders.crud import get_order_by_id, list_orders_paginated
-from app.modules.orders.schemas import Order, OrderCreate, OrdersResponse, MostPurchasedProduct, MostPurchasedProductPaginatedResponse
-from app.modules.orders.services import create_order_service, get_top_purchased_products, get_top_institution_buyers
+from app.modules.orders.crud import list_orders_paginated
+from app.modules.orders.schemas import (
+    Order,
+    OrderCreate,
+    OrderStatus,
+    OrdersResponse,
+    MostPurchasedProductPaginatedResponse,
+)
+from app.modules.orders.services import (
+    create_order_service,
+    get_order_status,
+    get_top_purchased_products,
+    get_top_institution_buyers,
+)
 
 router = APIRouter(prefix="/pedidos", tags=["pedidos"])
 
@@ -66,10 +77,7 @@ async def read_top_institution_buyers(
 ):
     return await get_top_institution_buyers(db=db, page=page, limit=limit)
 
-@router.get("/{order_id}", response_model=Order)
+@router.get("/{order_id}", response_model=OrderStatus)
 def get_order_endpoint(order_id: int, db: Session = Depends(get_db)):
-    """Get order by ID."""
-    order = get_order_by_id(db, order_id)
-    if not order:
-        raise HTTPException(status_code=404, detail=f"Order {order_id} not found")
-    return order
+    """Get enriched order detail by ID."""
+    return get_order_status(db, order_id)

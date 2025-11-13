@@ -158,3 +158,49 @@ async def test_create_order_service_calculates_totals(monkeypatch, multi_item_pa
     assert captured["items"][0]["subtotal"] == Decimal("240000.00")
     assert captured["items"][1]["product_name"] == "Producto 202"
     assert captured["items"][1]["subtotal"] == Decimal("80000.00")
+
+
+def test_summarize_order_builds_expected_status():
+    order = SimpleNamespace(
+        id=42,
+        institutional_client_id="inst-unit-xyz",
+        order_date=date(2024, 5, 20),
+        subtotal=Decimal("300000.00"),
+        tax_amount=Decimal("57000.00"),
+        total_amount=Decimal("357000.00"),
+        status="in_transit",
+        institutional_client=SimpleNamespace(nombre_institucion="Clínica Central"),
+        items=[
+            SimpleNamespace(
+                product_id=501,
+                product_name="Monitor cardíaco",
+                quantity=2,
+                unit_price=Decimal("100000.00"),
+                subtotal=Decimal("200000.00"),
+            ),
+            SimpleNamespace(
+                product_id=502,
+                product_name="Bisturí eléctrico",
+                quantity=1,
+                unit_price=Decimal("100000.00"),
+                subtotal=Decimal("100000.00"),
+            ),
+        ],
+    )
+
+    summary = order_service.summarize_order(order)
+
+    assert summary.id == 42
+    assert summary.order_number == "42"
+    assert summary.institutional_client_id == "inst-unit-xyz"
+    assert summary.client_name == "Clínica Central"
+    assert summary.product_count == 2
+    assert summary.total_units == 3
+    assert summary.total_amount == Decimal("357000.00")
+    assert [item.product_name for item in summary.items] == [
+        "Monitor cardíaco",
+        "Bisturí eléctrico",
+    ]
+    assert summary.items[0].unit == "unidad"
+    assert summary.items[0].unit_price == Decimal("100000.00")
+    assert summary.items[0].total_price == Decimal("200000.00")

@@ -26,7 +26,10 @@ def get_order_by_id(db: Session, order_id: int):
     """Get order by ID with items."""
     return (
         db.query(Order)
-        .options(joinedload(Order.items))
+        .options(
+            joinedload(Order.items),
+            joinedload(Order.institutional_client),
+        )
         .filter(Order.id == order_id)
         .first()
     )

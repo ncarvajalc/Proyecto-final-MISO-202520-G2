@@ -1,4 +1,4 @@
-"""Acceptance tests covering Feat/HUP-021."""
+"""Acceptance tests covering Feat/HUP-021 and Feat/HUP-022."""
 
 from __future__ import annotations
 
@@ -86,8 +86,21 @@ async def test_order_creation_flow_acceptance(
 
     detail = get_order_endpoint(created_order.id, db_session)
     assert detail.id == created_order.id
+    assert detail.order_number == str(created_order.id)
     assert detail.institutional_client_id == institution.id
+    assert detail.client_name == client_payload.nombre_institucion
+    assert detail.product_count == 2
+    assert detail.total_units == 3
+    assert detail.total_amount == Decimal("1219750.00")
     assert {item.product_name for item in detail.items} == {
         "Monitor de signos vitales",
         "Kit de intubación",
+    }
+    assert {item.unit for item in detail.items} == {"unidad"}
+    assert {
+        (item.product_name, item.unit_price, item.total_price)
+        for item in detail.items
+    } == {
+        ("Monitor de signos vitales", Decimal("420000.00"), Decimal("840000.00")),
+        ("Kit de intubación", Decimal("185000.00"), Decimal("185000.00")),
     }
