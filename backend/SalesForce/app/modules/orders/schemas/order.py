@@ -78,5 +78,34 @@ class MostPurchasedProductPaginatedResponse(BaseModel):
     page: int
     limit: int
     total_pages: int
-    
+
     model_config = ConfigDict(from_attributes=True)
+
+
+class OrderStatusProduct(BaseModel):
+    """Representa un producto dentro del resumen de un pedido."""
+
+    product_id: int
+    product_name: str
+    unit: str
+    quantity: int
+    unit_price: Decimal
+    total_price: Decimal
+
+
+class OrderStatus(BaseModel):
+    """Respuesta enriquecida para la consulta del estado de un pedido."""
+
+    id: int
+    order_number: str
+    institutional_client_id: str
+    client_name: str
+    order_date: date
+    status: str
+    subtotal: Decimal
+    tax_amount: Decimal
+    total_amount: Decimal
+    product_count: int
+    total_units: int
+    items: List[OrderStatusProduct]
+

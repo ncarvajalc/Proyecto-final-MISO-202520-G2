@@ -86,6 +86,8 @@ export const TabNavigator: React.FC = () => {
         options={{
           title: "Pedidos",
           tabBarLabel: "Pedidos",
+          tabBarTestID: "tab-pedidos",
+          tabBarAccessibilityLabel: "Pestaña Pedidos",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="document-text" size={size} color={color} />
           ),

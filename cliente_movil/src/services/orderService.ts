@@ -1,9 +1,16 @@
 import axios from "axios";
+import { API_BASE_URL, getApiBaseUrl } from "../config/api";
 import { Order, OrderCreate, OrdersResponse } from "../types/order";
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8080";
+const buildUrl = (path: string): string => {
+  const baseUrl = getApiBaseUrl();
+  const normalizedBase = baseUrl.replace(/\/$/, "");
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
 
-console.log("[ORDER SERVICE] Using API URL:", API_URL);
+  return `${normalizedBase}${normalizedPath}`;
+};
+
+console.log("[ORDER SERVICE] Using API URL:", API_BASE_URL);
 
 export const orderService = {
   /**
@@ -15,7 +22,7 @@ export const orderService = {
     institutional_client_id?: string
   ): Promise<OrdersResponse> {
     try {
-      const fullUrl = `${API_URL}/pedidos`;
+      const fullUrl = buildUrl("/pedidos");
       console.log("[ORDER SERVICE] Making request to:", fullUrl);
       console.log("[ORDER SERVICE] With params:", {
         page,
@@ -46,7 +53,7 @@ export const orderService = {
    */
   async getOrderById(id: number): Promise<Order> {
     try {
-      const fullUrl = `${API_URL}/pedidos/${id}`;
+      const fullUrl = buildUrl(`/pedidos/${id}`);
       console.log("[ORDER SERVICE] Fetching order:", fullUrl);
 
       const response = await axios.get<Order>(fullUrl);
@@ -63,7 +70,7 @@ export const orderService = {
    */
   async createOrder(orderData: OrderCreate): Promise<Order> {
     try {
-      const fullUrl = `${API_URL}/pedidos`;
+      const fullUrl = buildUrl("/pedidos");
       console.log("[ORDER SERVICE] Creating order at:", fullUrl);
       console.log("[ORDER SERVICE] Order data:", JSON.stringify(orderData, null, 2));
 

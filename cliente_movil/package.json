@@ -12,6 +12,7 @@
     "test:unit": "jest --selectProjects unit",
     "test:integration": "jest --selectProjects integration",
     "test:functional": "jest --selectProjects functional",
+    "test:acceptance": "jest --selectProjects acceptance",
     "test:e2e": "jest --selectProjects e2e"
   },
   "dependencies": {

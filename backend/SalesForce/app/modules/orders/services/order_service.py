@@ -9,8 +9,19 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from app.modules.institutional_clients.crud import get_institutional_client_by_id
-from app.modules.orders.crud import create_order_with_items, get_most_purchased_products, get_top_institution_buyer_products
-from app.modules.orders.schemas import OrderCreate, MostPurchasedProduct, MostPurchasedProductPaginatedResponse
+from app.modules.orders.crud import (
+    create_order_with_items,
+    get_most_purchased_products,
+    get_order_by_id,
+    get_top_institution_buyer_products,
+)
+from app.modules.orders.schemas import (
+    OrderCreate,
+    MostPurchasedProduct,
+    MostPurchasedProductPaginatedResponse,
+    OrderStatus,
+    OrderStatusProduct,
+)
 
 # Service URLs
 PURCHASES_SUPPLIERS_URL = "http://purchases_suppliers:8001"
@@ -156,6 +167,61 @@ async def create_order_service(db: Session, order_create: OrderCreate):
     )
 
     return order
+
+
+def summarize_order(order) -> OrderStatus:
+    """Construye el resumen de estado para un pedido existente."""
+
+    if order is None:
+        raise ValueError("order is required")
+
+    client = getattr(order, "institutional_client", None)
+    client_name = (
+        getattr(client, "nombre_institucion", None)
+        if client is not None
+        else None
+    )
+
+    items: List[OrderStatusProduct] = []
+    total_units = 0
+    for item in getattr(order, "items", []) or []:
+        quantity = int(getattr(item, "quantity", 0) or 0)
+        total_units += quantity
+        items.append(
+            OrderStatusProduct(
+                product_id=int(getattr(item, "product_id")),
+                product_name=str(getattr(item, "product_name")),
+                unit="unidad",
+                quantity=quantity,
+                unit_price=Decimal(str(getattr(item, "unit_price"))),
+                total_price=Decimal(str(getattr(item, "subtotal"))),
+            )
+        )
+
+    return OrderStatus(
+        id=int(getattr(order, "id")),
+        order_number=str(getattr(order, "id")),
+        institutional_client_id=str(getattr(order, "institutional_client_id")),
+        client_name=str(client_name or getattr(order, "institutional_client_id")),
+        order_date=getattr(order, "order_date"),
+        status=str(getattr(order, "status")),
+        subtotal=Decimal(str(getattr(order, "subtotal"))),
+        tax_amount=Decimal(str(getattr(order, "tax_amount"))),
+        total_amount=Decimal(str(getattr(order, "total_amount"))),
+        product_count=len(items),
+        total_units=total_units,
+        items=items,
+    )
+
+
+def get_order_status(db: Session, order_id: int) -> OrderStatus:
+    """Recupera un pedido y retorna su resumen de estado."""
+
+    order = get_order_by_id(db, order_id)
+    if not order:
+        raise HTTPException(status_code=404, detail=f"Order {order_id} not found")
+
+    return summarize_order(order)
 
 
 async def get_top_purchased_products(db: Session, page: int, limit: int) -> List[MostPurchasedProduct]:

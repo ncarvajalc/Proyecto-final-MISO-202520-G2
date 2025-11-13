@@ -8,6 +8,7 @@ import pytest
 from fastapi import HTTPException
 
 from app.modules.orders.models import Order
+from app.modules.orders.routes.orders import get_order_endpoint
 from app.modules.orders.schemas import OrderCreate, OrderItemCreate
 from app.modules.orders.services import create_order_service
 
@@ -91,3 +92,36 @@ async def test_create_order_rejects_when_inventory_insufficient(
     assert exc_info.value.status_code == 400
     assert "Bomba de infusión" in exc_info.value.detail
     assert db_session.query(Order).count() == 0
+
+
+@pytest.mark.asyncio
+async def test_get_order_endpoint_returns_order_status(
+    db_session, institutional_client_factory, mock_order_integrations
+):
+    institution = institutional_client_factory(nombre_institucion="Hospital Central")
+    mock_order_integrations.update(
+        {
+            401: {"nombre": "Electrocardiógrafo", "precio": "320000.00", "stock": 10},
+            402: {"nombre": "Desfibrilador", "precio": "480000.00", "stock": 5},
+        }
+    )
+
+    payload = OrderCreate(
+        institutional_client_id=institution.id,
+        items=[make_item(401, 1), make_item(402, 2)],
+    )
+
+    created = await create_order_service(db_session, payload)
+
+    detail = get_order_endpoint(created.id, db_session)
+
+    assert detail.order_number == str(created.id)
+    assert detail.client_name == "Hospital Central"
+    assert detail.product_count == 2
+    assert detail.total_units == 3
+    assert detail.total_amount == Decimal("1523200.00")
+    assert [item.product_name for item in detail.items] == [
+        "Electrocardiógrafo",
+        "Desfibrilador",
+    ]
+    assert all(item.unit == "unidad" for item in detail.items)
