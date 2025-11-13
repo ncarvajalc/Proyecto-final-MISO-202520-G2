@@ -80,7 +80,7 @@ export const RecommendedProductsScreen: React.FC = () => {
   }
 
   const formatPrice = (price: string) => {
-    return `$${Number(price).toFixed(2)}`;
+    return `USD $${Number(price).toFixed(2)}`;
   };
 
   return (
@@ -97,9 +97,11 @@ export const RecommendedProductsScreen: React.FC = () => {
       <FlatList
         data={products}
         keyExtractor={(item) => item.product_id.toString()}
+        testID="recommended-products-list"
         renderItem={({ item }) => (
           <TouchableOpacity
             style={styles.productCard}
+            testID={`recommended-product-card-${item.product_id}`}
             onPress={() => handleProductPress(item.product_id, item.product_name)}
           >
             <View style={styles.productImageContainer}>
@@ -108,6 +110,7 @@ export const RecommendedProductsScreen: React.FC = () => {
                   source={{ uri: item.url_imagen }}
                   style={styles.productImage}
                   resizeMode="contain"
+                  testID={`recommended-product-image-${item.product_id}`}
                 />
               ) : (
                 <View style={styles.placeholderImage}>
@@ -121,7 +124,7 @@ export const RecommendedProductsScreen: React.FC = () => {
                 {formatPrice(item.current_unit_price)}
               </Text>
               <Text style={styles.productInstitutions} numberOfLines={5}>
-                {item.institutions}
+                Instituciones: {item.institutions}
               </Text>
             </View>
           </TouchableOpacity>
@@ -181,11 +184,11 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   productCard: {
-    flexDirection: "row",
+    flexDirection: "column",
     backgroundColor: "#ffffff",
-    borderRadius: 8,
+    borderRadius: 12,
     marginBottom: 16,
-    padding: 12,
+    padding: 16,
     elevation: 2,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -193,9 +196,9 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   productImageContainer: {
-    width: "40%",
-    aspectRatio: 1,
-    marginRight: 12,
+    width: "100%",
+    height: 180,
+    marginBottom: 12,
     borderRadius: 8,
     overflow: "hidden",
     backgroundColor: "#f8fafc",
