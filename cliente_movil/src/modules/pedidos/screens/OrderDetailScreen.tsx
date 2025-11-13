@@ -124,8 +124,8 @@ export const OrderDetailScreen: React.FC = () => {
           <Text style={styles.orderInfo}>
             {order.items.length} productos / {getTotalUnits()} Unidades
           </Text>
-          <Text style={styles.totalAmount}>
-            {formatCurrency(order.total_amount)}
+          <Text style={styles.orderInfo}>
+            {formatCurrency(order.total_amount)} con Impuestos
           </Text>
         </View>
 
@@ -135,17 +135,12 @@ export const OrderDetailScreen: React.FC = () => {
 
           {order.items.map((item, index) => (
             <View key={item.id} style={styles.productItem}>
-              <View style={styles.productInfo}>
-                <Text style={styles.productName}>{item.product_name}</Text>
-                <Text style={styles.productUnit}>
-                  Cantidad: {item.quantity}
-                </Text>
-              </View>
-              <View style={styles.productPricing}>
-                <Text style={styles.productTotal}>
-                  {formatCurrency(item.subtotal)}
-                </Text>
-              </View>
+              <Text style={styles.productName}>{item.product_name}</Text>
+              <Text style={styles.productUnit}>Unidad</Text>
+              <Text style={styles.productQuantity}>{item.quantity}</Text>
+              <Text style={styles.productPrice}>
+                {formatCurrency(item.subtotal)}
+              </Text>
             </View>
           ))}
         </View>
@@ -215,12 +210,7 @@ const styles = StyleSheet.create({
   orderInfo: {
     fontSize: 16,
     color: "#64748b",
-    marginBottom: 12,
-  },
-  totalAmount: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#024A77",
+    marginBottom: 8,
   },
   productsSection: {
     marginBottom: 20,
@@ -230,36 +220,31 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#024A77",
     marginBottom: 16,
+    textAlign: "center",
   },
   productItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: "#e2e8f0",
   },
-  productInfo: {
-    flex: 1,
-    marginRight: 16,
-  },
   productName: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#0f172a",
+    fontSize: 14,
+    color: "#64748b",
     marginBottom: 4,
   },
   productUnit: {
     fontSize: 14,
     color: "#64748b",
+    marginBottom: 4,
   },
-  productPricing: {
-    alignItems: "flex-end",
+  productQuantity: {
+    fontSize: 14,
+    color: "#64748b",
+    marginBottom: 4,
   },
-  productTotal: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#0f172a",
+  productPrice: {
+    fontSize: 14,
+    color: "#64748b",
   },
   errorText: {
     fontSize: 16,
