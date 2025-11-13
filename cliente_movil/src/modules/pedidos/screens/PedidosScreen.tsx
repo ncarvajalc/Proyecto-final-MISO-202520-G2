@@ -84,9 +84,7 @@ export const PedidosScreen: React.FC = () => {
   };
 
   const handleOrderSelect = (order: OrderWithClient) => {
-    // TODO: Navigate to order detail
-    console.log("Order selected:", order.id);
-    // navigation.navigate("OrderDetail", { orderId: order.id });
+    navigation.navigate("OrderDetail", { orderId: order.id });
   };
 
   const formatDate = (dateString: string): string => {
