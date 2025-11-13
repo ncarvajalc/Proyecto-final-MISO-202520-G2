@@ -138,7 +138,7 @@ export const ProductosScreen: React.FC = () => {
         <Text style={styles.filterLabel}>Filtrar Productos</Text>
         <TextInput
           style={styles.searchInput}
-          placeholder="Nombre o SKU del producto"
+          placeholder="Nombre producto"
           value={searchText}
           onChangeText={setSearchText}
           placeholderTextColor="#94a3b8"
@@ -146,9 +146,12 @@ export const ProductosScreen: React.FC = () => {
         <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
           <Text style={styles.searchButtonText}>Buscar</Text>
         </TouchableOpacity>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.recommendedLink}
-          onPress={() => navigation.navigate('RecommendedProducts')}>
+          accessibilityRole="button"
+          testID="recommended-products-link"
+          onPress={() => navigation.navigate("RecommendedProducts")}
+        >
           <Text style={styles.recommendedLinkText}>Ver productos recomendados</Text>
         </TouchableOpacity>
       </View>
