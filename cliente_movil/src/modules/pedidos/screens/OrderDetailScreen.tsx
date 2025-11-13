@@ -228,8 +228,9 @@ const styles = StyleSheet.create({
     borderBottomColor: "#e2e8f0",
   },
   productName: {
-    fontSize: 14,
-    color: "#64748b",
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#000000",
     marginBottom: 4,
   },
   productUnit: {
