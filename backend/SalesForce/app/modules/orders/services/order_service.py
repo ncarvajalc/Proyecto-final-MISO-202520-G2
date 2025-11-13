@@ -39,12 +39,12 @@ async def validate_product(product_id: int) -> Dict:
             )
 
 
-async def validate_inventory(product_id: int, quantity: int) -> bool:
+async def validate_inventory(product_sku: str, quantity: int) -> bool:
     """Validate sufficient inventory exists for the product."""
     async with httpx.AsyncClient(follow_redirects=True) as client:
         try:
             response = await client.get(
-                f"{WAREHOUSE_URL}/inventario/producto/{product_id}"
+                f"{WAREHOUSE_URL}/inventario/producto/{product_sku}/resumen"
             )
             if response.status_code == 404:
                 # Product has no inventory
@@ -52,7 +52,7 @@ async def validate_inventory(product_id: int, quantity: int) -> bool:
             response.raise_for_status()
 
             inventory_data = response.json()
-            total_stock = inventory_data.get("total_stock", 0)
+            total_stock = inventory_data.get("total_quantity", 0)
 
             return total_stock >= quantity
         except httpx.HTTPError as e:
@@ -104,8 +104,15 @@ async def create_order_service(db: Session, order_create: OrderCreate):
     for item in order_create.items:
         product = await validate_product(item.product_id)
 
-        # 3. Validate inventory
-        has_stock = await validate_inventory(item.product_id, item.quantity)
+        # 3. Validate inventory using product SKU
+        product_sku = product.get("sku")
+        if not product_sku:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Product {product['nombre']} (ID: {item.product_id}) has no SKU",
+            )
+
+        has_stock = await validate_inventory(product_sku, item.quantity)
         if not has_stock:
             raise HTTPException(
                 status_code=400,

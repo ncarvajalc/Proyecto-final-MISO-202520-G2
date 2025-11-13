@@ -42,11 +42,11 @@ export const ProductosScreen: React.FC = () => {
       const productsWithInventory = await Promise.all(
         response.data.map(async (product) => {
           try {
-            const inventory = await inventoryService.getProductInventory(product.id);
+            const inventory = await inventoryService.getProductInventory(product.sku);
             return { ...product, inventory };
           } catch (err) {
             // If inventory fails, just return product without inventory
-            console.warn(`Failed to load inventory for product ${product.id}`, err);
+            console.warn(`Failed to load inventory for product ${product.sku}`, err);
             return product;
           }
         })
