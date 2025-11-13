@@ -1,3 +1,4 @@
+import re
 from typing import List, Dict, Any, Optional
 
 from fastapi import HTTPException
@@ -22,9 +23,12 @@ from app.modules.institutional_clients.schemas import (
     InstitutionalClientUpdate,
     InstitutionalContactClient,
     InstitutionalContactClientResponse,
+    TaxIdVerificationResponse,
 )
 
 TERRITORY_SERVICE_URL = "http://localhost:8004"
+
+_TAX_ID_PATTERN = re.compile(r"^[0-9-]+$")
 
 def create(
     db: Session, client: InstitutionalClientCreate
@@ -171,6 +175,38 @@ def list_clients_by_territories(
     metadata = build_pagination_metadata(total=total, page=page, limit=limit)
 
     return InstitutionalClientsResponse(data=clients, **metadata)
+
+
+def verify_tax_identification(
+    db: Session, tax_id: str
+) -> TaxIdVerificationResponse:
+    """Validate format and uniqueness of a tax identification number."""
+
+    normalized_tax_id = (tax_id or "").strip()
+
+    if not normalized_tax_id:
+        return TaxIdVerificationResponse(
+            is_valid=False,
+            message="La identificación tributaria es requerida",
+        )
+
+    if not _TAX_ID_PATTERN.fullmatch(normalized_tax_id):
+        return TaxIdVerificationResponse(
+            is_valid=False,
+            message="Solo se permiten números y guiones",
+        )
+
+    existing = get_institutional_client_by_nit(db, normalized_tax_id)
+    if existing:
+        return TaxIdVerificationResponse(
+            is_valid=False,
+            message="La identificación tributaria ya está registrada",
+        )
+
+    return TaxIdVerificationResponse(
+        is_valid=True,
+        message="Identificación tributaria válida",
+    )
 
 
 async def obtener_territorios_by_ids(

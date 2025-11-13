@@ -8,6 +8,16 @@ import pytest
 from fastapi import HTTPException
 
 from app.modules.orders.models import Order
+from app.modules.orders.models.order_item_model import OrderItem
+
+
+@pytest.fixture(autouse=True)
+def _clear_orders(db_session):
+    db_session.query(OrderItem).delete()
+    db_session.query(Order).delete()
+    db_session.commit()
+
+
 from app.modules.orders.routes.orders import get_order_endpoint
 from app.modules.orders.schemas import OrderCreate, OrderItemCreate
 from app.modules.orders.services import create_order_service

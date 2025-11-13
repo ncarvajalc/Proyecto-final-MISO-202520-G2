@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -10,7 +10,8 @@ from app.modules.institutional_clients.schemas import (
     InstitutionalClientsResponse,
     InstitutionalClientUpdate,
     TerritoriesQuery,
-    InstitutionalContactClientResponse
+    InstitutionalContactClientResponse,
+    TaxIdVerificationResponse,
 )
 from app.modules.institutional_clients.services import (
     create,
@@ -20,6 +21,7 @@ from app.modules.institutional_clients.services import (
     update,
     list_clients_by_territories,
     list_clients_territories,
+    verify_tax_identification,
 )
 
 router = APIRouter(prefix="/institutional-clients", tags=["institutional-clients"])
@@ -53,6 +55,17 @@ async def list_institutional_clients_endpoint(
 ):
     """List all institutional clients with pagination and optional search."""
     return await list_clients_territories(db, page=page, limit=limit, search=search)
+
+
+@router.get("/verify-tax-id", response_model=TaxIdVerificationResponse)
+@router.get("/verify-tax-id/", response_model=TaxIdVerificationResponse)
+def verify_tax_identification_endpoint(
+    identificacion_tributaria: str = Query(..., alias="identificacion_tributaria"),
+    db: Session = Depends(get_db),
+):
+    """Validate the institutional client's tax identification."""
+
+    return verify_tax_identification(db, identificacion_tributaria)
 
 
 @router.get("/{client_id}", response_model=InstitutionalClient)

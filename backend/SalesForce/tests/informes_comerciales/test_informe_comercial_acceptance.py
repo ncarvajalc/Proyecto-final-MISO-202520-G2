@@ -2,7 +2,18 @@
 
 from faker import Faker
 
+import pytest
+from faker import Faker
+
 from app.modules.reports.models import InformeComercial
+from app.modules.salespeople.models.salespeople_model import SalesPlan
+
+
+@pytest.fixture(autouse=True)
+def _reset_informe_state(db_session):
+    db_session.query(InformeComercial).delete()
+    db_session.query(SalesPlan).delete()
+    db_session.commit()
 
 
 def test_informe_comercial_creation_end_to_end(client, db_session, fake: Faker):

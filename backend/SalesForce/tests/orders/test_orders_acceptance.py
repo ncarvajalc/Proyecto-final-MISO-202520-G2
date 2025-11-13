@@ -12,6 +12,15 @@ from app.modules.institutional_clients.services import create as create_institut
 from app.modules.orders.routes.orders import get_order_endpoint, list_orders_endpoint
 from app.modules.orders.schemas import OrderCreate, OrderItemCreate
 from app.modules.orders.services import create_order_service
+from app.modules.orders.models import Order
+from app.modules.orders.models.order_item_model import OrderItem
+
+
+@pytest.fixture(autouse=True)
+def _reset_orders(db_session):
+    db_session.query(OrderItem).delete()
+    db_session.query(Order).delete()
+    db_session.commit()
 
 
 def build_order_payload(client_id: str) -> OrderCreate:
