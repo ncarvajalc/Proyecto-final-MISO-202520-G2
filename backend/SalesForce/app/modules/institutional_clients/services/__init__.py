@@ -6,6 +6,16 @@ from .institutional_client_service import (
     update,
     list_clients_by_territories,
     list_clients_territories,
+    verify_tax_identification,
 )
 
-__all__ = ["create", "delete", "get_client", "list_clients", "update", "list_clients_by_territories","list_clients_territories"]
+__all__ = [
+    "create",
+    "delete",
+    "get_client",
+    "list_clients",
+    "update",
+    "list_clients_by_territories",
+    "list_clients_territories",
+    "verify_tax_identification",
+]

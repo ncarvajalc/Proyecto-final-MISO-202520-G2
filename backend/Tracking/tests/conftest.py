@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -28,9 +29,13 @@ for module_name in [
 TMP_DB_DIR = CURRENT_DIR / "tmp"
 TMP_DB_DIR.mkdir(parents=True, exist_ok=True)
 TEST_DB_PATH = TMP_DB_DIR / "tracking_test.db"
+TEST_DB_URL = f"sqlite:///{TEST_DB_PATH}"
+
+os.environ.setdefault("TESTING", "1")
+os.environ.setdefault("TEST_DATABASE_URL", TEST_DB_URL)
 
 test_engine = create_engine(
-    f"sqlite:///{TEST_DB_PATH}", connect_args={"check_same_thread": False}
+    TEST_DB_URL, connect_args={"check_same_thread": False}
 )
 
 from app.core import database as db_module  # noqa: E402
@@ -55,7 +60,22 @@ def fake() -> Faker:
 
 @pytest.fixture(scope="session", autouse=True)
 def configure_database() -> None:
+    # Prioritize the Tracking service root so imports resolve to the correct package
+    if str(SERVICE_ROOT) in sys.path:
+        sys.path.remove(str(SERVICE_ROOT))
+    sys.path.insert(0, str(SERVICE_ROOT))
+
+    # Clear cached modules so Tracking packages reload from the correct root
+    for module_name in [
+        name for name in list(sys.modules) if name == "app" or name.startswith("app.")
+    ]:
+        sys.modules.pop(module_name)
+
     from app.core.database import Base
+    # Ensure ORM models are imported so metadata is populated before creating tables
+    from app.modules.vehicles.models import vehicle as vehicle_models  # noqa: F401
+    from app.modules.haul_route.models import route as route_models  # noqa: F401
+    from app.modules.haul_route.models import route_stop as route_stop_models  # noqa: F401
 
     Base.metadata.create_all(bind=db_module.engine)
     yield

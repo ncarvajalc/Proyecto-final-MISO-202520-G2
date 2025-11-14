@@ -54,6 +54,16 @@ def fake() -> Faker:
 
 @pytest.fixture
 def client() -> TestClient:
+    if str(ROOT_DIR) in sys.path:
+        sys.path.remove(str(ROOT_DIR))
+    sys.path.insert(0, str(ROOT_DIR))
+    for module_name, module in list(sys.modules.items()):
+        if module_name.startswith("app.core"):
+            continue
+        if module_name == "app" or module_name.startswith("app."):
+            module_file = getattr(module, "__file__", "")
+            if not module_file or str(ROOT_DIR) not in module_file:
+                sys.modules.pop(module_name)
     from app.main import app  # noqa: E402
     return TestClient(app)
 

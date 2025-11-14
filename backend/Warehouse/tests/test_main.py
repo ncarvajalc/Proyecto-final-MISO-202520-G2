@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from faker import Faker
 from sqlalchemy.exc import OperationalError
 import pytest
@@ -9,22 +11,24 @@ from backend.tests.shared_main import (
     reload_main,
 )
 
+PACKAGE_ROOT = Path(__file__).resolve().parents[1]
+
 
 def test_healthcheck_success():
-    module = reload_main()
-    client = create_test_client(module)
+    module = reload_main(package_root=PACKAGE_ROOT)
+    client = create_test_client(module, package_root=PACKAGE_ROOT)
 
     assert_health(client)
 
 
 def test_healthcheck_failure(monkeypatch, fake: Faker):
-    module = reload_main()
+    module = reload_main(package_root=PACKAGE_ROOT)
 
     def failing_session():
         raise OperationalError("SELECT 1", {}, Exception(fake.word()))
 
     monkeypatch.setattr(module, "SessionLocal", failing_session)
-    client = create_test_client(module)
+    client = create_test_client(module, package_root=PACKAGE_ROOT)
 
     assert_health(client, healthy=False)
 
@@ -33,7 +37,7 @@ def test_healthcheck_failure(monkeypatch, fake: Faker):
 def test_read_root_returns_message():
     """TODO: Restore assertion once root endpoint greeting matches expected prefix."""
 
-    module = reload_main()
-    client = create_test_client(module)
+    module = reload_main(package_root=PACKAGE_ROOT)
+    client = create_test_client(module, package_root=PACKAGE_ROOT)
 
     assert_root_message(client)

@@ -9,6 +9,13 @@ from app.modules.reports.schemas import InformeComercialCreate
 from app.modules.salespeople.models.salespeople_model import Salespeople, SalesPlan
 
 
+@pytest.fixture(autouse=True)
+def _clear_sales_data(db_session):
+    db_session.query(InformeComercial).delete()
+    db_session.query(SalesPlan).delete()
+    db_session.commit()
+
+
 def test_calculate_sales_indicators_with_no_sales_plans(db_session):
     """Test that indicators calculation returns zeros when no sales plans exist."""
     indicators = crud.calculate_sales_indicators(db_session)

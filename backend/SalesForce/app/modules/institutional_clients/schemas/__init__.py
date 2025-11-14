@@ -6,6 +6,7 @@ from .institutional_client import (
     TerritoriesQuery,
     InstitutionalContactClient,
     InstitutionalContactClientResponse,
+    TaxIdVerificationResponse,
 )
 
 __all__ = [
@@ -16,4 +17,5 @@ __all__ = [
     "TerritoriesQuery",
     "InstitutionalContactClient",
     "InstitutionalContactClientResponse",
+    "TaxIdVerificationResponse",
 ]

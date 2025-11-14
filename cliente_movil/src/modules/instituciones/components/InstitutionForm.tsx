@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import * as DocumentPicker from "expo-document-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { InstitutionalClientCreate } from "../../../types/institutionalClient";
 import { territoriesService, Territory } from "../../../services/territoriesService";
+import { institutionalClientService } from "../../../services/institutionalClientService";
 
 interface FormContentProps {
   nombreInstitucion: string;
@@ -26,6 +27,9 @@ interface FormContentProps {
   setDireccionInstitucional: (value: string) => void;
   identificacionTributaria: string;
   setIdentificacionTributaria: (value: string) => void;
+  handleTaxIdBlur: () => void;
+  isValidatingTaxId: boolean;
+  isTaxIdValid: boolean;
   representanteLegal: string;
   setRepresentanteLegal: (value: string) => void;
   telefono: string;
@@ -51,6 +55,8 @@ interface FormContentProps {
   isFormValid: boolean;
 }
 
+const TAX_ID_REGEX = /^[0-9-]+$/;
+
 const FormContent: React.FC<FormContentProps> = ({
   nombreInstitucion,
   setNombreInstitucion,
@@ -60,6 +66,9 @@ const FormContent: React.FC<FormContentProps> = ({
   setDireccionInstitucional,
   identificacionTributaria,
   setIdentificacionTributaria,
+  handleTaxIdBlur,
+  isValidatingTaxId,
+  isTaxIdValid,
   representanteLegal,
   setRepresentanteLegal,
   telefono,
@@ -132,9 +141,19 @@ const FormContent: React.FC<FormContentProps> = ({
       style={[styles.input, errors.identificacionTributaria && styles.inputError]}
       placeholder="NIT"
       placeholderTextColor="#cbd5e1"
+      testID="institution-tax-id-input"
       value={identificacionTributaria}
       onChangeText={setIdentificacionTributaria}
+      onBlur={handleTaxIdBlur}
+      autoCapitalize="none"
+      autoCorrect={false}
     />
+    {isValidatingTaxId && !errors.identificacionTributaria && (
+      <Text style={styles.helperText}>Validando identificación tributaria...</Text>
+    )}
+    {!isValidatingTaxId && isTaxIdValid && !errors.identificacionTributaria && (
+      <Text style={styles.successText}>Identificación tributaria validada correctamente</Text>
+    )}
     {errors.identificacionTributaria && (
       <Text style={styles.errorText}>{errors.identificacionTributaria}</Text>
     )}
@@ -174,6 +193,7 @@ const FormContent: React.FC<FormContentProps> = ({
       <Picker
         selectedValue={selectedCountry}
         onValueChange={setSelectedCountry}
+        testID="institution-country-picker"
         style={styles.picker}
       >
         <Picker.Item label="Seleccione un país" value="" />
@@ -193,6 +213,7 @@ const FormContent: React.FC<FormContentProps> = ({
           <Picker
             selectedValue={selectedState}
             onValueChange={setSelectedState}
+            testID="institution-state-picker"
             style={styles.picker}
           >
             <Picker.Item label="Seleccione un estado" value="" />
@@ -214,6 +235,7 @@ const FormContent: React.FC<FormContentProps> = ({
           <Picker
             selectedValue={selectedCity}
             onValueChange={setSelectedCity}
+            testID="institution-city-picker"
             style={styles.picker}
           >
             <Picker.Item label="Seleccione una ciudad" value="" />
@@ -261,6 +283,7 @@ const FormContent: React.FC<FormContentProps> = ({
         ]}
         onPress={handleSavePress}
         disabled={!isFormValid}
+        testID="institution-register-button"
       >
         <Text style={[
           styles.actionButtonText,
@@ -299,6 +322,10 @@ export const InstitutionForm: React.FC<InstitutionFormProps> = ({ onSubmit, onCa
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [isFormValid, setIsFormValid] = useState(false);
+  const [isTaxIdValid, setIsTaxIdValid] = useState(false);
+  const [isValidatingTaxId, setIsValidatingTaxId] = useState(false);
+  const lastValidatedTaxIdRef = useRef<string | null>(null);
+  const taxIdValidationRequestRef = useRef(0);
   const insets = useSafeAreaInsets();
 
   // Estados para territorios
@@ -388,13 +415,116 @@ export const InstitutionForm: React.FC<InstitutionFormProps> = ({ onSubmit, onCa
     }
   };
 
+  const handleTaxIdChange = useCallback((value: string) => {
+    setIdentificacionTributaria(value);
+    setIsTaxIdValid(false);
+    lastValidatedTaxIdRef.current = null;
+    taxIdValidationRequestRef.current += 1;
+    setIsValidatingTaxId(false);
+
+    setErrors((prevErrors) => {
+      const updatedErrors = { ...prevErrors };
+      const trimmedValue = value.trim();
+
+      if (!trimmedValue) {
+        updatedErrors.identificacionTributaria = "La identificación tributaria es requerida";
+      } else if (!TAX_ID_REGEX.test(trimmedValue)) {
+        updatedErrors.identificacionTributaria = "Solo se permiten números y guiones";
+      } else {
+        delete updatedErrors.identificacionTributaria;
+      }
+
+      return updatedErrors;
+    });
+  }, []);
+
+  const handleTaxIdBlur = useCallback(async () => {
+    const trimmedValue = identificacionTributaria.trim();
+
+    if (!trimmedValue) {
+      setIsTaxIdValid(false);
+      setErrors((prevErrors) => ({
+        ...prevErrors,
+        identificacionTributaria: "La identificación tributaria es requerida",
+      }));
+      return;
+    }
+
+    if (!TAX_ID_REGEX.test(trimmedValue)) {
+      setIsTaxIdValid(false);
+      setErrors((prevErrors) => ({
+        ...prevErrors,
+        identificacionTributaria: "Solo se permiten números y guiones",
+      }));
+      return;
+    }
+
+    if (lastValidatedTaxIdRef.current === trimmedValue && isTaxIdValid) {
+      return;
+    }
+
+    const currentRequestId = taxIdValidationRequestRef.current + 1;
+    taxIdValidationRequestRef.current = currentRequestId;
+
+    setIsValidatingTaxId(true);
+
+    try {
+      const result = await institutionalClientService.verifyTaxIdentification(trimmedValue);
+
+      if (taxIdValidationRequestRef.current !== currentRequestId) {
+        return;
+      }
+
+      if (result.isValid) {
+        lastValidatedTaxIdRef.current = trimmedValue;
+        setIsTaxIdValid(true);
+        setErrors((prevErrors) => {
+          const { identificacionTributaria, ...rest } = prevErrors;
+          return rest;
+        });
+      } else {
+        lastValidatedTaxIdRef.current = null;
+        setIsTaxIdValid(false);
+        setErrors((prevErrors) => ({
+          ...prevErrors,
+          identificacionTributaria:
+            result.message ?? "La identificación tributaria no es válida",
+        }));
+      }
+    } catch (error) {
+      if (taxIdValidationRequestRef.current !== currentRequestId) {
+        return;
+      }
+
+      lastValidatedTaxIdRef.current = null;
+      setIsTaxIdValid(false);
+      const message =
+        error instanceof Error
+          ? error.message
+          : "No se pudo validar la identificación tributaria";
+
+      setErrors((prevErrors) => ({
+        ...prevErrors,
+        identificacionTributaria: message,
+      }));
+    } finally {
+      if (taxIdValidationRequestRef.current === currentRequestId) {
+        setIsValidatingTaxId(false);
+      }
+    }
+  }, [identificacionTributaria, isTaxIdValid]);
+
   const checkFormValidity = useCallback(() => {
+    const trimmedTaxId = identificacionTributaria.trim();
+    const hasValidTaxId =
+      !!trimmedTaxId && TAX_ID_REGEX.test(trimmedTaxId) && isTaxIdValid;
+
     const isValid = !!(
       nombreInstitucion.trim() &&
       direccion.trim() &&
       direccionInstitucional.trim() &&
       /\S+@\S+\.\S+/.test(direccionInstitucional) &&
-      identificacionTributaria.trim() &&
+      hasValidTaxId &&
       representanteLegal.trim() &&
       telefono.trim() &&
       selectedCity
@@ -406,6 +536,7 @@ export const InstitutionForm: React.FC<InstitutionFormProps> = ({ onSubmit, onCa
     direccion,
     direccionInstitucional,
     identificacionTributaria,
+    isTaxIdValid,
     representanteLegal,
     telefono,
     selectedCity
@@ -429,8 +560,13 @@ export const InstitutionForm: React.FC<InstitutionFormProps> = ({ onSubmit, onCa
     } else if (!/\S+@\S+\.\S+/.test(direccionInstitucional)) {
       newErrors.direccionInstitucional = "Ingrese un correo válido";
     }
-    if (!identificacionTributaria.trim()) {
+    const trimmedTaxId = identificacionTributaria.trim();
+    if (!trimmedTaxId) {
       newErrors.identificacionTributaria = "La identificación tributaria es requerida";
+    } else if (!TAX_ID_REGEX.test(trimmedTaxId)) {
+      newErrors.identificacionTributaria = "Solo se permiten números y guiones";
+    } else if (!isTaxIdValid) {
+      newErrors.identificacionTributaria = "La identificación tributaria no ha sido validada";
     }
     if (!representanteLegal.trim()) {
       newErrors.representanteLegal = "El representante legal es requerido";
@@ -472,6 +608,10 @@ export const InstitutionForm: React.FC<InstitutionFormProps> = ({ onSubmit, onCa
     setSelectedState("");
     setSelectedCity("");
     setErrors({});
+    setIsTaxIdValid(false);
+    setIsValidatingTaxId(false);
+    lastValidatedTaxIdRef.current = null;
+    taxIdValidationRequestRef.current = 0;
   };
 
   const handleConfirmSave = async () => {
@@ -510,7 +650,10 @@ export const InstitutionForm: React.FC<InstitutionFormProps> = ({ onSubmit, onCa
       direccionInstitucional={direccionInstitucional}
       setDireccionInstitucional={setDireccionInstitucional}
       identificacionTributaria={identificacionTributaria}
-      setIdentificacionTributaria={setIdentificacionTributaria}
+      setIdentificacionTributaria={handleTaxIdChange}
+      handleTaxIdBlur={handleTaxIdBlur}
+      isValidatingTaxId={isValidatingTaxId}
+      isTaxIdValid={isTaxIdValid}
       representanteLegal={representanteLegal}
       setRepresentanteLegal={setRepresentanteLegal}
       telefono={telefono}
@@ -588,6 +731,7 @@ export const InstitutionForm: React.FC<InstitutionFormProps> = ({ onSubmit, onCa
               <TouchableOpacity
                 style={[styles.modalButton, styles.modalButtonPrimary]}
                 onPress={handleConfirmSave}
+                testID="institution-confirm-register-button"
               >
                 <Text style={styles.modalButtonTextPrimary}>Registrar</Text>
               </TouchableOpacity>
@@ -718,6 +862,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 4,
   },
+  helperText: {
+    color: "#64748b",
+    fontSize: 12,
+    marginTop: 4,
+  },
   fileButton: {
     alignItems: "center",
     backgroundColor: "#024A77",
@@ -753,6 +902,11 @@ const styles = StyleSheet.create({
   },
   inputError: {
     borderColor: "#ef4444",
+  },
+  successText: {
+    color: "#16a34a",
+    fontSize: 12,
+    marginTop: 4,
   },
   label: {
     color: "#0f172a",
