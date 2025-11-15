@@ -1,6 +1,7 @@
 from typing import Optional
+from datetime import datetime
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -11,21 +12,21 @@ from app.modules.orders.schemas import (
     OrderStatus,
     OrdersResponse,
     MostPurchasedProductPaginatedResponse,
+    ScheduledDeliveriesResponse,
 )
 from app.modules.orders.services import (
     create_order_service,
     get_order_status,
     get_top_purchased_products,
     get_top_institution_buyers,
+    get_scheduled_deliveries_service,
 )
 
 router = APIRouter(prefix="/pedidos", tags=["pedidos"])
 
 
 @router.post("/", response_model=Order, status_code=201)
-async def create_order_endpoint(
-    payload: OrderCreate, db: Session = Depends(get_db)
-):
+async def create_order_endpoint(payload: OrderCreate, db: Session = Depends(get_db)):
     """Create a new order with validation."""
     return await create_order_service(db, payload)
 
@@ -53,29 +54,59 @@ def list_orders_endpoint(
         total_pages=total_pages,
     )
 
+
 @router.get(
-    "/productos/mas-comprados", 
+    "/productos/mas-comprados",
     response_model=MostPurchasedProductPaginatedResponse,
-    summary="Obtener productos más comprados (Paginado)"
+    summary="Obtener productos más comprados (Paginado)",
 )
 async def read_most_purchased_products(
-    page: int = 1,
-    limit: int = 20,
-    db: Session = Depends(get_db)
+    page: int = 1, limit: int = 20, db: Session = Depends(get_db)
 ):
     return await get_top_purchased_products(db=db, page=page, limit=limit)
+
 
 @router.get(
     "/clientes/mas-compradores",
     response_model=MostPurchasedProductPaginatedResponse,
-    summary="Obtener clientes (instituciones) que más han comprado (Paginado)"
+    summary="Obtener clientes (instituciones) que más han comprado (Paginado)",
 )
 async def read_top_institution_buyers(
-    page: int = 1,
-    limit: int = 20,
-    db: Session = Depends(get_db)
+    page: int = 1, limit: int = 20, db: Session = Depends(get_db)
 ):
     return await get_top_institution_buyers(db=db, page=page, limit=limit)
+
+
+@router.get(
+    "/entregas-programadas",
+    response_model=ScheduledDeliveriesResponse,
+    summary="Consulta de entregas programadas",
+)
+def get_scheduled_deliveries_endpoint(
+    fecha: str = Query(..., description="Fecha en formato DD/MM/YYYY"),
+    page: int = 1,
+    limit: int = 20,
+    db: Session = Depends(get_db),
+):
+    """
+    Obtiene las entregas programadas (pedidos en estado 'pending')
+    para una fecha específica.
+
+    - **fecha**: Fecha en formato DD/MM/YYYY (ej: 15/11/2024)
+    - **page**: Número de página (default: 1)
+    - **limit**: Límite de resultados por página (default: 20)
+    """
+    try:
+        # Parsear fecha en formato DD/MM/YYYY
+        delivery_date = datetime.strptime(fecha, "%d/%m/%Y").date()
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail="Formato de fecha inválido. Use DD/MM/YYYY (ej: 15/11/2024)",
+        )
+
+    return get_scheduled_deliveries_service(db, delivery_date, page, limit)
+
 
 @router.get("/{order_id}", response_model=OrderStatus)
 def get_order_endpoint(order_id: int, db: Session = Depends(get_db)):

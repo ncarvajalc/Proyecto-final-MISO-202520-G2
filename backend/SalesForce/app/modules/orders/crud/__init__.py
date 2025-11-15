@@ -4,7 +4,8 @@ from .crud_order import (
     list_orders_paginated,
     update_order_status,
     get_most_purchased_products,
-    get_top_institution_buyer_products
+    get_top_institution_buyer_products,
+    get_scheduled_deliveries_by_date,
 )
 
 __all__ = [
@@ -14,4 +15,5 @@ __all__ = [
     "update_order_status",
     "get_most_purchased_products",
     "get_top_institution_buyer_products",
+    "get_scheduled_deliveries_by_date",
 ]

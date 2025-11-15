@@ -1,4 +1,5 @@
 from typing import Optional, List, Dict, Any
+from datetime import date
 
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, desc, select
@@ -11,7 +12,11 @@ def list_orders_paginated(
     db: Session, skip: int, limit: int, institutional_client_id: Optional[str] = None
 ):
     """List all orders with pagination and optional filtering by client."""
-    query = db.query(Order).options(joinedload(Order.items)).order_by(Order.created_at.desc())
+    query = (
+        db.query(Order)
+        .options(joinedload(Order.items))
+        .order_by(Order.created_at.desc())
+    )
 
     if institutional_client_id:
         query = query.filter(Order.institutional_client_id == institutional_client_id)
@@ -86,9 +91,8 @@ def update_order_status(db: Session, order_id: int, status: str):
     db.refresh(db_order)
     return db_order
 
-def get_most_purchased_products(
-    db: Session, page: int, limit: int
-) -> Dict[str, Any]:
+
+def get_most_purchased_products(db: Session, page: int, limit: int) -> Dict[str, Any]:
     """
     Obtiene los productos más comprados (paginado)
     """
@@ -137,19 +141,16 @@ def get_most_purchased_products(
         .subquery("main_aggregation")
     )
 
-    # consulta base 
-    base_query = (
-        select(
-            main_aggregation_sq.c.product_id,
-            main_aggregation_sq.c.product_name,
-            latest_price_cte.c.current_unit_price,
-            main_aggregation_sq.c.total_quantity_sold,
-            main_aggregation_sq.c.institutions,
-        )
-        .join(
-            latest_price_cte,
-            main_aggregation_sq.c.product_id == latest_price_cte.c.product_id,
-        )
+    # consulta base
+    base_query = select(
+        main_aggregation_sq.c.product_id,
+        main_aggregation_sq.c.product_name,
+        latest_price_cte.c.current_unit_price,
+        main_aggregation_sq.c.total_quantity_sold,
+        main_aggregation_sq.c.institutions,
+    ).join(
+        latest_price_cte,
+        main_aggregation_sq.c.product_id == latest_price_cte.c.product_id,
     )
 
     # obtener el CONTEO TOTAL de productos únicos
@@ -160,15 +161,14 @@ def get_most_purchased_products(
 
     # consulta final
     final_query = (
-        base_query
-        .order_by(desc(main_aggregation_sq.c.total_quantity_sold))
+        base_query.order_by(desc(main_aggregation_sq.c.total_quantity_sold))
         .offset(skip)
         .limit(limit)
     )
 
     # ejecutar y devolver resultados
     items = db.execute(final_query).all()
-    
+
     return {"items": items, "total": total}
 
 
@@ -206,7 +206,8 @@ def get_top_institution_buyer_products(
         .join(Order, Order.id == OrderItem.order_id)
         .join(
             top_institutions_sq,
-            Order.institutional_client_id == top_institutions_sq.c.institutional_client_id,
+            Order.institutional_client_id
+            == top_institutions_sq.c.institutional_client_id,
         )
         .cte("ranked_items")
     )
@@ -238,25 +239,23 @@ def get_top_institution_buyer_products(
         )
         .join(
             top_institutions_sq,
-            Order.institutional_client_id == top_institutions_sq.c.institutional_client_id,
+            Order.institutional_client_id
+            == top_institutions_sq.c.institutional_client_id,
         )
         .group_by(OrderItem.product_id, OrderItem.product_name)
         .subquery("main_aggregation")
     )
 
     # consulta base
-    base_query = (
-        select(
-            main_aggregation_sq.c.product_id,
-            main_aggregation_sq.c.product_name,
-            latest_price_cte.c.current_unit_price,
-            main_aggregation_sq.c.total_quantity_sold,
-            main_aggregation_sq.c.institutions,
-        )
-        .join(
-            latest_price_cte,
-            main_aggregation_sq.c.product_id == latest_price_cte.c.product_id,
-        )
+    base_query = select(
+        main_aggregation_sq.c.product_id,
+        main_aggregation_sq.c.product_name,
+        latest_price_cte.c.current_unit_price,
+        main_aggregation_sq.c.total_quantity_sold,
+        main_aggregation_sq.c.institutions,
+    ).join(
+        latest_price_cte,
+        main_aggregation_sq.c.product_id == latest_price_cte.c.product_id,
     )
 
     # obtener el CONTEO TOTAL de productos únicos de top instituciones
@@ -267,13 +266,32 @@ def get_top_institution_buyer_products(
 
     # consulta final ordenada por cantidad total comprada
     final_query = (
-        base_query
-        .order_by(desc(main_aggregation_sq.c.total_quantity_sold))
+        base_query.order_by(desc(main_aggregation_sq.c.total_quantity_sold))
         .offset(skip)
         .limit(limit)
     )
 
     # ejecutar y devolver resultados
     items = db.execute(final_query).all()
-    
+
+    return {"items": items, "total": total}
+
+
+def get_scheduled_deliveries_by_date(
+    db: Session, delivery_date: date, skip: int, limit: int
+) -> Dict[str, Any]:
+    """
+    Obtiene las entregas programadas para una fecha específica con estado 'pending'.
+    """
+    query = (
+        db.query(Order)
+        .options(joinedload(Order.institutional_client))
+        .filter(Order.order_date == delivery_date)
+        .filter(Order.status == "pending")
+        .order_by(Order.created_at.desc())
+    )
+
+    total = query.count()
+    items = query.offset(skip).limit(limit).all()
+
     return {"items": items, "total": total}

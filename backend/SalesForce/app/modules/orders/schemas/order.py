@@ -55,17 +55,19 @@ class OrdersResponse(BaseModel):
     limit: int
     total_pages: int
 
+
 class MostPurchasedProduct(BaseModel):
     """
     Esquema para un producto individual en el reporte.
     """
+
     product_id: int
     product_name: str
     current_unit_price: Decimal
     total_quantity_sold: int
     institutions: str
     url_imagen: str
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -73,6 +75,7 @@ class MostPurchasedProductPaginatedResponse(BaseModel):
     """
     Esquema para la respuesta paginada de productos más comprados.
     """
+
     items: List[MostPurchasedProduct]
     total: int
     page: int
@@ -109,3 +112,23 @@ class OrderStatus(BaseModel):
     total_units: int
     items: List[OrderStatusProduct]
 
+
+class ScheduledDelivery(BaseModel):
+    """Respuesta para la consulta de entregas programadas."""
+
+    client_name: str
+    country: str
+    city: str
+    address: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ScheduledDeliveriesResponse(BaseModel):
+    """Respuesta paginada para entregas programadas."""
+
+    data: List[ScheduledDelivery]
+    total: int
+    page: int
+    limit: int
+    total_pages: int

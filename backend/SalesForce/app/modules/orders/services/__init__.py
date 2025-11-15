@@ -4,6 +4,7 @@ from .order_service import (
     get_top_purchased_products,
     get_top_institution_buyers,
     summarize_order,
+    get_scheduled_deliveries_service,
 )
 
 __all__ = [
@@ -12,4 +13,5 @@ __all__ = [
     "get_top_purchased_products",
     "get_top_institution_buyers",
     "summarize_order",
+    "get_scheduled_deliveries_service",
 ]
