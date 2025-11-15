@@ -116,6 +116,7 @@ class OrderStatus(BaseModel):
 class ScheduledDelivery(BaseModel):
     """Respuesta para la consulta de entregas programadas."""
 
+    order_id: int
     client_name: str
     country: str
     city: str
