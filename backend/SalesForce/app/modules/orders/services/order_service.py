@@ -26,9 +26,7 @@ from app.modules.orders.schemas import (
     ScheduledDelivery,
     ScheduledDeliveriesResponse,
 )
-from app.modules.territories.crud import get_territorio
-from app.modules.territories.models import Territorio
-from app.modules.territories.schemas import TerritoryType
+
 
 # Service URLs
 PURCHASES_SUPPLIERS_URL = "http://purchases_suppliers:8001"
