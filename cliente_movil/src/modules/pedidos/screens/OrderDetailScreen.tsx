@@ -39,9 +39,10 @@ export const OrderDetailScreen: React.FC = () => {
 
       // Load client data
       try {
-        const clientData = await institutionalClientService.getInstitutionalClient(
-          orderData.institutional_client_id
-        );
+        const clientData =
+          await institutionalClientService.getInstitutionalClient(
+            orderData.institutional_client_id
+          );
         setClient(clientData);
       } catch (err) {
         console.warn("Failed to load client data", err);
@@ -118,7 +119,8 @@ export const OrderDetailScreen: React.FC = () => {
         <View style={styles.summarySection}>
           <Text style={styles.orderLabel}>Pedido: #{order.id}</Text>
           <Text style={styles.clientName}>
-            {client?.nombre_institucion || `Cliente ${order.institutional_client_id}`}
+            {client?.nombre_institucion ||
+              `Cliente ${order.institutional_client_id}`}
           </Text>
           <Text style={styles.orderDate}>{formatDate(order.order_date)}</Text>
           <Text style={styles.orderInfo}>
@@ -131,15 +133,17 @@ export const OrderDetailScreen: React.FC = () => {
 
         {/* Products Section */}
         <View style={styles.productsSection}>
-          <Text style={styles.productsSectionTitle}>Productos seleccionados</Text>
+          <Text style={styles.productsSectionTitle}>
+            Productos seleccionados
+          </Text>
 
-          {order.items.map((item, index) => (
+          {order.items.map((item) => (
             <View key={item.id} style={styles.productItem}>
               <Text style={styles.productName}>{item.product_name}</Text>
               <Text style={styles.productUnit}>Unidad</Text>
               <Text style={styles.productQuantity}>{item.quantity}</Text>
               <Text style={styles.productPrice}>
-                {formatCurrency(item.subtotal)}
+                {formatCurrency(item.total_price)}
               </Text>
             </View>
           ))}

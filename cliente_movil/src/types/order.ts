@@ -6,6 +6,7 @@ export interface OrderItem {
   quantity: number;
   unit_price: number;
   subtotal: number;
+  total_price: number;
   created_at: string;
 }
 
@@ -37,6 +38,21 @@ export interface OrderCreate {
 
 export interface OrdersResponse {
   data: Order[];
+  total: number;
+  page: number;
+  limit: number;
+  total_pages: number;
+}
+
+export interface ScheduledDelivery {
+  client_name: string;
+  country: string;
+  city: string;
+  address: string;
+}
+
+export interface ScheduledDeliveriesResponse {
+  data: ScheduledDelivery[];
   total: number;
   page: number;
   limit: number;

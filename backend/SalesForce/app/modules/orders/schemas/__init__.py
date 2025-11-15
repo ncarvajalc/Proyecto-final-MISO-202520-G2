@@ -8,6 +8,8 @@ from .order import (
     OrdersResponse,
     MostPurchasedProduct,
     MostPurchasedProductPaginatedResponse,
+    ScheduledDelivery,
+    ScheduledDeliveriesResponse,
 )
 
 __all__ = [
@@ -20,4 +22,6 @@ __all__ = [
     "OrdersResponse",
     "MostPurchasedProduct",
     "MostPurchasedProductPaginatedResponse",
+    "ScheduledDelivery",
+    "ScheduledDeliveriesResponse",
 ]
