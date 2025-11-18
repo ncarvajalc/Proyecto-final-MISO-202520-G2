@@ -45,6 +45,7 @@ export interface OrdersResponse {
 }
 
 export interface ScheduledDelivery {
+  order_id: number;
   client_name: string;
   country: string;
   city: string;

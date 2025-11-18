@@ -475,6 +475,7 @@ def get_scheduled_deliveries_service(
         territory_info = get_territory_hierarchy(db, client.territory_id)
 
         delivery = ScheduledDelivery(
+            order_id=order.id,
             client_name=client.nombre_institucion,
             country=territory_info["country"],
             city=territory_info["city"],

@@ -9,10 +9,19 @@ import {
   ActivityIndicator,
   Alert,
 } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import { StackNavigationProp } from "@react-navigation/stack";
 import { orderService } from "../../../services/orderService";
 import { ScheduledDelivery } from "../../../types/order";
+import { EntregasStackParamList } from "../navigation/EntregasStackNavigator";
+
+type EntregasScreenNavigationProp = StackNavigationProp<
+  EntregasStackParamList,
+  "EntregasList"
+>;
 
 export const EntregasScreen: React.FC = () => {
+  const navigation = useNavigation<EntregasScreenNavigationProp>();
   const [dateInput, setDateInput] = useState("");
   const [deliveries, setDeliveries] = useState<ScheduledDelivery[]>([]);
   const [loading, setLoading] = useState(false);
@@ -73,17 +82,10 @@ export const EntregasScreen: React.FC = () => {
   };
 
   /**
-   * Handles delivery card press
-   * TODO: Navigate to delivery detail screen (Future Sprint)
+   * Handles delivery card press - navigates to delivery detail screen
    */
   const handleDeliveryPress = (delivery: ScheduledDelivery) => {
-    // TODO: Implement navigation to delivery detail screen
-    // This will be implemented in a future sprint
-    console.log("Delivery selected:", delivery.client_name);
-    Alert.alert(
-      "Detalle de entrega",
-      `Funcionalidad pendiente para: ${delivery.client_name}\n\nSe implementará en el próximo sprint.`
-    );
+    navigation.navigate("DeliveryDetail", { orderId: delivery.order_id });
   };
 
   /**
@@ -183,9 +185,6 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: "700",
     color: "#0f172a",
-  },
-  avatarText: {
-    fontSize: 24,
   },
   filterSection: {
     paddingHorizontal: 20,
