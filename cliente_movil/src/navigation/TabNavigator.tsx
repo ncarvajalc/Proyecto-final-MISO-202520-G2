@@ -1,6 +1,7 @@
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CarteraScreen } from "../modules/cartera/screens/CarteraScreen";
 import { RutasScreen } from "../modules/rutas/screens/RutasScreen";
 import { VisitStackNavigator } from "../modules/visitas/navigation/VisitStackNavigator";
@@ -11,6 +12,8 @@ import { EntregasStackNavigator } from "../modules/entregas/navigation/EntregasS
 const Tab = createBottomTabNavigator();
 
 export const TabNavigator: React.FC = () => {
+  const insets = useSafeAreaInsets();
+
   return (
     <Tab.Navigator
       initialRouteName="Cartera"
@@ -18,8 +21,8 @@ export const TabNavigator: React.FC = () => {
         tabBarActiveTintColor: "#000000",
         tabBarInactiveTintColor: "#000000",
         tabBarStyle: {
-          height: 60,
-          paddingBottom: 4,
+          height: 60 + insets.bottom,
+          paddingBottom: insets.bottom + 4,
           paddingTop: 0,
         },
         tabBarLabelStyle: {
