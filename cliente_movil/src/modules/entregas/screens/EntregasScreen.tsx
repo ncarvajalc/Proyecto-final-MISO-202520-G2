@@ -3,12 +3,13 @@ import {
   View,
   Text,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
   FlatList,
   ActivityIndicator,
   Alert,
+  Platform,
 } from "react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { orderService } from "../../../services/orderService";
@@ -22,52 +23,52 @@ type EntregasScreenNavigationProp = StackNavigationProp<
 
 export const EntregasScreen: React.FC = () => {
   const navigation = useNavigation<EntregasScreenNavigationProp>();
-  const [dateInput, setDateInput] = useState("");
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [deliveries, setDeliveries] = useState<ScheduledDelivery[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
 
   /**
-   * Validates date format DD/MM/YYYY
+   * Formats a Date object to DD/MM/YYYY string
    */
-  const isValidDateFormat = (date: string): boolean => {
-    const dateRegex = /^\d{2}\/\d{2}\/\d{4}$/;
-    if (!dateRegex.test(date)) {
-      return false;
+  const formatDateToString = (date: Date): string => {
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
+  /**
+   * Handles date picker change
+   */
+  const handleDateChange = (event: unknown, date?: Date): void => {
+    if (Platform.OS === "android") {
+      setShowDatePicker(false);
     }
-
-    const [day, month, year] = date.split("/").map(Number);
-
-    // Basic validation
-    if (month < 1 || month > 12) return false;
-    if (day < 1 || day > 31) return false;
-    if (year < 1900 || year > 2100) return false;
-
-    return true;
+    if (date) {
+      setSelectedDate(date);
+      if (Platform.OS === "ios") {
+        setShowDatePicker(false);
+      }
+    }
   };
 
   /**
    * Handles search button press
    */
   const handleSearch = async () => {
-    if (!dateInput.trim()) {
-      Alert.alert("Error", "Por favor ingrese una fecha");
+    if (!selectedDate) {
+      Alert.alert("Error", "Por favor seleccione una fecha");
       return;
     }
 
-    if (!isValidDateFormat(dateInput)) {
-      Alert.alert(
-        "Formato inválido",
-        "Por favor use el formato DD/MM/YYYY (ej: 15/11/2024)"
-      );
-      return;
-    }
-
+    const dateString = formatDateToString(selectedDate);
     setLoading(true);
     setSearched(true);
 
     try {
-      const response = await orderService.getScheduledDeliveries(dateInput);
+      const response = await orderService.getScheduledDeliveries(dateString);
       setDeliveries(response.data);
     } catch (error) {
       console.error("Error fetching scheduled deliveries:", error);
@@ -112,16 +113,26 @@ export const EntregasScreen: React.FC = () => {
       {/* Filter Section */}
       <View style={styles.filterSection}>
         <Text style={styles.filterLabel}>Filtrar Fecha</Text>
-        <TextInput
+        <TouchableOpacity
           style={styles.dateInput}
-          placeholder="DD/MM/YYYY"
-          value={dateInput}
-          onChangeText={setDateInput}
-          placeholderTextColor="#94a3b8"
-          keyboardType="numeric"
-          maxLength={10}
-        />
-        <Text style={styles.helperText}>Digita la fecha a buscar</Text>
+          onPress={() => setShowDatePicker(true)}
+        >
+          <Text
+            style={[styles.dateText, !selectedDate && styles.datePlaceholder]}
+          >
+            {selectedDate ? formatDateToString(selectedDate) : "DD/MM/YYYY"}
+          </Text>
+        </TouchableOpacity>
+        {showDatePicker && (
+          <DateTimePicker
+            value={selectedDate || new Date()}
+            mode="date"
+            display={Platform.OS === "ios" ? "spinner" : "default"}
+            onChange={handleDateChange}
+            maximumDate={new Date()}
+          />
+        )}
+        <Text style={styles.helperText}>Selecciona la fecha a buscar</Text>
         <TouchableOpacity
           style={styles.searchButton}
           onPress={handleSearch}
@@ -208,6 +219,14 @@ const styles = StyleSheet.create({
     color: "#0f172a",
     backgroundColor: "#ffffff",
     marginBottom: 8,
+    justifyContent: "center",
+  },
+  dateText: {
+    fontSize: 16,
+    color: "#0f172a",
+  },
+  datePlaceholder: {
+    color: "#94a3b8",
   },
   helperText: {
     fontSize: 14,
