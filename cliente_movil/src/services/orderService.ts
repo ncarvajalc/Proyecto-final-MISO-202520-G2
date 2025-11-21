@@ -27,7 +27,7 @@ export const orderService = {
     institutional_client_id?: string
   ): Promise<OrdersResponse> {
     try {
-      const fullUrl = buildUrl("/pedidos");
+      const fullUrl = buildUrl("/pedidos/");
       console.log("[ORDER SERVICE] Making request to:", fullUrl);
       console.log("[ORDER SERVICE] With params:", {
         page,

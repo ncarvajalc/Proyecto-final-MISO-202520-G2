@@ -19,7 +19,8 @@ describe("orderService", () => {
 
   const importService = () => {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const orderModule = require("../src/services/orderService") as typeof import("../src/services/orderService");
+    const orderModule =
+      require("../src/services/orderService") as typeof import("../src/services/orderService");
     return orderModule.orderService;
   };
 
@@ -45,7 +46,7 @@ describe("orderService", () => {
     const result = await service.getOrders(2, 10, "CLI-101");
 
     expect(mockedAxios.get).toHaveBeenCalledWith(
-      "https://orders.example.com/pedidos",
+      "https://orders.example.com/pedidos/",
       {
         params: {
           page: 2,
@@ -71,7 +72,7 @@ describe("orderService", () => {
     const result = await service.getOrders();
 
     expect(mockedAxios.get).toHaveBeenCalledWith(
-      "https://orders.example.com/pedidos",
+      "https://orders.example.com/pedidos/",
       {
         params: {
           page: 1,
