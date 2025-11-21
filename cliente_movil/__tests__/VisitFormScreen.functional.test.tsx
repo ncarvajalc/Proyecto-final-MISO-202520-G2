@@ -69,8 +69,8 @@ describe("VisitFormScreen", () => {
 
     await waitFor(() => {
       expect(alertSpy).toHaveBeenCalledWith(
-        "Error",
-        "Por favor complete todos los campos requeridos"
+        "Campos obligatorios",
+        "Nombre de institución y dirección son requeridos"
       );
     });
 

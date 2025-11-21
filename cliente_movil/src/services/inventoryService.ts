@@ -4,8 +4,13 @@ import {
   BackendProductInventory,
   Warehouse,
 } from "../types/warehouse";
+import { getApiBaseUrl } from "../config/api";
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8080";
+const buildApiUrl = (path: string): string => {
+  const baseUrl = getApiBaseUrl().replace(/\/$/, "");
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  return `${baseUrl}${normalizedPath}`;
+};
 
 export const inventoryService = {
   /**
@@ -14,8 +19,9 @@ export const inventoryService = {
    */
   async getProductInventory(productSku: string): Promise<ProductInventory> {
     try {
+      const encodedSku = encodeURIComponent(productSku);
       const response = await axios.get<BackendProductInventory[]>(
-        `${API_URL}/inventario/producto/${productSku}`
+        buildApiUrl(`/inventario/producto/${encodedSku}`)
       );
 
       const inventoryList = response.data;
@@ -27,7 +33,7 @@ export const inventoryService = {
 
       // Fetch warehouse information
       const warehousesResponse = await axios.get<Warehouse[]>(
-        `${API_URL}/bodegas/`
+        buildApiUrl("/bodegas/")
       );
       const warehousesMap = new Map<string, Warehouse>();
       warehousesResponse.data.forEach((warehouse) => {

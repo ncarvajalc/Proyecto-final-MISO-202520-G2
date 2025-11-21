@@ -42,8 +42,15 @@ export const ProductDetailScreen: React.FC = () => {
       setProduct(productData);
 
       // Then get inventory using SKU
-      const inventoryData = await inventoryService.getProductInventory(productData.sku);
-      setInventory(inventoryData);
+      try {
+        const inventoryData = await inventoryService.getProductInventory(
+          productData.sku
+        );
+        setInventory(inventoryData);
+      } catch (inventoryError) {
+        console.error("Error al cargar inventario:", inventoryError);
+        setInventory(null);
+      }
     } catch (err) {
       setError("Error al cargar información del producto");
       console.error(err);

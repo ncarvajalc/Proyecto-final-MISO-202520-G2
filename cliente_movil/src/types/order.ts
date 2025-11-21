@@ -44,6 +44,30 @@ export interface OrdersResponse {
   total_pages: number;
 }
 
+export interface OrderStatusItem {
+  product_id: number;
+  product_name: string;
+  unit: string;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
+}
+
+export interface OrderStatus {
+  id: number;
+  order_number: string;
+  institutional_client_id: string;
+  client_name: string;
+  order_date: string;
+  status: string;
+  subtotal: number;
+  tax_amount: number;
+  total_amount: number;
+  product_count: number;
+  total_units: number;
+  items: OrderStatusItem[];
+}
+
 export interface ScheduledDelivery {
   order_id: number;
   client_name: string;

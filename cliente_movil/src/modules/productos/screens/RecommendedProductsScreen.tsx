@@ -50,11 +50,10 @@ export const RecommendedProductsScreen: React.FC = () => {
   };
 
   const handleProductPress = (productId: number, name: string) => {
-    console.log(productId + " - " + name)
-    /*navigation.navigate("ProductDetail", {
+    navigation.navigate("ProductDetail", {
       productId: productId,
       productName: name,
-    });*/
+    });
   };
 
   if (loading) {

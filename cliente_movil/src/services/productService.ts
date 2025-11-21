@@ -1,9 +1,16 @@
 import axios from "axios";
+import { getApiBaseUrl } from "../config/api";
 import { Product, ProductPaginated } from "../types/product";
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8080";
+const buildUrl = (path: string): string => {
+  const baseUrl = getApiBaseUrl();
+  const normalizedBase = baseUrl.replace(/\/$/, "");
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
 
-console.log("[PRODUCT SERVICE v2] Using API URL:", API_URL);
+  return `${normalizedBase}${normalizedPath}`;
+};
+
+console.log("[PRODUCT SERVICE v2] Using API URL:", getApiBaseUrl());
 console.log(
   "[PRODUCT SERVICE v2] This is the NEW bundle - timestamp:",
   new Date().toISOString()
@@ -18,7 +25,7 @@ export const productService = {
     limit: number = 10
   ): Promise<ProductPaginated> {
     try {
-      const fullUrl = `${API_URL}/productos/`;
+      const fullUrl = buildUrl("/productos/");
       console.log("[PRODUCT SERVICE v2] Making request to:", fullUrl);
       console.log("[PRODUCT SERVICE v2] With params:", { page, limit });
 
@@ -47,16 +54,16 @@ export const productService = {
     }
   },
 
-  /**
-   * Get a single product by ID
-   */
-  async getProductById(id: number): Promise<Product> {
-    try {
-      const response = await axios.get<Product>(`${API_URL}/productos/${id}`);
-      return response.data;
-    } catch (error) {
-      console.error(`Error fetching product ${id}:`, error);
-      throw error;
-    }
+    /**
+     * Get a single product by ID
+     */
+    async getProductById(id: number): Promise<Product> {
+      try {
+        const response = await axios.get<Product>(buildUrl(`/productos/${id}`));
+        return response.data;
+      } catch (error) {
+        console.error(`Error fetching product ${id}:`, error);
+        throw error;
+      }
   },
 };

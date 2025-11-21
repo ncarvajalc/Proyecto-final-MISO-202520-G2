@@ -11,7 +11,10 @@ import {
   Alert,
   Image,
 } from "react-native";
-import DateTimePicker from "@react-native-community/datetimepicker";
+import DateTimePicker, {
+  DateTimePickerAndroid,
+  DateTimePickerEvent,
+} from "@react-native-community/datetimepicker";
 import { Picker } from "@react-native-picker/picker";
 import { VisitCreate, MultimediaFile } from "../../../types/visit";
 import {
@@ -38,9 +41,15 @@ export const VisitForm: React.FC<VisitFormProps> = ({
   const [direccion, setDireccion] = useState("");
   const [hora, setHora] = useState(new Date());
   const [showHoraPicker, setShowHoraPicker] = useState(false);
+  const [horaPickerMode, setHoraPickerMode] = useState<
+    "date" | "time" | "datetime"
+  >("datetime");
   const [desplazamientoMinutos, setDesplazamientoMinutos] = useState("");
   const [horaSalida, setHoraSalida] = useState<Date | null>(null);
   const [showHoraSalidaPicker, setShowHoraSalidaPicker] = useState(false);
+  const [horaSalidaPickerMode, setHoraSalidaPickerMode] = useState<
+    "date" | "time" | "datetime"
+  >("datetime");
   const [estado, setEstado] = useState("Programada");
   const [observacion, setObservacion] = useState("");
   const [showSaveModal, setShowSaveModal] = useState(false);
@@ -58,7 +67,136 @@ export const VisitForm: React.FC<VisitFormProps> = ({
     setShowCancelModal(true);
   };
 
+  const handleOpenHoraPicker = async () => {
+    if (Platform.OS === "android") {
+      const dateResult = await DateTimePickerAndroid.open({
+        value: hora,
+        mode: "date",
+        is24Hour: true,
+      });
+
+      if (dateResult.action === DateTimePickerAndroid.dismissedAction) {
+        return;
+      }
+
+      const pickedDate = new Date(dateResult.timestamp ?? hora.getTime());
+      const timeResult = await DateTimePickerAndroid.open({
+        value: pickedDate,
+        mode: "time",
+        is24Hour: true,
+      });
+
+      if (timeResult.action === DateTimePickerAndroid.dismissedAction) {
+        return;
+      }
+
+      const updatedDate = new Date(pickedDate);
+      if (typeof timeResult.hour === "number" && typeof timeResult.minute === "number") {
+        updatedDate.setHours(timeResult.hour, timeResult.minute, 0, 0);
+      } else if (timeResult.timestamp) {
+        const timeDate = new Date(timeResult.timestamp);
+        updatedDate.setHours(timeDate.getHours(), timeDate.getMinutes(), 0, 0);
+      }
+      setHora(updatedDate);
+      return;
+    }
+
+    setHoraPickerMode("datetime");
+    setShowHoraPicker(true);
+  };
+
+  const handleHoraChange = (
+    _event: DateTimePickerEvent,
+    selectedDate?: Date
+  ) => {
+    if (Platform.OS === "android") return;
+    setShowHoraPicker(true);
+    if (selectedDate) setHora(selectedDate);
+  };
+
+  const handleOpenHoraSalidaPicker = async () => {
+    if (Platform.OS === "android") {
+      const baseDate = horaSalida || hora;
+      const dateResult = await DateTimePickerAndroid.open({
+        value: baseDate,
+        mode: "date",
+        is24Hour: true,
+      });
+
+      if (dateResult.action === DateTimePickerAndroid.dismissedAction) {
+        return;
+      }
+
+      const pickedDate = new Date(dateResult.timestamp ?? baseDate.getTime());
+      const timeResult = await DateTimePickerAndroid.open({
+        value: pickedDate,
+        mode: "time",
+        is24Hour: true,
+      });
+
+      if (timeResult.action === DateTimePickerAndroid.dismissedAction) {
+        return;
+      }
+
+      const updatedDate = new Date(pickedDate);
+      if (typeof timeResult.hour === "number" && typeof timeResult.minute === "number") {
+        updatedDate.setHours(timeResult.hour, timeResult.minute, 0, 0);
+      } else if (timeResult.timestamp) {
+        const timeDate = new Date(timeResult.timestamp);
+        updatedDate.setHours(timeDate.getHours(), timeDate.getMinutes(), 0, 0);
+      }
+
+      setHoraSalida(updatedDate);
+      return;
+    }
+
+    if (Platform.OS === "ios") {
+      setHoraSalidaPickerMode("datetime");
+    }
+    setShowHoraSalidaPicker(true);
+  };
+
+  const handleHoraSalidaChange = (
+    _event: DateTimePickerEvent,
+    selectedDate?: Date
+  ) => {
+    if (Platform.OS === "android") return;
+    setShowHoraSalidaPicker(true);
+    if (selectedDate) setHoraSalida(selectedDate);
+  };
+
   const handleConfirmSave = () => {
+    if (!nombreInstitucion.trim() || !direccion.trim()) {
+      Alert.alert(
+        "Campos obligatorios",
+        "Nombre de institución y dirección son requeridos"
+      );
+      setShowSaveModal(false);
+      return;
+    }
+
+    if (
+      desplazamientoMinutos &&
+      (Number.isNaN(Number(desplazamientoMinutos)) ||
+        Number(desplazamientoMinutos) < 0)
+    ) {
+      Alert.alert(
+        "Desplazamiento inválido",
+        "Ingresa un número de minutos válido"
+      );
+      setShowSaveModal(false);
+      return;
+    }
+
+    if (horaSalida && horaSalida <= hora) {
+      Alert.alert(
+        "Hora de salida inválida",
+        "La hora de salida debe ser posterior a la hora de inicio"
+      );
+      setShowSaveModal(false);
+      return;
+    }
+
     setShowSaveModal(false);
     const visit: VisitCreate = {
       nombre_institucion: nombreInstitucion,
@@ -169,19 +307,18 @@ export const VisitForm: React.FC<VisitFormProps> = ({
           <Text style={styles.label}>Hora *</Text>
           <TouchableOpacity
             style={styles.input}
-            onPress={() => setShowHoraPicker(true)}
+            onPress={handleOpenHoraPicker}
+            testID="visit-start-display"
           >
             <Text style={styles.dateText}>{hora.toLocaleString("es-ES")}</Text>
           </TouchableOpacity>
           {showHoraPicker && (
             <DateTimePicker
               value={hora}
-              mode="datetime"
+              mode={horaPickerMode}
               display="default"
-              onChange={(event, selectedDate) => {
-                setShowHoraPicker(Platform.OS === "ios");
-                if (selectedDate) setHora(selectedDate);
-              }}
+              testID="visit-start-picker"
+              onChange={handleHoraChange}
             />
           )}
 
@@ -198,7 +335,8 @@ export const VisitForm: React.FC<VisitFormProps> = ({
           <Text style={styles.label}>Hora Salida</Text>
           <TouchableOpacity
             style={styles.input}
-            onPress={() => setShowHoraSalidaPicker(true)}
+            onPress={handleOpenHoraSalidaPicker}
+            testID="visit-end-display"
           >
             <Text
               style={[styles.dateText, !horaSalida && styles.placeholderText]}
@@ -210,13 +348,11 @@ export const VisitForm: React.FC<VisitFormProps> = ({
           </TouchableOpacity>
           {showHoraSalidaPicker && (
             <DateTimePicker
-              value={horaSalida || new Date()}
-              mode="datetime"
+              value={horaSalida || hora}
+              mode={horaSalidaPickerMode}
               display="default"
-              onChange={(event, selectedDate) => {
-                setShowHoraSalidaPicker(Platform.OS === "ios");
-                if (selectedDate) setHoraSalida(selectedDate);
-              }}
+              testID="visit-end-picker"
+              onChange={handleHoraSalidaChange}
             />
           )}
 
