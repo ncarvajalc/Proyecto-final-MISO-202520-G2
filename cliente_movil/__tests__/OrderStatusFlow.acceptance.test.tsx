@@ -2,6 +2,8 @@ import "react-native-gesture-handler/jestSetup";
 import React from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { fireEvent, render, waitFor } from "@testing-library/react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { TabNavigator } from "../src/navigation/TabNavigator";
 import { orderService } from "../src/services/orderService";
 import { institutionalClientService } from "../src/services/institutionalClientService";
@@ -145,10 +147,19 @@ describe("Flujo de consulta de pedidos - aceptación", () => {
       .spyOn(console, "log")
       .mockImplementation(() => undefined);
 
+    const initialMetrics = {
+      frame: { x: 0, y: 0, width: 0, height: 0 },
+      insets: { top: 0, left: 0, right: 0, bottom: 0 },
+    };
+
     const view = render(
-      <NavigationContainer>
-        <TabNavigator />
-      </NavigationContainer>,
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <SafeAreaProvider initialMetrics={initialMetrics}>
+          <NavigationContainer independent>
+            <TabNavigator />
+          </NavigationContainer>
+        </SafeAreaProvider>
+      </GestureHandlerRootView>,
     );
 
     await waitFor(() => {

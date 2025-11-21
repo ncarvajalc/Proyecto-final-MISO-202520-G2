@@ -59,6 +59,37 @@ export const VisitForm: React.FC<VisitFormProps> = ({
   };
 
   const handleConfirmSave = () => {
+    if (!nombreInstitucion.trim() || !direccion.trim()) {
+      Alert.alert(
+        "Campos obligatorios",
+        "Nombre de institución y dirección son requeridos"
+      );
+      setShowSaveModal(false);
+      return;
+    }
+
+    if (
+      desplazamientoMinutos &&
+      (Number.isNaN(Number(desplazamientoMinutos)) ||
+        Number(desplazamientoMinutos) < 0)
+    ) {
+      Alert.alert(
+        "Desplazamiento inválido",
+        "Ingresa un número de minutos válido"
+      );
+      setShowSaveModal(false);
+      return;
+    }
+
+    if (horaSalida && horaSalida <= hora) {
+      Alert.alert(
+        "Hora de salida inválida",
+        "La hora de salida debe ser posterior a la hora de inicio"
+      );
+      setShowSaveModal(false);
+      return;
+    }
+
     setShowSaveModal(false);
     const visit: VisitCreate = {
       nombre_institucion: nombreInstitucion,
@@ -170,6 +201,7 @@ export const VisitForm: React.FC<VisitFormProps> = ({
           <TouchableOpacity
             style={styles.input}
             onPress={() => setShowHoraPicker(true)}
+            testID="visit-start-display"
           >
             <Text style={styles.dateText}>{hora.toLocaleString("es-ES")}</Text>
           </TouchableOpacity>
@@ -178,6 +210,7 @@ export const VisitForm: React.FC<VisitFormProps> = ({
               value={hora}
               mode="datetime"
               display="default"
+              testID="visit-start-picker"
               onChange={(event, selectedDate) => {
                 setShowHoraPicker(Platform.OS === "ios");
                 if (selectedDate) setHora(selectedDate);
@@ -199,6 +232,7 @@ export const VisitForm: React.FC<VisitFormProps> = ({
           <TouchableOpacity
             style={styles.input}
             onPress={() => setShowHoraSalidaPicker(true)}
+            testID="visit-end-display"
           >
             <Text
               style={[styles.dateText, !horaSalida && styles.placeholderText]}
@@ -210,9 +244,10 @@ export const VisitForm: React.FC<VisitFormProps> = ({
           </TouchableOpacity>
           {showHoraSalidaPicker && (
             <DateTimePicker
-              value={horaSalida || new Date()}
+              value={horaSalida || hora}
               mode="datetime"
               display="default"
+              testID="visit-end-picker"
               onChange={(event, selectedDate) => {
                 setShowHoraSalidaPicker(Platform.OS === "ios");
                 if (selectedDate) setHoraSalida(selectedDate);
