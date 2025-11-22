@@ -48,6 +48,8 @@ export const EntregasScreen: React.FC = () => {
     }
     if (date) {
       setSelectedDate(date);
+      setDeliveries([]);
+      setSearched(false);
       if (Platform.OS === "ios") {
         setShowDatePicker(false);
       }
@@ -64,12 +66,35 @@ export const EntregasScreen: React.FC = () => {
     }
 
     const dateString = formatDateToString(selectedDate);
+    setDeliveries([]);
     setLoading(true);
     setSearched(true);
 
     try {
-      const response = await orderService.getScheduledDeliveries(dateString);
-      setDeliveries(response.data);
+      const firstPage = await orderService.getScheduledDeliveries(dateString);
+      const allDeliveries = [...firstPage.data];
+
+      const pageSize = Number(firstPage.limit) || firstPage.data.length || 20;
+      const totalDeliveries = Number(firstPage.total) || allDeliveries.length;
+      const totalPages =
+        Number(firstPage.total_pages) ||
+        Math.max(1, Math.ceil(totalDeliveries / pageSize));
+
+      for (let page = 2; page <= totalPages; page++) {
+        const nextPage = await orderService.getScheduledDeliveries(
+          dateString,
+          page,
+          pageSize
+        );
+
+        allDeliveries.push(...nextPage.data);
+
+        if (allDeliveries.length >= totalDeliveries) {
+          break;
+        }
+      }
+
+      setDeliveries(allDeliveries);
     } catch (error) {
       console.error("Error fetching scheduled deliveries:", error);
       const errorMessage =
@@ -128,8 +153,8 @@ export const EntregasScreen: React.FC = () => {
             value={selectedDate || new Date()}
             mode="date"
             display={Platform.OS === "ios" ? "spinner" : "default"}
+            testID="entregas-date-picker"
             onChange={handleDateChange}
-            maximumDate={new Date()}
           />
         )}
         <Text style={styles.helperText}>Selecciona la fecha a buscar</Text>

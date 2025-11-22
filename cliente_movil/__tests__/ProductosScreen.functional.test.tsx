@@ -68,7 +68,6 @@ describe("ProductosScreen", () => {
           id: "1",
           nombre: "Bodega Principal",
           ubicacion: "Centro",
-          name: "Bodega Principal",
         } as any,
         stock_quantity: 15,
         available_quantity: 15,
@@ -78,7 +77,6 @@ describe("ProductosScreen", () => {
           id: "2",
           nombre: "Bodega Norte",
           ubicacion: "Zona Norte",
-          name: "Bodega Norte",
         } as any,
         stock_quantity: 10,
         available_quantity: 10,
@@ -110,6 +108,16 @@ describe("ProductosScreen", () => {
     expect(mockNavigate).toHaveBeenCalledWith("RecommendedProducts");
   });
 
+  it("muestra los nombres de bodegas usando el campo nombre del inventario", async () => {
+    const { getAllByText } = render(<ProductosScreen />);
+
+    await waitFor(() => {
+      expect(productService.getProducts).toHaveBeenCalled();
+    });
+
+    expect(getAllByText("Bodega Principal, Bodega Norte")[0]).toBeTruthy();
+  });
+
   it("filtra los productos por nombre cuando se presiona el botón Buscar", async () => {
     const { getByPlaceholderText, getByText, queryByText } = render(
       <ProductosScreen />
@@ -126,5 +134,101 @@ describe("ProductosScreen", () => {
       expect(queryByText("Mascarilla N95")).toBeNull();
     });
     expect(getByText("Guantes de Látex")).toBeTruthy();
+  });
+
+  it("elimina espacios innecesarios al filtrar por SKU o nombre", async () => {
+    const { getByPlaceholderText, getByText, queryByText } = render(
+      <ProductosScreen />
+    );
+
+    await waitFor(() => {
+      expect(productService.getProducts).toHaveBeenCalled();
+    });
+
+    fireEvent.changeText(getByPlaceholderText("Nombre producto"), "  sku-102   ");
+    fireEvent.press(getByText("Buscar"));
+
+    await waitFor(() => {
+      expect(getByText("Mascarilla N95")).toBeTruthy();
+      expect(queryByText("Guantes de Látex")).toBeNull();
+    });
+  });
+
+  it("carga la siguiente página cuando se llega al final de la lista", async () => {
+    productService.getProducts
+      .mockResolvedValueOnce({
+        data: [mockProducts.data[0]],
+        total: 2,
+        page: 1,
+        limit: 20,
+        total_pages: 2,
+      })
+      .mockResolvedValueOnce({
+        data: [mockProducts.data[1]],
+        total: 2,
+        page: 2,
+        limit: 20,
+        total_pages: 2,
+      });
+
+    const { getByTestId, getByText } = render(<ProductosScreen />);
+
+    await waitFor(() => {
+      expect(getByText("Guantes de Látex")).toBeTruthy();
+    });
+
+    fireEvent(getByTestId("products-list"), "onEndReached");
+
+    await waitFor(() => {
+      expect(productService.getProducts).toHaveBeenCalledTimes(2);
+      expect(getByText("Mascarilla N95")).toBeTruthy();
+    });
+  });
+
+  it("recarga desde la primera página al hacer pull-to-refresh", async () => {
+    productService.getProducts
+      .mockResolvedValueOnce({
+        data: [mockProducts.data[0]],
+        total: 3,
+        page: 1,
+        limit: 20,
+        total_pages: 2,
+      })
+      .mockResolvedValueOnce({
+        data: [mockProducts.data[1]],
+        total: 3,
+        page: 2,
+        limit: 20,
+        total_pages: 2,
+      })
+      .mockResolvedValueOnce({
+        data: [mockProducts.data[0]],
+        total: 3,
+        page: 1,
+        limit: 20,
+        total_pages: 2,
+      });
+
+    const { getByTestId, queryByText, getByText } = render(
+      <ProductosScreen />
+    );
+
+    await waitFor(() => {
+      expect(getByText("Guantes de Látex")).toBeTruthy();
+    });
+
+    fireEvent(getByTestId("products-list"), "onEndReached");
+
+    await waitFor(() => {
+      expect(getByText("Mascarilla N95")).toBeTruthy();
+    });
+
+    fireEvent(getByTestId("products-list"), "onRefresh");
+
+    await waitFor(() => {
+      expect(productService.getProducts).toHaveBeenCalledTimes(3);
+      expect(queryByText("Mascarilla N95")).toBeNull();
+      expect(getByText("Guantes de Látex")).toBeTruthy();
+    });
   });
 });

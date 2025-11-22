@@ -10,7 +10,7 @@ import {
 import { useRoute, useNavigation, RouteProp } from "@react-navigation/native";
 import { orderService } from "../../../services/orderService";
 import { institutionalClientService } from "../../../services/institutionalClientService";
-import { Order } from "../../../types/order";
+import { OrderStatus } from "../../../types/order";
 import { InstitutionalClient } from "../../../types/institutionalClient";
 
 type DeliveryDetailRouteProp = RouteProp<
@@ -23,7 +23,7 @@ export const DeliveryDetailScreen: React.FC = () => {
   const navigation = useNavigation();
   const { orderId } = route.params;
 
-  const [order, setOrder] = useState<Order | null>(null);
+  const [order, setOrder] = useState<OrderStatus | null>(null);
   const [client, setClient] = useState<InstitutionalClient | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -60,12 +60,17 @@ export const DeliveryDetailScreen: React.FC = () => {
   }, [orderId]);
 
   const formatDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("es-CO", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
+    const parsedDate = new Date(dateString);
+
+    if (Number.isNaN(parsedDate.getTime())) {
+      return dateString;
+    }
+
+    const day = String(parsedDate.getUTCDate()).padStart(2, "0");
+    const month = String(parsedDate.getUTCMonth() + 1).padStart(2, "0");
+    const year = parsedDate.getUTCFullYear();
+
+    return `${day}/${month}/${year}`;
   };
 
   const getEstimatedDeliveryTime = (): string => {
@@ -80,7 +85,8 @@ export const DeliveryDetailScreen: React.FC = () => {
       delivered: "Entregado",
       cancelled: "Cancelado",
     };
-    return statusMap[status] || status;
+    const normalizedStatus = status?.toLowerCase?.() ?? "";
+    return statusMap[normalizedStatus] || status;
   };
 
   if (loading) {
@@ -120,9 +126,12 @@ export const DeliveryDetailScreen: React.FC = () => {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Delivery Summary */}
         <View style={styles.summarySection}>
-          <Text style={styles.orderLabel}>Pedido: {String(order.id).padStart(9, "0")}</Text>
+          <Text style={styles.orderLabel}>
+            Pedido: {order.order_number || String(order.id).padStart(9, "0")}
+          </Text>
           <Text style={styles.clientName}>
             {client?.nombre_institucion ||
+              order.client_name ||
               `Cliente ${order.institutional_client_id}`}
           </Text>
           <Text style={styles.orderDate}>{formatDate(order.order_date)}</Text>
@@ -139,9 +148,9 @@ export const DeliveryDetailScreen: React.FC = () => {
           <Text style={styles.productsSectionTitle}>Productos a entregar</Text>
 
           {order.items.map((item) => (
-            <View key={item.id} style={styles.productItem}>
+            <View key={`${item.product_id}-${item.product_name}`} style={styles.productItem}>
               <Text style={styles.productName}>{item.product_name}</Text>
-              <Text style={styles.productUnit}>Unidad</Text>
+              <Text style={styles.productUnit}>{item.unit}</Text>
               <Text style={styles.productQuantity}>{item.quantity}</Text>
             </View>
           ))}

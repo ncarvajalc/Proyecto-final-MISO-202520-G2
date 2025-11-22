@@ -3,6 +3,7 @@ import { API_BASE_URL, getApiBaseUrl } from "../config/api";
 import {
   Order,
   OrderCreate,
+  OrderStatus,
   OrdersResponse,
   ScheduledDeliveriesResponse,
 } from "../types/order";
@@ -56,12 +57,12 @@ export const orderService = {
   /**
    * Get a single order by ID
    */
-  async getOrderById(id: number): Promise<Order> {
+  async getOrderById(id: number): Promise<OrderStatus> {
     try {
       const fullUrl = buildUrl(`/pedidos/${id}`);
       console.log("[ORDER SERVICE] Fetching order:", fullUrl);
 
-      const response = await axios.get<Order>(fullUrl);
+      const response = await axios.get<OrderStatus>(fullUrl);
       console.log("[ORDER SERVICE] Order fetched successfully");
       return response.data;
     } catch (error: any) {
