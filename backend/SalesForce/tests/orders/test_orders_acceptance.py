@@ -9,9 +9,9 @@ from faker import Faker
 
 from app.modules.institutional_clients.schemas import InstitutionalClientCreate
 from app.modules.institutional_clients.services import create as create_institution
-from app.modules.orders.routes.orders import get_order_endpoint, list_orders_endpoint
+from app.modules.orders.routes.orders import list_orders_endpoint
 from app.modules.orders.schemas import OrderCreate, OrderItemCreate
-from app.modules.orders.services import create_order_service
+from app.modules.orders.services import create_order_service, get_order_status
 from app.modules.orders.models import Order
 from app.modules.orders.models.order_item_model import OrderItem
 
@@ -93,7 +93,7 @@ async def test_order_creation_flow_acceptance(
         "Kit de intubación",
     }
 
-    detail = get_order_endpoint(created_order.id, db_session)
+    detail = get_order_status(db_session, created_order.id)
     assert detail.id == created_order.id
     assert detail.order_number == str(created_order.id)
     assert detail.institutional_client_id == institution.id

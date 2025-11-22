@@ -5,9 +5,13 @@ Handles business data for reports and auditing
 
 from .customer import Customer
 from .order import Order
+from .alert import SecurityAlert
+from .outbound_email import OutboundEmail
 
 __all__ = [
     "Customer",
-    "Order"
+    "Order",
+    "SecurityAlert",
+    "OutboundEmail",
 ]
 

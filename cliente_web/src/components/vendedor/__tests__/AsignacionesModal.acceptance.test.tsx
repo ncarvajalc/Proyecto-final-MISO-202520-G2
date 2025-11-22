@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -44,22 +44,19 @@ describe("AsignacionesModal - Acceptance", () => {
     loadReport: (id: string) => Promise<Vendedor>;
   }) => {
     const [open, setOpen] = useState(false);
-    const [selectedId, setSelectedId] = useState<string | null>(null);
     const [vendedor, setVendedor] = useState<Vendedor | null>(null);
     const [loading, setLoading] = useState(false);
 
-    useEffect(() => {
-      if (!selectedId) {
-        return;
-      }
+    const handleSelect = async (id: string) => {
       setLoading(true);
-      loadReport(selectedId)
-        .then((data) => {
-          setVendedor(data);
-          setOpen(true);
-        })
-        .finally(() => setLoading(false));
-    }, [loadReport, selectedId]);
+      try {
+        const data = await loadReport(id);
+        setVendedor(data);
+        setOpen(true);
+      } finally {
+        setLoading(false);
+      }
+    };
 
     return (
       <div>
@@ -67,7 +64,7 @@ describe("AsignacionesModal - Acceptance", () => {
         <ul>
           {reportes.map((reporte) => (
             <li key={reporte.id}>
-              <button onClick={() => setSelectedId(reporte.id)}>
+              <button onClick={() => handleSelect(reporte.id)}>
                 Consultar reporte de {reporte.vendedor.nombre}
               </button>
               <span>{reporte.resumen}</span>
@@ -83,7 +80,6 @@ describe("AsignacionesModal - Acceptance", () => {
             setOpen(value);
             if (!value) {
               setVendedor(null);
-              setSelectedId(null);
             }
           }}
           vendedor={vendedor}

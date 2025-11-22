@@ -1,11 +1,13 @@
 """Order service layer for business logic."""
 
+import logging
+import os
 from datetime import date
 from decimal import Decimal
 from typing import Dict, List
 
-import httpx
 import math
+import httpx
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
@@ -33,6 +35,11 @@ from app.modules.territories.schemas.territories_schemas import TerritoryType
 # Service URLs
 PURCHASES_SUPPLIERS_URL = "http://purchases_suppliers:8001"
 WAREHOUSE_URL = "http://warehouse:8003"
+SECURITY_AUDIT_URL = os.getenv("SECURITY_AUDIT_URL", "http://security_audit:8000")
+
+AUTHORIZED_ORDER_STATUS_ROLES = {"admin", "operator", "operador"}
+
+logger = logging.getLogger(__name__)
 
 # Tax rate (19% IVA for Colombia)
 TAX_RATE = Decimal("0.19")
@@ -221,6 +228,31 @@ def summarize_order(order) -> OrderStatus:
         total_units=total_units,
         items=items,
     )
+
+
+def report_unauthorized_order_status_attempt(
+    order_id: int,
+    user_id: str | None,
+    user_role: str | None,
+    source_ip: str | None,
+    reason: str,
+):
+    payload = {
+        "order_id": str(order_id),
+        "user_id": user_id,
+        "user_role": user_role,
+        "source_ip": source_ip,
+        "reason": reason,
+    }
+
+    audit_url = f"{SECURITY_AUDIT_URL.rstrip('/')}/audit/alerts/unauthorized-order-status"
+
+    try:
+        httpx.post(audit_url, json=payload, timeout=1.5)
+    except Exception as exc:  # noqa: BLE001 - we need to swallow all issues to avoid blocking
+        logger.warning(
+            "Failed to report unauthorized order status attempt: %s", exc,
+        )
 
 
 def get_order_status(db: Session, order_id: int) -> OrderStatus:

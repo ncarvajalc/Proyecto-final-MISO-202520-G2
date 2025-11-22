@@ -6,6 +6,7 @@ from sqlalchemy import text
 
 from app.core.database import SessionLocal
 from app.modules.access.routes import auth_router
+from app.modules.audit.routes import audit_router
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -27,6 +28,7 @@ app.add_middleware(
 
 # Register routers
 app.include_router(auth_router)
+app.include_router(audit_router)
 
 # Health check endpoint
 @app.get("/health", tags=["health"])

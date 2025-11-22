@@ -1,5 +1,3 @@
-version: "3.9"
-
 x-postgres-base: &postgres-base
   image: postgres:18-alpine
   restart: always
@@ -55,9 +53,26 @@ services:
     environment:
       PORT: "8000"
       DATABASE_URL: postgresql://security_audit_user:security_audit_password@security-audit-db:5432/security_audit_schema
+      SMTP_HOST: maildev
+      SMTP_PORT: 1025
+      EMAIL_DELIVERY_MODE: smtp
+      ADMIN_EMAIL: admin@example.com
+      ALERT_SENDER_EMAIL: alerts@security-audit.local
     depends_on:
       security-audit-db:
         condition: service_healthy
+    profiles: [access, todo, backend]
+    networks: [security_net]
+
+  maildev:
+    image: maildev/maildev:2.1.0
+    environment:
+      MAILDEV_MAIL_DIRECTORY: /data
+    ports:
+      - "1025:1025"
+      - "1080:1080"
+    tmpfs:
+      - /data:mode=1777
     profiles: [access, todo, backend]
     networks: [security_net]
 
@@ -174,6 +189,7 @@ services:
       DATABASE_URL: postgresql://salesforce_user:salesforce_password@salesforce-db:5432/salesforce_schema
       PRODUCT_SERVICE_URL: http://warehouse:8003
       API_KEY_GOOGLE: QUl6YVN5QWdCSjU0LWVUOTMxbkZHMmtJdzVuOUI4VWtUcjlnZGJn
+      SECURITY_AUDIT_URL: http://security_audit:8000
     depends_on:
       salesforce-db:
         condition: service_healthy
@@ -182,6 +198,7 @@ services:
       - salesforce_net
       - warehouse_net
       - purchases_net
+      - security_net
 
   api_gateway:
     <<: *http-health
