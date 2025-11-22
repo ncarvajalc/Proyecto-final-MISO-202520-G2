@@ -26,6 +26,8 @@ from app.modules.orders.schemas import (
     ScheduledDelivery,
     ScheduledDeliveriesResponse,
 )
+from app.modules.territories.crud.territories_crud import get_territorio
+from app.modules.territories.schemas.territories_schemas import TerritoryType
 
 
 # Service URLs
