@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { getProductLocation } from "@/services/warehouse.service";
 import type { ProductLocation } from "@/types/warehouse";
 import { toast } from "sonner";
@@ -68,7 +68,7 @@ export function ProductLocationForm({
     toast.error("Error al consultar la ubicación del producto");
   };
 
-  const handleLocalizar = async () => {
+  const handleLocalizar = useCallback(async () => {
     if (!selectedSku) {
       toast.error("Por favor seleccione un producto");
       return;
@@ -86,7 +86,7 @@ export function ProductLocationForm({
       onNotFound: notifyProductNotFound,
       onError: reportLocationError,
     });
-  };
+  }, [selectedSku, setIsLocating, setLocationResult]);
 
   const canLocalizar = !!selectedSku && !isLocating;
   const locationDialogActionConfig = useMemo(

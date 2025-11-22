@@ -87,6 +87,8 @@ export const ADMIN_PASSWORD =
   process.env.E2E_ADMIN_PASSWORD ?? "admin123";
 export const API_GATEWAY_URL =
   process.env.API_GATEWAY_URL ?? "http://localhost:8080";
+export const SECURITY_AUDIT_URL =
+  process.env.SECURITY_AUDIT_URL ?? "http://localhost:8000";
 
 export const ITEMS_PER_PAGE = 5;
 

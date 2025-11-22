@@ -18,9 +18,8 @@ def _clear_orders(db_session):
     db_session.commit()
 
 
-from app.modules.orders.routes.orders import get_order_endpoint
 from app.modules.orders.schemas import OrderCreate, OrderItemCreate
-from app.modules.orders.services import create_order_service
+from app.modules.orders.services import create_order_service, get_order_status
 
 
 def make_item(product_id: int, quantity: int) -> OrderItemCreate:
@@ -123,7 +122,7 @@ async def test_get_order_endpoint_returns_order_status(
 
     created = await create_order_service(db_session, payload)
 
-    detail = get_order_endpoint(created.id, db_session)
+    detail = get_order_status(db_session, created.id)
 
     assert detail.order_number == str(created.id)
     assert detail.client_name == "Hospital Central"

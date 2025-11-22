@@ -1,7 +1,7 @@
 from typing import Optional
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -15,8 +15,10 @@ from app.modules.orders.schemas import (
     ScheduledDeliveriesResponse,
 )
 from app.modules.orders.services import (
+    AUTHORIZED_ORDER_STATUS_ROLES,
     create_order_service,
     get_order_status,
+    report_unauthorized_order_status_attempt,
     get_top_purchased_products,
     get_top_institution_buyers,
     get_scheduled_deliveries_service,
@@ -109,6 +111,36 @@ def get_scheduled_deliveries_endpoint(
 
 
 @router.get("/{order_id}", response_model=OrderStatus)
-def get_order_endpoint(order_id: int, db: Session = Depends(get_db)):
-    """Get enriched order detail by ID."""
+def get_order_endpoint(
+    order_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    user_id: str | None = Header(default=None, alias="X-User-Id"),
+    user_role: str | None = Header(default=None, alias="X-User-Role"),
+):
+    """Get enriched order detail by ID with authorization and auditing."""
+
+    normalized_role = user_role.lower() if user_role else None
+    if normalized_role == "":
+        normalized_role = None
+
+    if normalized_role not in AUTHORIZED_ORDER_STATUS_ROLES:
+        source_ip = request.client.host if request.client else None
+        reason = (
+            "Rol de usuario no proporcionado"
+            if normalized_role is None
+            else "Rol sin permiso"
+        )
+        report_unauthorized_order_status_attempt(
+            order_id=order_id,
+            user_id=user_id,
+            user_role=user_role,
+            source_ip=source_ip,
+            reason=reason,
+        )
+        raise HTTPException(
+            status_code=403,
+            detail="No tiene permisos para consultar el estado del pedido.",
+        )
+
     return get_order_status(db, order_id)

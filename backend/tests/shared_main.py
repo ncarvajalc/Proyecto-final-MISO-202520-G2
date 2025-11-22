@@ -36,10 +36,13 @@ def _prepare_package_root(package_root: Optional[Path]) -> None:
 
     if removed_any:
         try:
+            from sqlalchemy.orm import registry as sa_registry  # type: ignore
             from sqlmodel import SQLModel  # type: ignore
         except ModuleNotFoundError:
             return
+
         SQLModel.metadata.clear()
+        SQLModel._sa_registry = sa_registry(metadata=SQLModel.metadata)  # type: ignore[attr-defined]
 
 
 def reload_main(

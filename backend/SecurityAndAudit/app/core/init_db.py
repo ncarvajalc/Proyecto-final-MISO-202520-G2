@@ -13,7 +13,7 @@ from app.modules.access.models import (  # noqa: F401
     Permission,
     ProfilePermission,
 )
-from app.modules.audit.models import Customer, Order  # noqa: F401
+from app.modules.audit.models import Customer, Order, OutboundEmail, SecurityAlert  # noqa: F401
 
 
 def init_db():
