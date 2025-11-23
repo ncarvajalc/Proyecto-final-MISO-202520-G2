@@ -56,9 +56,14 @@ const navigateToVehiclePage = async (page: Page, targetPage: number) => {
   while (currentPage < targetPage) {
     const nextButton = page.getByRole("button", { name: "Siguiente" });
     await expect(nextButton).toBeEnabled();
+<<<<<<< HEAD
     const responsePromise = waitForVehiclesListResponse(
       page,
       (response) => response.ok()
+=======
+    const responsePromise = waitForVehiclesListResponse(page, (response) =>
+      response.ok()
+>>>>>>> main
     );
     await nextButton.click();
     await responsePromise;
@@ -67,7 +72,14 @@ const navigateToVehiclePage = async (page: Page, targetPage: number) => {
 };
 
 // TODO: Re-enable route generation e2e flows once external services are reachable in CI.
+<<<<<<< HEAD
 test.skip(true, "TODO: Restore route generation e2e when backend services respond.");
+=======
+test.skip(
+  true,
+  "TODO: Restore route generation e2e when backend services respond."
+);
+>>>>>>> main
 test.describe.serial("HUP-009 Generación de rutas logísticas", () => {
   let adminToken: string;
   let storagePayload: { user: unknown; permissions: string[] };
@@ -232,14 +244,26 @@ test.describe.serial("HUP-009 Generación de rutas logísticas", () => {
     await ensureAuthStorage(page, adminToken, storagePayload);
   });
 
+<<<<<<< HEAD
   test("Autenticación y navegación hacia Gestión Logística", async ({ page }) => {
+=======
+  test("Autenticación y navegación hacia Gestión Logística", async ({
+    page,
+  }) => {
+>>>>>>> main
     await page.goto("./login");
 
     await page.getByLabel("Correo").fill(ADMIN_EMAIL);
     await page.getByLabel("Contraseña").fill(ADMIN_PASSWORD);
 
     const loginRequestPromise = page.waitForRequest((request) => {
+<<<<<<< HEAD
       return request.url().includes("/auth/login") && request.method() === "POST";
+=======
+      return (
+        request.url().includes("/auth/login") && request.method() === "POST"
+      );
+>>>>>>> main
     });
 
     const loginResponsePromise = page.waitForResponse((response) => {
@@ -282,7 +306,13 @@ test.describe.serial("HUP-009 Generación de rutas logísticas", () => {
     ).toBeVisible();
   });
 
+<<<<<<< HEAD
   test("Ruta protegida con sesión inválida redirige a login", async ({ page }) => {
+=======
+  test("Ruta protegida con sesión inválida redirige a login", async ({
+    page,
+  }) => {
+>>>>>>> main
     await page.addInitScript(() => {
       localStorage.setItem("auth_token", "token-invalido");
       localStorage.removeItem("user_data");
@@ -305,7 +335,14 @@ test.describe.serial("HUP-009 Generación de rutas logísticas", () => {
 
     await navigateToVehiclePage(page, vehicleWithRoutePage);
 
+<<<<<<< HEAD
     const row = page.getByRole("row").filter({ hasText: vehicleWithRoute.placa }).first();
+=======
+    const row = page
+      .getByRole("row")
+      .filter({ hasText: vehicleWithRoute.placa })
+      .first();
+>>>>>>> main
     await expect(row).toContainText(vehicleWithRoute.placa);
     await expect(row).toContainText(vehicleWithRoute.conductor);
     await expect(row).toContainText(`${vehicleWithRoute.numeroEntregas}`);
@@ -339,12 +376,24 @@ test.describe.serial("HUP-009 Generación de rutas logísticas", () => {
 
     await navigateToVehiclePage(page, vehicleWithRoutePage);
 
+<<<<<<< HEAD
     const routesResponsePromise = waitForRoutesListResponse(page, (response) => {
       return (
         response.url().includes(`vehicle_id=${vehicleWithRoute.id}`) &&
         response.ok()
       );
     });
+=======
+    const routesResponsePromise = waitForRoutesListResponse(
+      page,
+      (response) => {
+        return (
+          response.url().includes(`vehicle_id=${vehicleWithRoute.id}`) &&
+          response.ok()
+        );
+      }
+    );
+>>>>>>> main
 
     await openRouteGenerationModal(page, vehicleWithRoute.placa);
     await routesResponsePromise;
@@ -381,7 +430,13 @@ test.describe.serial("HUP-009 Generación de rutas logísticas", () => {
     await expect(page.getByText(distanceText)).toBeVisible();
     await expect(page.getByText(`${timeMinutes} min`)).toBeVisible();
     await expect(page.getByText(`Paradas: ${stopsCount}`)).toBeVisible();
+<<<<<<< HEAD
     await expect(page.locator("svg[viewBox='0 0 500 300']").first()).toBeVisible();
+=======
+    await expect(
+      page.locator("svg[viewBox='0 0 500 300']").first()
+    ).toBeVisible();
+>>>>>>> main
   });
   test("Modal muestra mensaje cuando no hay rutas pendientes", async ({
     page,
@@ -395,12 +450,26 @@ test.describe.serial("HUP-009 Generación de rutas logísticas", () => {
 
     await navigateToVehiclePage(page, vehicleWithoutPendingRoutesPage);
 
+<<<<<<< HEAD
     const routesResponsePromise = waitForRoutesListResponse(page, (response) => {
       return (
         response.url().includes(`vehicle_id=${vehicleWithoutPendingRoutes.id}`) &&
         response.ok()
       );
     });
+=======
+    const routesResponsePromise = waitForRoutesListResponse(
+      page,
+      (response) => {
+        return (
+          response
+            .url()
+            .includes(`vehicle_id=${vehicleWithoutPendingRoutes.id}`) &&
+          response.ok()
+        );
+      }
+    );
+>>>>>>> main
 
     await openRouteGenerationModal(page, vehicleWithoutPendingRoutes.placa);
     await routesResponsePromise;

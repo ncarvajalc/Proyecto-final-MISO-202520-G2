@@ -71,7 +71,6 @@ def test_create_visit_endpoint_rejects_invalid_departure(client, visit_payload_f
     assert "detail" in body
 
 
-
 def test_list_visits_endpoint_returns_paginated_data(client, visit_payload_factory):
     initial_probe = _require_endpoint(
         client.get("/visitas/", params={"page": 1, "limit": 1}),
@@ -170,7 +169,6 @@ def test_mark_departure_endpoint_updates_visit(client, visit_payload_factory):
 
     assert response.status_code == 200
     assert response.json()["hora_salida"].startswith(new_departure.isoformat()[:19])
-
 
 
 def test_mark_departure_endpoint_requires_existing_visit(client):

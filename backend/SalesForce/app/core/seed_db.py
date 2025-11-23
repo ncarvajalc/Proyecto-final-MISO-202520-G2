@@ -462,4 +462,3 @@ def seed_all():
 if __name__ == "__main__":
     log.info("Ejecutando script de siembra directamente...")
     seed_all()
-

@@ -24,7 +24,14 @@ import {
 const ITEMS_PER_PAGE = 5;
 const SEED_PREFIX = `HUP008-${Date.now()}`;
 
+<<<<<<< HEAD
 const fillCreateInformeForm = async (page: Page, data: InformeComercialPayload) => {
+=======
+const fillCreateInformeForm = async (
+  page: Page,
+  data: InformeComercialPayload
+) => {
+>>>>>>> main
   await page.getByPlaceholder("ej. IC-2025-Q1").fill(data.nombre);
 };
 
@@ -113,7 +120,14 @@ const expectIndicatorValue = async (
 };
 
 // TODO: Restore informes comerciales e2e tests after stabilizing external dependencies.
+<<<<<<< HEAD
 test.skip(true, "TODO: Restore informes comerciales e2e once dependencies are ready.");
+=======
+test.skip(
+  true,
+  "TODO: Restore informes comerciales e2e once dependencies are ready."
+);
+>>>>>>> main
 test.describe.serial("HUP-008 Generación de informes comerciales", () => {
   let adminToken: string;
   let storagePayload: { user: unknown; permissions: string[] };
@@ -180,7 +194,13 @@ test.describe.serial("HUP-008 Generación de informes comerciales", () => {
       const listResponsePromise = waitForInformesListResponse(
         page,
         (response) =>
+<<<<<<< HEAD
           (response.headers()["content-type"] ?? "").includes("application/json")
+=======
+          (response.headers()["content-type"] ?? "").includes(
+            "application/json"
+          )
+>>>>>>> main
       );
       await page
         .getByRole("link", { name: "Informes comerciales", exact: true })
@@ -228,10 +248,15 @@ test.describe.serial("HUP-008 Generación de informes comerciales", () => {
   test("Listado muestra informes recientes en orden descendente", async ({
     page,
   }) => {
+<<<<<<< HEAD
     const listResponsePromise = waitForInformesListResponse(
       page,
       (response) =>
         (response.headers()["content-type"] ?? "").includes("application/json")
+=======
+    const listResponsePromise = waitForInformesListResponse(page, (response) =>
+      (response.headers()["content-type"] ?? "").includes("application/json")
+>>>>>>> main
     );
 
     await gotoInformesComerciales(page, {
@@ -252,10 +277,15 @@ test.describe.serial("HUP-008 Generación de informes comerciales", () => {
     const ordered = getSeededInformesOrdered();
     expect(ordered.length).toBeGreaterThan(ITEMS_PER_PAGE);
 
+<<<<<<< HEAD
     const listResponsePromise = waitForInformesListResponse(
       page,
       (response) =>
         (response.headers()["content-type"] ?? "").includes("application/json")
+=======
+    const listResponsePromise = waitForInformesListResponse(page, (response) =>
+      (response.headers()["content-type"] ?? "").includes("application/json")
+>>>>>>> main
     );
     await gotoInformesComerciales(page, { token: adminToken, storagePayload });
     await listResponsePromise;
@@ -263,9 +293,14 @@ test.describe.serial("HUP-008 Generación de informes comerciales", () => {
     await expect(page.getByRole("button", { name: "Anterior" })).toBeDisabled();
     await expect(page.getByRole("button", { name: "Siguiente" })).toBeEnabled();
 
+<<<<<<< HEAD
     const nextResponsePromise = waitForInformesListResponse(
       page,
       (response) => response.url().includes("page=2")
+=======
+    const nextResponsePromise = waitForInformesListResponse(page, (response) =>
+      response.url().includes("page=2")
+>>>>>>> main
     );
     await page.getByRole("button", { name: "Siguiente" }).click();
     await nextResponsePromise;
@@ -274,9 +309,14 @@ test.describe.serial("HUP-008 Generación de informes comerciales", () => {
     await expect(secondPageRow).toContainText(ordered[ITEMS_PER_PAGE].nombre);
     await expect(page.getByText(/Página 2/)).toBeVisible();
 
+<<<<<<< HEAD
     const prevResponsePromise = waitForInformesListResponse(
       page,
       (response) => response.url().includes("page=1")
+=======
+    const prevResponsePromise = waitForInformesListResponse(page, (response) =>
+      response.url().includes("page=1")
+>>>>>>> main
     );
     await page.getByRole("button", { name: "Anterior" }).click();
     await prevResponsePromise;
@@ -290,10 +330,15 @@ test.describe.serial("HUP-008 Generación de informes comerciales", () => {
   }) => {
     const tracker = trackInformesRequests(page);
 
+<<<<<<< HEAD
     const listResponsePromise = waitForInformesListResponse(
       page,
       (response) =>
         (response.headers()["content-type"] ?? "").includes("application/json")
+=======
+    const listResponsePromise = waitForInformesListResponse(page, (response) =>
+      (response.headers()["content-type"] ?? "").includes("application/json")
+>>>>>>> main
     );
     await gotoInformesComerciales(page, { token: adminToken, storagePayload });
     await listResponsePromise;
@@ -312,10 +357,15 @@ test.describe.serial("HUP-008 Generación de informes comerciales", () => {
   test("Creación exitosa muestra indicadores y actualiza la tabla", async ({
     page,
   }) => {
+<<<<<<< HEAD
     const listResponsePromise = waitForInformesListResponse(
       page,
       (response) =>
         (response.headers()["content-type"] ?? "").includes("application/json")
+=======
+    const listResponsePromise = waitForInformesListResponse(page, (response) =>
+      (response.headers()["content-type"] ?? "").includes("application/json")
+>>>>>>> main
     );
     await gotoInformesComerciales(page, { token: adminToken, storagePayload });
     await listResponsePromise;
@@ -331,13 +381,28 @@ test.describe.serial("HUP-008 Generación de informes comerciales", () => {
       page,
       (response) => response.status() === 201
     );
+<<<<<<< HEAD
     const refetchPromise = waitForInformesListResponse(page, (response) =>
       response.request().method() === "GET" && response.url().includes("page=1")
+=======
+    const refetchPromise = waitForInformesListResponse(
+      page,
+      (response) =>
+        response.request().method() === "GET" &&
+        response.url().includes("page=1")
+>>>>>>> main
     );
 
     await page.getByRole("button", { name: "Crear" }).click();
     const createResponse = await createResponsePromise;
+<<<<<<< HEAD
     const createdJson = (await createResponse.json()) as Record<string, unknown>;
+=======
+    const createdJson = (await createResponse.json()) as Record<
+      string,
+      unknown
+    >;
+>>>>>>> main
 
     const ventasTotales = Number(
       createdJson.ventasTotales ?? createdJson.ventas_totales ?? 0

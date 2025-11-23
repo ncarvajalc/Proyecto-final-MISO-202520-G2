@@ -38,6 +38,10 @@ test_engine = create_engine(
     TEST_DB_URL, connect_args={"check_same_thread": False}
 )
 
+test_engine = create_engine(
+    f"sqlite:///{TEST_DB_PATH}", connect_args={"check_same_thread": False}
+)
+
 from app.core import database as db_module  # noqa: E402
 
 db_module.engine.dispose()

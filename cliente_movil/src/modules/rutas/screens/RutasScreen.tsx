@@ -110,7 +110,6 @@ export const RutasScreen: React.FC = () => {
     </View>
   );
 
-
   return (
     <View style={styles.container}>
       <View style={styles.header}>
