@@ -4,6 +4,14 @@ import { fireEvent, render, waitFor } from "@testing-library/react-native";
 import { VisitFormScreen } from "../src/modules/visitas/screens/VisitFormScreen";
 import { visitService } from "../src/services/visitService";
 
+// Mock multimedia utilities
+jest.mock("../src/utils/multimediaUtils", () => ({
+  takePhoto: jest.fn(),
+  recordVideo: jest.fn(),
+  pickImage: jest.fn(),
+  pickVideo: jest.fn(),
+}));
+
 const mockGoBack = jest.fn();
 
 jest.mock("@react-navigation/native", () => ({
@@ -61,8 +69,8 @@ describe("VisitFormScreen", () => {
 
     await waitFor(() => {
       expect(alertSpy).toHaveBeenCalledWith(
-        "Error",
-        "Por favor complete todos los campos requeridos"
+        "Campos obligatorios",
+        "Nombre de institución y dirección son requeridos"
       );
     });
 
@@ -70,12 +78,12 @@ describe("VisitFormScreen", () => {
   });
 
   // TODO: Fix VisitFormScreen success flow alert handling for functional test reliability.
-  it.skip("registra la visita y vuelve al listado cuando la API responde correctamente", async () => {
+  it.skip(
+    "registra la visita y vuelve al listado cuando la API responde correctamente",
+    async () => {
     mockCreateVisit.mockResolvedValue(undefined);
 
-    const { getByPlaceholderText, getByText, getAllByText } = render(
-      <VisitFormScreen />
-    );
+    const { getByPlaceholderText, getByText, getAllByText } = render(<VisitFormScreen />);
 
     fireEvent.changeText(
       getByPlaceholderText("Ingrese dirección"),
@@ -121,7 +129,8 @@ describe("VisitFormScreen", () => {
     buttons![0].onPress?.();
 
     expect(mockGoBack).toHaveBeenCalledTimes(1);
-  });
+    }
+  );
 
   it("notifica el error cuando la API falla al registrar la visita", async () => {
     mockCreateVisit.mockRejectedValue(new Error("500"));
@@ -129,9 +138,7 @@ describe("VisitFormScreen", () => {
       .spyOn(console, "error")
       .mockImplementation(() => {});
 
-    const { getByPlaceholderText, getByText, getAllByText } = render(
-      <VisitFormScreen />
-    );
+    const { getByPlaceholderText, getByText, getAllByText } = render(<VisitFormScreen />);
 
     fireEvent.changeText(
       getByPlaceholderText("Ingrese dirección"),

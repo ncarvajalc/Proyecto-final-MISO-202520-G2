@@ -21,6 +21,16 @@ class Settings(BaseSettings):
         alias="FIELD_ENCRYPTION_KEY",
     )
 
+    smtp_host: str = Field("localhost", alias="SMTP_HOST")
+    smtp_port: int = Field(1025, alias="SMTP_PORT")
+    email_delivery_mode: str = Field("capture", alias="EMAIL_DELIVERY_MODE")
+    email_capture_on_failure: bool = Field(True, alias="EMAIL_CAPTURE_ON_FAILURE")
+    alert_sender_email: str = Field(
+        "alerts@security-audit.local", alias="ALERT_SENDER_EMAIL"
+    )
+    admin_email: str = Field("admin@example.com", alias="ADMIN_EMAIL")
+    email_timeout_seconds: int = Field(5, alias="EMAIL_TIMEOUT_SECONDS")
+
     # JWT Configuration for authentication
     SECRET_KEY: str = "dev-secret-key-change-in-production"
     JWT_ALGORITHM: str = "HS256"

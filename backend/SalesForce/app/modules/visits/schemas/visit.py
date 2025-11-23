@@ -3,6 +3,8 @@ from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict
 
+from .visit_multimedia import VisitMultimedia
+
 
 class VisitBase(BaseModel):
     nombre_institucion: str
@@ -22,6 +24,7 @@ class Visit(VisitBase):
     id: str
     created_at: datetime
     updated_at: datetime
+    multimedia: Optional[List[VisitMultimedia]] = []
 
     model_config = ConfigDict(from_attributes=True)
 

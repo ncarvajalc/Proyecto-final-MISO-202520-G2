@@ -14,6 +14,7 @@ from ..crud.crud_product import (
     get_product,
     get_product_by_sku,
     get_products_all,
+    get_products_by_ids,
 )
 from ..models.bulk_products import Product
 from ..schemas.product import ProductCreate
@@ -87,4 +88,20 @@ def read_by_id(db: Session, product_id: int) -> Dict[str, Any]:
     return _serialize_product(product)
 
 
-__all__ = ["create", "read", "read_by_id"]
+def read_by_ids(db: Session, product_ids: List[int]) -> Dict[str, Any]:
+    """Get multiple products by a list of IDs."""
+    if not product_ids:
+        raise HTTPException(
+            status_code=400, detail="At least one product ID is required"
+        )
+    
+    products = get_products_by_ids(db, product_ids)
+    if not products:
+        raise HTTPException(status_code=404, detail="No products found for the given IDs")
+    
+    # Serialize products
+    serialized_products = [_serialize_product(p) for p in products]
+    return {"data": serialized_products, "total": len(serialized_products)}
+
+
+__all__ = ["create", "read", "read_by_id", "read_by_ids"]

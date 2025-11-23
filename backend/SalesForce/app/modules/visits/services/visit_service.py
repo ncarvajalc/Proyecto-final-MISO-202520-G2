@@ -1,3 +1,4 @@
+from typing import List, Optional
 from sqlalchemy.orm import Session
 
 from app.core.pagination import build_pagination_metadata, get_pagination_offset
@@ -5,9 +6,9 @@ from app.modules.visits.crud import create_visit, list_visits_paginated
 from app.modules.visits.schemas import Visit, VisitCreate, VisitsResponse
 
 
-def create(db: Session, visit: VisitCreate) -> Visit:
-    """Create a new visit."""
-    created = create_visit(db, visit)
+def create(db: Session, visit: VisitCreate, multimedia_data: Optional[List[dict]] = None) -> Visit:
+    """Create a new visit with optional multimedia files."""
+    created = create_visit(db, visit, multimedia_data)
     return Visit.model_validate(created)
 
 

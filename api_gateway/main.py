@@ -71,7 +71,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 @app.get("/")
 async def root() -> Dict[str, str]:
     """Return a simple message indicating the gateway is running."""
@@ -157,3 +156,4 @@ async def proxy(full_path: str, request: Request) -> Response:
         proxied_response.headers.append(key, value)
 
     return proxied_response
+

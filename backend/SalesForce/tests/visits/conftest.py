@@ -82,3 +82,29 @@ def visit_create_factory(fake: Faker) -> Callable[..., Any]:
         return VisitCreate(**data)
 
     return factory
+
+
+@pytest.fixture()
+def multimedia_files_factory(fake: Faker) -> Callable[..., list[dict[str, Any]]]:
+    """Return a factory that creates sample multimedia files for testing."""
+
+    def factory(count: int = 1) -> list[dict[str, Any]]:
+        files = []
+        for idx in range(count):
+            # Simulate different file types
+            file_types = [
+                ("image.jpg", "image/jpeg", b"\xFF\xD8\xFF\xE0fake_jpeg_data"),
+                ("video.mp4", "video/mp4", b"\x00\x00\x00\x18ftypmp42fake_video"),
+                ("document.pdf", "application/pdf", b"%PDF-1.4fake_pdf_data"),
+            ]
+            file_name, file_type, file_data = file_types[idx % len(file_types)]
+
+            files.append({
+                "file_name": f"{fake.word()}_{file_name}",
+                "file_type": file_type,
+                "file_size": len(file_data),
+                "file_data": file_data,
+            })
+        return files
+
+    return factory

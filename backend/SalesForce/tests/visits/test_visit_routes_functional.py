@@ -15,11 +15,24 @@ def _require_endpoint(response, message: str):
     return response
 
 
+
 def test_create_visit_endpoint_success(client, visit_payload_factory):
     payload = visit_payload_factory()
 
+    # Convert to form data for multipart/form-data endpoint
+    form_data = {
+        "nombre_institucion": payload["nombre_institucion"],
+        "direccion": payload["direccion"],
+        "hora": payload["hora"],
+        "estado": payload["estado"],
+        "desplazamiento_minutos": str(payload["desplazamiento_minutos"]),
+        "observacion": payload["observacion"],
+    }
+    if "hora_salida" in payload and payload["hora_salida"]:
+        form_data["hora_salida"] = payload["hora_salida"]
+
     response = _require_endpoint(
-        client.post("/visitas/", json=payload),
+        client.post("/visitas/", data=form_data),
         "Visit creation endpoint not implemented yet",
     )
 
@@ -30,17 +43,26 @@ def test_create_visit_endpoint_success(client, visit_payload_factory):
     assert "id" in data
 
 
+
 # TODO: Fix visit creation validation to reject invalid departure times consistently.
-@pytest.mark.skip(
-    reason="TODO: Fix visit creation validation to reject invalid departure times consistently."
-)
+@pytest.mark.skip(reason="TODO: Fix visit creation validation to reject invalid departure times consistently.")
 def test_create_visit_endpoint_rejects_invalid_departure(client, visit_payload_factory):
     payload = visit_payload_factory()
     visit_time = datetime.fromisoformat(payload["hora"])
-    payload["hora_salida"] = (visit_time - timedelta(minutes=10)).isoformat()
+    invalid_departure = (visit_time - timedelta(minutes=10)).isoformat()
+
+    form_data = {
+        "nombre_institucion": payload["nombre_institucion"],
+        "direccion": payload["direccion"],
+        "hora": payload["hora"],
+        "estado": payload["estado"],
+        "desplazamiento_minutos": str(payload["desplazamiento_minutos"]),
+        "observacion": payload["observacion"],
+        "hora_salida": invalid_departure,
+    }
 
     response = _require_endpoint(
-        client.post("/visitas/", json=payload),
+        client.post("/visitas/", data=form_data),
         "Visit creation endpoint not implemented yet",
     )
 
@@ -58,8 +80,18 @@ def test_list_visits_endpoint_returns_paginated_data(client, visit_payload_facto
 
     for idx in range(3):
         payload = visit_payload_factory(hours_ahead=idx + 1)
+        form_data = {
+            "nombre_institucion": payload["nombre_institucion"],
+            "direccion": payload["direccion"],
+            "hora": payload["hora"],
+            "estado": payload["estado"],
+            "desplazamiento_minutos": str(payload["desplazamiento_minutos"]),
+            "observacion": payload["observacion"],
+        }
+        if "hora_salida" in payload and payload["hora_salida"]:
+            form_data["hora_salida"] = payload["hora_salida"]
         create_response = _require_endpoint(
-            client.post("/visitas/", json=payload),
+            client.post("/visitas/", data=form_data),
             "Visit creation endpoint not implemented yet",
         )
         assert create_response.status_code in {200, 201}
@@ -77,10 +109,21 @@ def test_list_visits_endpoint_returns_paginated_data(client, visit_payload_facto
     assert len(payload["data"]) == min(2, payload["total"])
 
 
+
 def test_retrieve_visit_endpoint(client, visit_payload_factory):
     payload = visit_payload_factory()
+    form_data = {
+        "nombre_institucion": payload["nombre_institucion"],
+        "direccion": payload["direccion"],
+        "hora": payload["hora"],
+        "estado": payload["estado"],
+        "desplazamiento_minutos": str(payload["desplazamiento_minutos"]),
+        "observacion": payload["observacion"],
+    }
+    if "hora_salida" in payload and payload["hora_salida"]:
+        form_data["hora_salida"] = payload["hora_salida"]
     create_response = _require_endpoint(
-        client.post("/visitas/", json=payload),
+        client.post("/visitas/", data=form_data),
         "Visit creation endpoint not implemented yet",
     )
     assert create_response.status_code in {200, 201}
@@ -95,10 +138,21 @@ def test_retrieve_visit_endpoint(client, visit_payload_factory):
     assert response.json()["id"] == visit_id
 
 
+
 def test_mark_departure_endpoint_updates_visit(client, visit_payload_factory):
     payload = visit_payload_factory()
+    form_data = {
+        "nombre_institucion": payload["nombre_institucion"],
+        "direccion": payload["direccion"],
+        "hora": payload["hora"],
+        "estado": payload["estado"],
+        "desplazamiento_minutos": str(payload["desplazamiento_minutos"]),
+        "observacion": payload["observacion"],
+    }
+    if "hora_salida" in payload and payload["hora_salida"]:
+        form_data["hora_salida"] = payload["hora_salida"]
     create_response = _require_endpoint(
-        client.post("/visitas/", json=payload),
+        client.post("/visitas/", data=form_data),
         "Visit creation endpoint not implemented yet",
     )
     assert create_response.status_code in {200, 201}

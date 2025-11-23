@@ -27,33 +27,63 @@ export const ProductosScreen: React.FC = () => {
   const [products, setProducts] = useState<ProductWithInventory[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<ProductWithInventory[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  const loadProducts = async (page: number = 1) => {
+  const applyFilter = (
+    list: ProductWithInventory[],
+    text: string
+  ): ProductWithInventory[] => {
+    const normalized = text.trim().toLowerCase();
+
+    if (normalized === "") {
+      return list;
+    }
+
+    return list.filter(
+      (product) =>
+        product.nombre.toLowerCase().includes(normalized) ||
+        product.sku.toLowerCase().includes(normalized)
+    );
+  };
+
+  const loadProducts = async (page: number = 1, append: boolean = false) => {
+    if (page === 1) {
+      setLoading(true);
+    } else {
+      setLoadingMore(true);
+    }
+
     try {
       setError(null);
       const response = await productService.getProducts(page, 20);
 
-      // Load inventory for each product
+      // Load inventory for each product using SKU
       const productsWithInventory = await Promise.all(
         response.data.map(async (product) => {
           try {
-            const inventory = await inventoryService.getProductInventory(product.id);
+            const inventory = await inventoryService.getProductInventory(product.sku);
             return { ...product, inventory };
           } catch (err) {
             // If inventory fails, just return product without inventory
-            console.warn(`Failed to load inventory for product ${product.id}`, err);
+            console.warn(`Failed to load inventory for product ${product.sku}`, err);
             return product;
           }
         })
       );
 
-      setProducts(productsWithInventory);
-      setFilteredProducts(productsWithInventory);
+      setProducts((prev) => {
+        const updatedList = append
+          ? [...prev, ...productsWithInventory]
+          : productsWithInventory;
+
+        setFilteredProducts(applyFilter(updatedList, searchText));
+        return updatedList;
+      });
       setTotalPages(response.total_pages);
       setCurrentPage(response.page);
     } catch (err) {
@@ -61,6 +91,7 @@ export const ProductosScreen: React.FC = () => {
       console.error(err);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
       setRefreshing(false);
     }
   };
@@ -71,19 +102,23 @@ export const ProductosScreen: React.FC = () => {
 
   const handleRefresh = () => {
     setRefreshing(true);
-    loadProducts(currentPage);
+    setCurrentPage(1);
+    setTotalPages(1);
+    setProducts([]);
+    setFilteredProducts([]);
+    loadProducts(1);
   };
 
   const handleSearch = () => {
-    if (searchText.trim() === "") {
-      setFilteredProducts(products);
-    } else {
-      const filtered = products.filter((product) =>
-        product.nombre.toLowerCase().includes(searchText.toLowerCase()) ||
-        product.sku.toLowerCase().includes(searchText.toLowerCase())
-      );
-      setFilteredProducts(filtered);
+    setFilteredProducts(applyFilter(products, searchText));
+  };
+
+  const handleEndReached = () => {
+    if (loadingMore || loading || currentPage >= totalPages) {
+      return;
     }
+
+    loadProducts(currentPage + 1, true);
   };
 
   const handleProductSelect = (product: ProductWithInventory) => {
@@ -104,7 +139,9 @@ export const ProductosScreen: React.FC = () => {
     if (!inventory || !inventory.warehouses || inventory.warehouses.length === 0) {
       return "Sin inventario";
     }
-    return inventory.warehouses.map((w) => w.warehouse.name).join(", ");
+    return inventory.warehouses
+      .map((w) => w.warehouse.nombre || (w.warehouse as any).name || "Bodega")
+      .join(", ");
   };
 
   if (loading) {
@@ -138,13 +175,21 @@ export const ProductosScreen: React.FC = () => {
         <Text style={styles.filterLabel}>Filtrar Productos</Text>
         <TextInput
           style={styles.searchInput}
-          placeholder="Nombre o SKU del producto"
+          placeholder="Nombre producto"
           value={searchText}
           onChangeText={setSearchText}
           placeholderTextColor="#94a3b8"
         />
         <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
           <Text style={styles.searchButtonText}>Buscar</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.recommendedLink}
+          accessibilityRole="button"
+          testID="recommended-products-link"
+          onPress={() => navigation.navigate("RecommendedProducts")}
+        >
+          <Text style={styles.recommendedLinkText}>Ver productos recomendados</Text>
         </TouchableOpacity>
       </View>
 
@@ -153,6 +198,7 @@ export const ProductosScreen: React.FC = () => {
 
       {/* Products List */}
       <FlatList
+        testID="products-list"
         data={filteredProducts}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
@@ -175,12 +221,16 @@ export const ProductosScreen: React.FC = () => {
             <Text style={styles.emptyText}>No se encontraron productos</Text>
           </View>
         }
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            colors={["#024A77"]}
-          />
+        refreshing={refreshing}
+        onRefresh={handleRefresh}
+        onEndReached={handleEndReached}
+        onEndReachedThreshold={0.4}
+        ListFooterComponent={
+          loadingMore ? (
+            <View style={styles.loadingMoreContainer}>
+              <ActivityIndicator color="#024A77" />
+            </View>
+          ) : null
         }
         contentContainerStyle={styles.listContent}
       />
@@ -250,6 +300,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
+  recommendedLink: {
+    alignItems: "center",
+    marginTop: 12,
+  },
+  recommendedLinkText: {
+    color: "#024A77",
+    fontSize: 16,
+    fontWeight: "600",
+    textDecorationLine: "underline",
+  },
   title: {
     fontSize: 24,
     fontWeight: "700",
@@ -310,5 +370,8 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     fontSize: 16,
     fontWeight: "600",
+  },
+  loadingMoreContainer: {
+    paddingVertical: 16,
   },
 });

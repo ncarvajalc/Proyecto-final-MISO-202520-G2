@@ -22,3 +22,4 @@ Las pruebas se agrupan en el directorio `__tests__` y se clasifican en tres cate
 - **Funcionales (smoke tests):** verifican que el árbol principal de la aplicación se renderice y responda a cambios simples.
 
 Todas las pruebas se ejecutan con Jest utilizando la configuración provista en `jest.config.js`.
+

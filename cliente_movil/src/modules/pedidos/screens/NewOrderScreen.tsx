@@ -41,7 +41,7 @@ export const NewOrderScreen: React.FC = () => {
 
   const [products, setProducts] = useState<ProductWithInventory[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedProductId, setSelectedProductId] = useState<number | undefined>(undefined);
+  const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
   const [quantity, setQuantity] = useState("");
   const [selectedItems, setSelectedItems] = useState<OrderItemUI[]>([]);
   const [creating, setCreating] = useState(false);
@@ -58,10 +58,10 @@ export const NewOrderScreen: React.FC = () => {
       const productsWithInventory = await Promise.all(
         response.data.map(async (product) => {
           try {
-            const inventory = await inventoryService.getProductInventory(product.id);
+            const inventory = await inventoryService.getProductInventory(product.sku);
             return { ...product, inventory };
           } catch (err) {
-            console.warn(`Failed to load inventory for product ${product.id}`, err);
+            console.warn(`Failed to load inventory for product ${product.sku}`, err);
             return product;
           }
         })
@@ -91,7 +91,7 @@ export const NewOrderScreen: React.FC = () => {
     console.log("selectedProductId:", selectedProductId);
     console.log("quantity:", quantity);
 
-    if (!selectedProductId) {
+    if (selectedProductId === null) {
       Alert.alert("Error", "Por favor selecciona un producto");
       return;
     }
@@ -156,7 +156,7 @@ export const NewOrderScreen: React.FC = () => {
     }
 
     // Reset selection
-    setSelectedProductId(undefined);
+    setSelectedProductId(null);
     setQuantity("");
   };
 
@@ -285,6 +285,7 @@ export const NewOrderScreen: React.FC = () => {
         {/* Product Picker */}
         <View style={styles.pickerContainer}>
           <Picker
+            testID="product-picker"
             selectedValue={selectedProductId}
             onValueChange={(itemValue) => {
               // Convert to number if it's a string (happens on web)
@@ -293,7 +294,7 @@ export const NewOrderScreen: React.FC = () => {
             }}
             style={styles.picker}
           >
-            <Picker.Item label="Selecciona un producto..." value={undefined} />
+            <Picker.Item label="Selecciona un producto..." value={null} />
             {products.map((product) => (
               <Picker.Item
                 key={product.id}

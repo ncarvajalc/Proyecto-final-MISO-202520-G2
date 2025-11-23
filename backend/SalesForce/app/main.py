@@ -8,9 +8,7 @@ from app.modules.salespeople.routes import salespeople, dayroutes
 from app.modules.sales.routes import sales_plans_router
 from app.modules.reports.routes import router as informes_comerciales_router
 from app.modules.visits.routes import router as visits_router
-from app.modules.institutional_clients.routes import (
-    router as institutional_clients_router,
-)
+from app.modules.institutional_clients.routes import router as institutional_clients_router
 from app.modules.territories.routes import territories_routes
 from app.modules.orders.routes import router as orders_router
 

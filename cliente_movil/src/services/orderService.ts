@@ -1,9 +1,22 @@
 import axios from "axios";
-import { Order, OrderCreate, OrdersResponse } from "../types/order";
+import { API_BASE_URL, getApiBaseUrl } from "../config/api";
+import {
+  Order,
+  OrderCreate,
+  OrderStatus,
+  OrdersResponse,
+  ScheduledDeliveriesResponse,
+} from "../types/order";
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8080";
+const buildUrl = (path: string): string => {
+  const baseUrl = getApiBaseUrl();
+  const normalizedBase = baseUrl.replace(/\/$/, "");
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
 
-console.log("[ORDER SERVICE] Using API URL:", API_URL);
+  return `${normalizedBase}${normalizedPath}`;
+};
+
+console.log("[ORDER SERVICE] Using API URL:", API_BASE_URL);
 
 export const orderService = {
   /**
@@ -15,7 +28,7 @@ export const orderService = {
     institutional_client_id?: string
   ): Promise<OrdersResponse> {
     try {
-      const fullUrl = `${API_URL}/pedidos`;
+      const fullUrl = buildUrl("/pedidos/");
       console.log("[ORDER SERVICE] Making request to:", fullUrl);
       console.log("[ORDER SERVICE] With params:", {
         page,
@@ -44,12 +57,12 @@ export const orderService = {
   /**
    * Get a single order by ID
    */
-  async getOrderById(id: number): Promise<Order> {
+  async getOrderById(id: number): Promise<OrderStatus> {
     try {
-      const fullUrl = `${API_URL}/pedidos/${id}`;
+      const fullUrl = buildUrl(`/pedidos/${id}`);
       console.log("[ORDER SERVICE] Fetching order:", fullUrl);
 
-      const response = await axios.get<Order>(fullUrl);
+      const response = await axios.get<OrderStatus>(fullUrl);
       console.log("[ORDER SERVICE] Order fetched successfully");
       return response.data;
     } catch (error: any) {
@@ -63,9 +76,12 @@ export const orderService = {
    */
   async createOrder(orderData: OrderCreate): Promise<Order> {
     try {
-      const fullUrl = `${API_URL}/pedidos`;
+      const fullUrl = buildUrl("/pedidos");
       console.log("[ORDER SERVICE] Creating order at:", fullUrl);
-      console.log("[ORDER SERVICE] Order data:", JSON.stringify(orderData, null, 2));
+      console.log(
+        "[ORDER SERVICE] Order data:",
+        JSON.stringify(orderData, null, 2)
+      );
 
       const response = await axios.post<Order>(fullUrl, orderData);
       console.log("[ORDER SERVICE] Order created successfully:", response.data);
@@ -74,6 +90,40 @@ export const orderService = {
       console.error("[ORDER SERVICE] Error creating order:", error);
       console.error("[ORDER SERVICE] Error response:", error.response?.data);
       console.error("[ORDER SERVICE] Error status:", error.response?.status);
+      throw error;
+    }
+  },
+
+  /**
+   * Get scheduled deliveries for a specific date
+   */
+  async getScheduledDeliveries(
+    fecha: string,
+    page: number = 1,
+    limit: number = 20
+  ): Promise<ScheduledDeliveriesResponse> {
+    try {
+      const fullUrl = buildUrl("/pedidos/entregas-programadas");
+      console.log("[ORDER SERVICE] Fetching scheduled deliveries:", fullUrl);
+      console.log("[ORDER SERVICE] With params:", { fecha, page, limit });
+
+      const response = await axios.get<ScheduledDeliveriesResponse>(fullUrl, {
+        params: {
+          fecha,
+          page,
+          limit,
+        },
+      });
+
+      console.log("[ORDER SERVICE] Scheduled deliveries received successfully");
+      return response.data;
+    } catch (error: any) {
+      console.error(
+        "[ORDER SERVICE] Error fetching scheduled deliveries:",
+        error
+      );
+      console.error("[ORDER SERVICE] Error response:", error.response);
+      console.error("[ORDER SERVICE] Error message:", error.message);
       throw error;
     }
   },

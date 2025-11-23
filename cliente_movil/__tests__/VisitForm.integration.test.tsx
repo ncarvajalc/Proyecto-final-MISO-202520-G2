@@ -3,17 +3,21 @@ import { fireEvent, render } from "@testing-library/react-native";
 import { VisitForm } from "../src/modules/visitas/components/VisitForm";
 import { VisitCreate } from "../src/types/visit";
 
+// Mock multimedia utilities
+jest.mock("../src/utils/multimediaUtils", () => ({
+  takePhoto: jest.fn(),
+  recordVideo: jest.fn(),
+  pickImage: jest.fn(),
+  pickVideo: jest.fn(),
+}));
+
 const fixedNow = new Date("2024-11-20T10:00:00.000Z");
 const mockSelectedExitDate = new Date("2024-11-20T12:45:00.000Z");
 
 jest.mock("@react-native-community/datetimepicker", () => {
   const React = require("react");
 
-  return ({
-    onChange,
-  }: {
-    onChange: (event: unknown, date?: Date) => void;
-  }) => {
+  return ({ onChange }: { onChange: (event: unknown, date?: Date) => void }) => {
     const notifiedRef = React.useRef(false);
 
     React.useEffect(() => {
@@ -42,11 +46,7 @@ describe("VisitForm", () => {
     const onSubmit = jest.fn();
 
     const { getByPlaceholderText, getByText } = render(
-      <VisitForm
-        onSubmit={onSubmit}
-        onCancel={jest.fn()}
-        initialClientName="Cliente Demo"
-      />
+      <VisitForm onSubmit={onSubmit} onCancel={jest.fn()} initialClientName="Cliente Demo" />
     );
 
     fireEvent.changeText(

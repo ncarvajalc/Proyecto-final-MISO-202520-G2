@@ -12,6 +12,7 @@
     "test:unit": "jest --selectProjects unit",
     "test:integration": "jest --selectProjects integration",
     "test:functional": "jest --selectProjects functional",
+    "test:acceptance": "jest --selectProjects acceptance",
     "test:e2e": "jest --selectProjects e2e"
   },
   "dependencies": {
@@ -23,7 +24,10 @@
     "@react-navigation/stack": "^7.4.10",
     "axios": "^1.13.0",
     "expo": "~54.0.13",
+    "expo-av": "~16.0.7",
     "expo-document-picker": "~14.0.7",
+    "expo-image-manipulator": "~14.0.7",
+    "expo-image-picker": "~17.0.8",
     "expo-location": "^19.0.7",
     "expo-status-bar": "~3.0.8",
     "react": "19.1.0",

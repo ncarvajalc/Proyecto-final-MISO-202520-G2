@@ -1,15 +1,9 @@
 import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-} from "react-native";
+import { View, Text, StyleSheet, FlatList, TouchableOpacity } from "react-native";
 import { Ruta } from "../../../types/route";
 import routesService from "../../../services/routesService";
 import { useAuth } from "../../../contexts/auth-hooks";
-import * as Location from "expo-location";
+import * as Location from 'expo-location';
 
 /**
  * Componente para mostrar la lista de Rutas del día.
@@ -36,11 +30,10 @@ export const RutasScreen: React.FC = () => {
 
         // 1. Solicitar permiso para acceder a la ubicación
         const { status } = await Location.requestForegroundPermissionsAsync();
-
-        if (status !== "granted") {
+        
+        if (status !== 'granted') {
           // El usuario denegó el permiso
-          const errorMsg =
-            "El permiso de ubicación es necesario para calcular las rutas.";
+          const errorMsg = "El permiso de ubicación es necesario para calcular las rutas.";
           console.warn(errorMsg);
           if (mounted) setError(errorMsg);
           return; // Detiene la ejecución de load
@@ -50,7 +43,7 @@ export const RutasScreen: React.FC = () => {
         // Usamos una precisión 'Balanced' para un buen equilibrio entre velocidad y precisión.
         // Cambia a Location.Accuracy.High si necesitas precisión GPS (es más lento).
         const location = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Balanced,
+          accuracy: Location.Accuracy.Balanced, 
         });
 
         const { latitude, longitude } = location.coords;
@@ -60,20 +53,20 @@ export const RutasScreen: React.FC = () => {
 
         // 3. Llamar al servicio con la ubicación
         const salespersonId = user?.id ?? "";
-
+        
         // Asumimos que tu servicio AHORA acepta latitud y longitud
         const data = await routesService.getRoutesBySalesperson(
           salespersonId,
           latitude,
           longitude
         );
-
+        
         if (mounted) setRoutes(data);
+
       } catch (err) {
         // Este catch ahora captura errores de ubicación O del servicio
         console.warn("RutasScreen: failed to load", err);
-        const errorMsg =
-          err instanceof Error ? err.message : "Error al cargar rutas";
+        const errorMsg = (err instanceof Error) ? err.message : "Error al cargar rutas";
         if (mounted) setError(errorMsg);
       } finally {
         if (mounted) setLoading(false);
@@ -99,16 +92,14 @@ export const RutasScreen: React.FC = () => {
       <View style={styles.cardHeader}>
         <Text style={styles.entityName}>{item.nombreEntidad}</Text>
       </View>
-      <Text style={styles.entityDetail}>
-        {item.tiempo} - {item.distancia}
-      </Text>
+      <Text style={styles.entityDetail}>{item.tiempo} - {item.distancia}</Text>
       <Text style={styles.entityDetail}>{item.direccion}</Text>
       <Text style={styles.locationDetail}>
-        {item.ciudad}, {item.pais}
+         {item.ciudad}, {item.pais}
       </Text>
     </TouchableOpacity>
   );
-
+  
   /**
    * Renderiza el componente a mostrar cuando la lista está vacía.
    */
@@ -146,10 +137,11 @@ export const RutasScreen: React.FC = () => {
   );
 };
 
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8fafc",
+    backgroundColor: "#f8fafc", 
   },
   header: {
     backgroundColor: "#ffffff",
@@ -160,18 +152,18 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#0f172a",
+    color: "#0f172a", 
   },
   listContent: {
     padding: 16,
-    flexGrow: 1,
+    flexGrow: 1, 
   },
   rutaCard: {
     backgroundColor: "#ffffff",
     borderRadius: 8,
     padding: 16,
     marginBottom: 12,
-    borderLeftWidth: 5,
+    borderLeftWidth: 5, 
     borderLeftColor: "#0369A1",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },

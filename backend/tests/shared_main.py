@@ -4,13 +4,54 @@ from __future__ import annotations
 
 import importlib
 import sys
+from pathlib import Path
 from types import ModuleType
+from typing import Optional
 
 from backend.test_client import TestClient
 
 
-def reload_main(module_path: str = "app.main") -> ModuleType:
+def _normalize_root(package_root: Optional[Path | str]) -> Optional[Path]:
+    if package_root is None:
+        return None
+    return Path(package_root)
+
+
+def _prepare_package_root(package_root: Optional[Path]) -> None:
+    if package_root is None:
+        return
+
+    root_str = str(package_root)
+    if root_str in sys.path:
+        sys.path.remove(root_str)
+    sys.path.insert(0, root_str)
+
+    removed_any = False
+    for name, module in list(sys.modules.items()):
+        if name == "app" or name.startswith("app."):
+            module_file = getattr(module, "__file__", "")
+            if not module_file or root_str not in module_file:
+                sys.modules.pop(name)
+                removed_any = True
+
+    if removed_any:
+        try:
+            from sqlalchemy.orm import registry as sa_registry  # type: ignore
+            from sqlmodel import SQLModel  # type: ignore
+        except ModuleNotFoundError:
+            return
+
+        SQLModel.metadata.clear()
+        SQLModel._sa_registry = sa_registry(metadata=SQLModel.metadata)  # type: ignore[attr-defined]
+
+
+def reload_main(
+    module_path: str = "app.main", *, package_root: Optional[Path | str] = None
+) -> ModuleType:
     """Reload and return the module containing the FastAPI application."""
+
+    normalized_root = _normalize_root(package_root)
+    _prepare_package_root(normalized_root)
 
     module = sys.modules.get(module_path)
     if module is None:
@@ -20,10 +61,16 @@ def reload_main(module_path: str = "app.main") -> ModuleType:
     return module
 
 
-def create_test_client(target: ModuleType | str = "app.main") -> TestClient:
+def create_test_client(
+    target: ModuleType | str = "app.main", *, package_root: Optional[Path | str] = None
+) -> TestClient:
     """Create a :class:`TestClient` from an app module or module path."""
 
-    module = reload_main(target) if isinstance(target, str) else target
+    module = (
+        reload_main(target, package_root=package_root)
+        if isinstance(target, str)
+        else target
+    )
     return TestClient(module.app)
 
 

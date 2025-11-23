@@ -60,3 +60,10 @@ class InstitutionalContactClientResponse(BaseModel):
     page: int
     limit: int
     total_pages: int
+
+
+class TaxIdVerificationResponse(BaseModel):
+    """Schema returned by the tax identification verification endpoint."""
+
+    is_valid: bool
+    message: Optional[str] = None

@@ -11,6 +11,13 @@ from app.modules.reports.models import InformeComercial
 from app.modules.salespeople.models.salespeople_model import Salespeople, SalesPlan
 
 
+@pytest.fixture(autouse=True)
+def _clear_informes(db_session):
+    db_session.query(InformeComercial).delete()
+    db_session.query(SalesPlan).delete()
+    db_session.commit()
+
+
 def test_create_informe_persists_and_maps_response(db_session, fake: Faker):
     """Test that creating an informe persists to database and returns correct schema."""
     nombre = fake.catch_phrase()

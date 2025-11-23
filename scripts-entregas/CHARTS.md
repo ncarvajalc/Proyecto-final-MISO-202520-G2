@@ -1,25 +1,40 @@
 # Gráficas del proyecto no generadas por Jira - Proyecto Final MISO 202520 G2
 
+<<<<<<< HEAD
+**Última actualización:** 2025-11-22 15:32:54 UTC
+=======
 **Última actualización:** 2025-10-26 20:33:45 UTC
+>>>>>>> main
 
 ## Resumen de métricas del proyecto
 
 ### Business value chart
+<<<<<<< HEAD
+- **Valor total:** 100.0 / 100 puntos (100%)
+- **Historias completadas:** 28
+- **Valor restante:** 0.0 puntos
+=======
 - **Valor total:** 36.0 / 100 puntos (36%)
 - **Historias completadas:** 13
 - **Valor restante:** 64.0 puntos
+>>>>>>> main
 
 ### Velocity chart
 - **Semanas registradas:** 7
 - **Total planeado:** 110.0 puntos de historia
+<<<<<<< HEAD
+- **Total completado:** 110.0 puntos de historia
+- **Velocidad promedio:** 15.7 puntos/semana
+=======
 - **Total completado:** 52.0 puntos de historia
 - **Velocidad promedio:** 7.4 puntos/semana
+>>>>>>> main
 
 ### Release burndown chart
 - **Alcance inicial:** 110 puntos de historia
-- **Restante:** 78 puntos de historia
-- **Completado:** 32 puntos de historia
-- **Sprints registrados:** 2
+- **Restante:** 0 puntos de historia
+- **Completado:** 110 puntos de historia
+- **Sprints registrados:** 4
 
 ---
 
@@ -84,7 +99,38 @@ Puntos de historia restantes al inicio de cada sprint vs burndown ideal.
 - **HUP-011** - 2025-10-23
 - **HUP-009** - 2025-10-25
 - **HUP-010** - 2025-10-25
+<<<<<<< HEAD
+
+### Semana 4
+
 - **HUP-014** - 2025-10-26
+- **HUP-012** - 2025-11-01
+- **HUP-015** - 2025-11-01
+- **HUP-016** - 2025-11-01
+- **HUP-013** - 2025-11-01
+
+### Semana 5
+
+- **HUP-017** - 2025-11-05
+- **ASR-19** - 2025-11-07
+- **HUP-019** - 2025-11-09
+
+### Semana 6
+
+- **HUP-018** - 2025-11-12
+- **HUP-022** - 2025-11-12
+- **HUP-021** - 2025-11-12
+- **HUP-020** - 2025-11-14
+- **HUP-023** - 2025-11-15
+
+### Semana 7
+
+- **HUP-024** - 2025-11-19
+- **ASR-001** - 2025-11-20
+- **ASR-12** - 2025-11-22
+=======
+- **HUP-014** - 2025-10-26
+>>>>>>> main
 
 
 ---

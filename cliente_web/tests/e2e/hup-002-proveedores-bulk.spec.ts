@@ -320,8 +320,12 @@ test.describe.serial("HUP-002 Registro masivo de proveedores", () => {
     const afterTotal = beforeSnapshot.total + created.length;
     const lastPage = Math.max(1, Math.ceil(afterTotal / ITEMS_PER_PAGE));
 
+<<<<<<< HEAD
+    await goToPage(page, 1, lastPage);
+=======
     let currentPage = 1;
     currentPage = await goToPage(page, currentPage, lastPage);
+>>>>>>> main
 
     for (const supplier of created) {
       await ensureRowVisible(page, supplier.nombre);
@@ -382,8 +386,12 @@ test.describe.serial("HUP-002 Registro masivo de proveedores", () => {
     const afterTotal = beforeSnapshot.total + created.length;
     const lastPage = Math.max(1, Math.ceil(afterTotal / ITEMS_PER_PAGE));
 
+<<<<<<< HEAD
+    await goToPage(page, 1, lastPage);
+=======
     let currentPage = 1;
     currentPage = await goToPage(page, currentPage, lastPage);
+>>>>>>> main
     for (const supplier of created) {
       await ensureRowVisible(page, supplier.nombre);
     }
@@ -498,8 +506,12 @@ test.describe.serial("HUP-002 Registro masivo de proveedores", () => {
     const afterTotal = beforeSnapshot.total + created.length;
     const lastPage = Math.max(1, Math.ceil(afterTotal / ITEMS_PER_PAGE));
 
+<<<<<<< HEAD
+    await goToPage(page, 1, lastPage);
+=======
     let currentPage = 1;
     currentPage = await goToPage(page, currentPage, lastPage);
+>>>>>>> main
 
     await ensureRowVisible(page, payload.nombre);
     const row = page.getByRole("row", { name: new RegExp(payload.nombre) });

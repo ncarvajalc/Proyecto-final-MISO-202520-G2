@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Logo } from "../components/Logo";
 import { RootStackParamList } from "../../../navigation/RootNavigator";
 import { useAuth } from "../../../contexts/auth-hooks";
@@ -20,6 +21,7 @@ type LoginScreenNavigationProp = StackNavigationProp<RootStackParamList, "Login"
 
 export const LoginScreen: React.FC = () => {
   const navigation = useNavigation<LoginScreenNavigationProp>();
+  const insets = useSafeAreaInsets();
   const { login: authLogin } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -67,7 +69,10 @@ export const LoginScreen: React.FC = () => {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 16 },
+        ]}
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.formContainer}>
@@ -157,7 +162,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     justifyContent: "center",
-    padding: 16,
+    paddingHorizontal: 16,
   },
   formContainer: {
     width: "100%",

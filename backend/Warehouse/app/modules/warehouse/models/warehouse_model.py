@@ -14,9 +14,7 @@ class WarehouseV1(Base):
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
 
     # Relación con ProductInventory
-    inventory = relationship(
-        "ProductInventory", back_populates="warehouse", cascade="all, delete-orphan"
-    )
+    inventory = relationship("ProductInventory", back_populates="warehouse", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Warehouse(id={self.id}, nombre={self.nombre}, ubicacion={self.ubicacion})>"

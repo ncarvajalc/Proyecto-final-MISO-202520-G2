@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List,Optional
 
 from sqlalchemy.orm import Session
 
@@ -95,10 +95,8 @@ def delete_institutional_client(db: Session, client_id: str):
     db.commit()
     return db_client
 
-
 def list_clients_by_territories_paginated(
-    db: Session, territories: List[str], skip: int, limit: int
-):
+    db: Session, territories: List[str], skip: int, limit: int):
 
     # Si la lista está vacía, no devolvemos nada
     if not territories:
@@ -116,10 +114,8 @@ def list_clients_by_territories_paginated(
 
     return {"items": items, "total": total}
 
-
 def list_clients_by_list_id_paginated(
-    db: Session, territories: List[str], skip: int, limit: int
-):
+    db: Session, territories: List[str], skip: int, limit: int):
 
     # Si la lista está vacía, no devolvemos nada
     if not territories:
